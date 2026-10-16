@@ -8,6 +8,7 @@
 
 - 网络为 **25 → 50 → 1**，保持一个隐藏层。
 - **25 个明确特征 + 25 个自由学习特征**，全部 1,351 个参数经过实际训练。
+- 隐藏神经元以固定顺序混排，明确特征分散在自由学习特征之间；输入权重、偏置、输出连接与检测目标同步重排，判断结果不变。
 - 点击居中／左上／右下 3×3、左上／右下 4×4、外圈 5×5 的缩略图，查看四条边的真实响应与输出贡献。
 - 使用缺边、内部多点或自由绘画，对比局部特征与整体判断的关系。
 - 支持神经元详情、全部贡献求和、模型对照、预设导入导出和本地状态恢复。
@@ -25,6 +26,7 @@
 ```sh
 python -m pip install -r llm/scripts/requirements.txt
 python llm/scripts/train_partial_features.py
+python llm/scripts/shuffle_partial_features.py
 python llm/scripts/bundle_composition.py
 node llm/tests/partial-features.test.cjs
 node llm/tests/composition.test.cjs

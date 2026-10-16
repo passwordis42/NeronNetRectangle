@@ -3,6 +3,7 @@
 function createSquareCompositionTeaching(artifact, ID, name) {
   const shared = createSquareTrainedTeaching(artifact, ID, name);
   const features = artifact.featureDefinitions;
+  const featureByNeuron = new Map(features.map(feature => [feature.neuronIndex, feature]));
   const examples = artifact.compositionExamples;
   const pairs = artifact.featurePairs || [];
   const allFeatures = pairs.length > 0;
@@ -14,7 +15,7 @@ function createSquareCompositionTeaching(artifact, ID, name) {
   const number = value => Math.abs(value) > 0 && Math.abs(value) < .0001 ? value.toExponential(3) : value.toFixed(4);
   const signed = value => `${value > 0 ? "+" : ""}${number(value)}`;
   const preciseScore = value => value !== 1 && Math.abs(value - 1) < .005 ? value.toPrecision(12) : number(value);
-  const featureName = i => `H1-${i + 1}${features.find(f => f.neuronIndex === i) ? ` · ${features.find(f => f.neuronIndex === i).name}` : " · 自由学习特征"}`;
+  const featureName = i => `H1-${i + 1}${featureByNeuron.has(i) ? ` · ${featureByNeuron.get(i).name}` : " · 自由学习特征"}`;
   const exampleAt = index => examples[Number.isInteger(index) && index >= 0 && index < examples.length ? index : 0];
   const pairAt = index => pairs[Number.isInteger(index) && index >= 0 && index < pairs.length ? index : 20];
 
@@ -26,7 +27,7 @@ function createSquareCompositionTeaching(artifact, ID, name) {
   }
 
   function renderFeatureTarget(index, response) {
-    const feature = features.find(f => f.neuronIndex === index);
+    const feature = featureByNeuron.get(index);
     const target = shared.renderFeatureTarget(index, response);
     if (!allFeatures || !feature) return target;
     const explanation = feature.kind === "skeleton"
@@ -60,7 +61,7 @@ function createSquareCompositionTeaching(artifact, ID, name) {
 
   function compositionMap(example, responses, current = false) {
     const cells = Array.from({ length: 25 }, (_, p) => {
-      const owners = example.featureIndices.map((i, side) => ({ i, side })).filter(({ i }) => features[i].on.includes(p));
+      const owners = example.featureIndices.map((i, side) => ({ i, side })).filter(({ i }) => featureByNeuron.get(i).on.includes(p));
       const detected = owners.filter(({ i }) => !current || responses[i] > 0);
       let style = "", label = "";
       if (detected.length) {
@@ -80,7 +81,7 @@ function createSquareCompositionTeaching(artifact, ID, name) {
     const value = forward.activations[1][index];
     const weight = state.model.layers[1].weights[0][index];
     const contribution = value * weight;
-    const feature = features.find(f => f.neuronIndex === index);
+    const feature = featureByNeuron.get(index);
     const selected = state.selectedNeuron?.layerIndex === 1 && state.selectedNeuron.neuronIndex === index;
     const color = side === null ? feature?.kind === "defect" ? "#b53452" : "#166c51" : colors[side];
     return `<button type="button" class="trained-feature composition-feature ${selected ? "is-selected" : ""}" style="--edge-color:${color}" data-teaching-layer="1" data-teaching-neuron="${index}" aria-pressed="${selected}" aria-label="查看${featureName(index)}">
@@ -158,24 +159,28 @@ function createSquareCompositionTeaching(artifact, ID, name) {
       <details class="trained-contributions" data-trained-detail="teachingOutputOpen" ${state.teachingOutputOpen ? "open" : ""}><summary>核对全部 ${count} 项输出贡献</summary><div class="trained-table-scroll"><table><thead><tr><th>特征</th><th>响应</th><th>输出权重</th><th>贡献</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th colspan="3">全部贡献之和</th><td>${number(focusSum + otherSum)}</td></tr><tr><th colspan="3">偏置</th><td>${signed(bias)}</td></tr><tr><th colspan="3">最终得分</th><td>${preciseScore(score)}</td></tr></tfoot></table></div><p class="hint">使用完整精度计算，显示值保留四位小数。绿色底行是当前例子的四条边。</p></details>
       ${allFeatures ? renderPair(state, forward) + renderCatalog(state, forward) : `<details class="trained-contributions" data-trained-detail="teachingFirstFeaturesOpen" ${state.teachingFirstFeaturesOpen ? "open" : ""}><summary>其余 ${count - focus.size} 个神经元 · ${features.filter(f => !focus.has(f.neuronIndex)).length} 个明确特征与 ${freeCount} 个自由学习特征</summary><p class="hint">这些特征同样参与最终判断。自由学习特征的小图展示输入权重，不指定形状含义；正负贡献均保留。</p><div class="trained-features">${otherCards}</div></details>`}
       <details class="trained-provenance" data-trained-detail="teachingTrainingOpen" ${state.teachingTrainingOpen ? "open" : ""}><summary>训练来源与验证结果</summary>
-        ${allFeatures ? `<p>人工指定全部 ${count} 个检测目标。前 13 个局部特征从旧版组合模型初始化；新增 60 个检测器使用结构化初始化，输出连接从随机幅度开始训练。Adam 种子 ${artifact.training.seed}，训练 ${artifact.training.steps.toLocaleString("zh-CN")} 步。</p><p>总计 ${artifact.training.totalParameters.toLocaleString("zh-CN")} 个参数，其中 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个有效连接与偏置参与训练；${artifact.training.fixedZeroConnections} 个非限定位置的输入连接固定为零。须亮位置权重为正，须空位置为负；轮廓支持项输出权重为正，缺角检查输出权重为负。这些结构约束用于保证特征含义清楚。</p>` : `<p>${expandedComposition ? "从旧版组合模型初始化前 13 个局部特征，为新增 12 条边设置局部目标" : "从原单层特征引导模型初始化，为新增边设置局部目标"}，再用 Adam 训练全部 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个参数。固定种子 ${artifact.training.seed}，共 ${artifact.training.steps.toLocaleString("zh-CN")} 步；${features.length} 个明确特征与 ${freeCount} 个自由学习特征共同学习。没有增加隐藏层。自由学习神经元不指定形状目标，不使用完整轮廓／缺角模板。</p>`}
+        ${allFeatures ? `<p>人工指定全部 ${count} 个检测目标。前 13 个局部特征从旧版组合模型初始化；新增 60 个检测器使用结构化初始化，输出连接从随机幅度开始训练。Adam 种子 ${artifact.training.seed}，训练 ${artifact.training.steps.toLocaleString("zh-CN")} 步。</p><p>总计 ${artifact.training.totalParameters.toLocaleString("zh-CN")} 个参数，其中 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个有效连接与偏置参与训练；${artifact.training.fixedZeroConnections} 个非限定位置的输入连接固定为零。须亮位置权重为正，须空位置为负；轮廓支持项输出权重为正，缺角检查输出权重为负。这些结构约束用于保证特征含义清楚。</p>` : `<p>${expandedComposition ? "训练时从旧版组合模型初始化 13 个局部特征，为新增 12 条边设置局部目标" : "从原单层特征引导模型初始化，为新增边设置局部目标"}，再用 Adam 训练全部 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个参数。固定种子 ${artifact.training.seed}，共 ${artifact.training.steps.toLocaleString("zh-CN")} 步；${features.length} 个明确特征与 ${freeCount} 个自由学习特征共同学习。没有增加隐藏层。自由学习神经元不指定形状目标，不使用完整轮廓／缺角模板。</p>`}
         <p>正式六位小数模型已穷举 ${artifact.verification.inputCount.toLocaleString("zh-CN")} 种黑白输入，误判 ${artifact.verification.errors}。30 个正例最低分 ${number(artifact.verification.closestPositive.score)}，其他图案最高分 ${number(artifact.verification.closestNegative.score)}。</p>
         <p>${features.length} 个检测器通过全部目标模式及外围像素极值验证：满足目标时响应均为正，不满足时均为负。${examples.length} 个标准例子的每条边贡献至少 0.1。</p>
         <p>离线干预验证：将四条边的响应置零，${artifact.compositionVerification.examples.map(e => `${e.name}得分下降 ${number(e.scoreDrop)}`).join("；")}。该干预不改变页面实际计算。</p>
         <p>范围：5×5 黑白画布中恰好一个边长 2～5 的轴对齐正方形轮廓，内部和外部没有多余像素。灰度与旋转图形不在此验证范围。</p>
+        ${artifact.neuronOrder ? `<p>训练完成后以固定顺序重排隐藏神经元，让明确特征与自由学习特征交错分布。每个神经元的输入权重、偏置和输出连接一起移动，检测目标与判断不变。编号不代表学习顺序。</p>` : ""}
       </details>`;
   }
 
   return { ...shared, composition: true, allFeatures, expandedComposition, drawOnExampleSelect: expandedComposition, examples, examplePixels, renderView, renderFeatureTarget,
-    features, pairs, pairPixels,
+    features, pairs, pairPixels, neuronOrder: artifact.neuronOrder || null,
     provenance: () => JSON.parse(JSON.stringify({ training: artifact.training, verification: artifact.verification,
       modelSha256: artifact.modelSha256, featureDefinitions: features, featureVerification: artifact.featureVerification,
       compositionExamples: examples, compositionVerification: artifact.compositionVerification,
+      ...(artifact.neuronOrder ? { neuronOrder: artifact.neuronOrder, permutationVerification: artifact.permutationVerification } : {}),
       ...(allFeatures ? { featurePairs: pairs, pairVerification: artifact.pairVerification } : {}) })) };
 }
 const SquareCompositionTeaching = createSquareCompositionTeaching(SquareCompositionModelData,
   "square-trained-composition-50-v1", "单隐藏层组合特征预设（50 个神经元）");
 const SquareAllFeaturesTeaching = createSquareCompositionTeaching(SquareAllFeaturesModelData,
   "square-trained-composition-73-v2", "单隐藏层全特征可解释预设（73 个神经元）");
-const SquarePartialFeaturesTeaching = createSquareCompositionTeaching(SquarePartialFeaturesModelData,
+const SquarePartialFeaturesLegacyTeaching = createSquareCompositionTeaching(SquarePartialFeaturesModelData,
   "square-trained-partial-50-v3", "单隐藏层部分解释预设（6 个方框，25 个明确特征 + 25 个自由学习特征）");
+const SquarePartialFeaturesTeaching = createSquareCompositionTeaching(SquareShuffledPartialModelData,
+  "square-trained-partial-50-v4", "单隐藏层部分解释预设（6 个方框，明确特征与自由学习特征混排）");

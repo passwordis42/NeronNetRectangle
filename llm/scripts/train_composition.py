@@ -146,6 +146,7 @@ def verify_features(params, features=FEATURES):
 
 def verify_compositions(params, features=FEATURES, examples=EXAMPLES):
     example_x = np.array([[float(p in e["boundary"]) for p in range(25)] for e in examples])
+    feature_by_index = {f["neuronIndex"]: f for f in features}
     h, scores = forward(example_x, params)
     results = []
     for k, e in enumerate(examples):
@@ -154,7 +155,7 @@ def verify_compositions(params, features=FEATURES, examples=EXAMPLES):
         ablated = h[k].copy()
         ablated[indices] = 0
         ablated_score = float(ablated @ params[2] + params[3][0])
-        union = sorted(set(p for i in indices for p in features[i]["on"]))
+        union = sorted(set(p for i in indices for p in feature_by_index[i]["on"]))
         passed = union == e["boundary"] and np.all(h[k, indices] > 0) and np.all(contributions >= .1) and scores[k] - ablated_score >= .4
         results.append(dict(name=e["name"], featureIndices=indices, contributions=contributions.tolist(),
                             score=float(scores[k]), ablatedScore=ablated_score, scoreDrop=float(scores[k] - ablated_score), passed=bool(passed)))
