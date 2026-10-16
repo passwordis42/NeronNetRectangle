@@ -1,0 +1,3411 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>RNN 循环语言网络模拟器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --nav: #0d1724;
+      --nav-2: #121f30;
+      --bg: #f3f6f8;
+      --paper: #ffffff;
+      --panel: #fbfcfd;
+      --ink: #17202a;
+      --muted: #64717f;
+      --line: #dce3ea;
+      --line-strong: #b9c4cf;
+      --teal: #00a2a8;
+      --teal-2: #0a8f86;
+      --blue: #1377d4;
+      --green: #12965f;
+      --red: #d94b4b;
+      --amber: #d88713;
+      --soft-teal: #e8fbfb;
+      --soft-blue: #edf6ff;
+      --soft-red: #fff0f0;
+      --shadow: 0 16px 40px rgba(14, 31, 53, 0.08);
+      --radius: 8px;
+      --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+      --sans: "Microsoft YaHei UI", "PingFang SC", "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      background: var(--bg);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      min-height: 32px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--ink);
+      padding: 6px 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, opacity 120ms ease;
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: #8d9aa8;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.46;
+      transform: none;
+    }
+
+    button.primary {
+      border-color: var(--teal);
+      background: linear-gradient(180deg, #08adb8, #04939a);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    button.blue {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #1684e6, #0c66bf);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    button.danger {
+      border-color: #ffd2d2;
+      background: #fff7f7;
+      color: #bb3434;
+    }
+
+    button.ghost {
+      border-color: rgba(255, 255, 255, 0.18);
+      background: transparent;
+      color: #edf6ff;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      min-height: 31px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 5px 8px;
+      outline: none;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(0, 162, 168, 0.13);
+    }
+
+    input[type="number"] { font-family: var(--mono); }
+
+    textarea {
+      resize: vertical;
+      min-height: 58px;
+      line-height: 1.45;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: var(--paper);
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f5f7f9;
+      color: #42505f;
+      font-weight: 700;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #0f5d72;
+    }
+
+    .icon {
+      width: 17px;
+      height: 17px;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .topbar {
+      height: 58px;
+      display: grid;
+      grid-template-columns: minmax(280px, 1fr) auto minmax(360px, 1fr);
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+      background: linear-gradient(180deg, var(--nav-2), var(--nav));
+      color: #f7fbff;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1;
+      font-weight: 800;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .menu-mark {
+      width: 27px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .menu-mark span {
+      display: block;
+      height: 2px;
+      background: #dce9f5;
+      border-radius: 2px;
+    }
+
+    .segmented {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      padding: 3px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .segmented button {
+      min-width: 104px;
+      border: 0;
+      background: transparent;
+      color: #d7e3ee;
+      font-weight: 700;
+    }
+
+    .segmented button.active {
+      background: linear-gradient(180deg, #10bfd0, #04949d);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .top-actions button {
+      min-width: 32px;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 324px minmax(720px, 1fr) 350px;
+      min-height: calc(100vh - 58px);
+    }
+
+    .sidebar,
+    .inspector {
+      background: #f7f9fb;
+      overflow: auto;
+      max-height: calc(100vh - 58px);
+      padding: 10px 8px;
+    }
+
+    .sidebar { border-right: 1px solid var(--line); }
+    .inspector { border-left: 1px solid var(--line); }
+
+    .workspace {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(420px, 1fr) auto;
+      background:
+        linear-gradient(90deg, rgba(13, 23, 36, 0.025) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(13, 23, 36, 0.025) 1px, transparent 1px),
+        #fff;
+      background-size: 28px 28px;
+      overflow: auto;
+      max-height: calc(100vh - 58px);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 1px 0 rgba(14, 31, 53, 0.02);
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      min-height: 39px;
+      padding: 9px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #f8fafc);
+    }
+
+    .panel-head h2,
+    .panel-head h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .panel-head h3 { font-size: 14px; }
+
+    .panel-body {
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .small-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .button-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .button-row button { flex: 1 1 auto; }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 33px;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #f9fbfc;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .toggle input {
+      width: 17px;
+      min-height: 17px;
+      accent-color: var(--teal);
+      box-shadow: none;
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      color: var(--muted);
+      background: #f9fbfc;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status.ok {
+      border-color: #bfead8;
+      background: #f1fff8;
+      color: #126b45;
+    }
+
+    .status.error {
+      border-color: #ffd0d0;
+      background: #fff4f4;
+      color: #b13434;
+    }
+
+    .status.warn {
+      border-color: #ffe2ad;
+      background: #fff9ec;
+      color: #9b5a00;
+    }
+
+    .table-scroll {
+      max-width: 100%;
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    .table-scroll table { min-width: max-content; }
+
+    .word-input,
+    .matrix-input {
+      width: 64px;
+      min-width: 64px;
+      padding: 4px 5px;
+      font-family: var(--mono);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .word-input {
+      font-family: var(--sans);
+      width: 44px;
+      min-width: 44px;
+    }
+
+    .layer-config {
+      display: grid;
+      grid-template-columns: 32px 1fr 1fr;
+      gap: 8px;
+      align-items: end;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfcfd;
+    }
+
+    .layer-config b {
+      align-self: center;
+      font-size: 13px;
+    }
+
+    .workspace-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px 11px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+      min-width: 720px;
+    }
+
+    .workspace-title {
+      min-width: 0;
+    }
+
+    .workspace-title h2 {
+      margin: 0 0 5px;
+      font-size: 17px;
+      line-height: 1.15;
+    }
+
+    .metrics {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .metric {
+      min-width: 82px;
+      display: grid;
+      gap: 2px;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      text-align: right;
+    }
+
+    .metric b {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .breakdown-controls {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 42px;
+      min-height: 78px;
+      padding: 16px 22px 6px;
+      min-width: 720px;
+    }
+
+    .step-command {
+      width: 260px;
+      min-height: 59px;
+      border-radius: 8px;
+      color: #fff;
+      display: grid;
+      gap: 3px;
+      place-items: center;
+      border: 0;
+      box-shadow: 0 12px 22px rgba(13, 23, 36, 0.14);
+      font-weight: 800;
+    }
+
+    .step-command span {
+      display: block;
+      font-weight: 500;
+      font-size: 12px;
+      opacity: 0.92;
+    }
+
+    .step-command.input { background: linear-gradient(180deg, #1385ee, #0870c9); }
+    .step-command.memory { background: linear-gradient(180deg, #14a96e, #0b8e5a); }
+    .step-command.train { background: linear-gradient(180deg, #f0a330, #d78310); }
+
+    .network-canvas {
+      position: relative;
+      min-width: 720px;
+      min-height: 460px;
+      padding: 24px 16px 30px;
+    }
+
+    .connections {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+      overflow: visible;
+    }
+
+    .layers {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 24px;
+      align-items: start;
+      min-height: 390px;
+    }
+
+    .input-memory-column {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+      justify-items: center;
+      min-width: 112px;
+    }
+
+    .input-memory-column .layer {
+      gap: 9px;
+      min-width: 112px;
+    }
+
+    .input-memory-column .layer + .layer {
+      padding-top: 12px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .input-memory-column .layer-title {
+      min-height: auto;
+      gap: 2px;
+    }
+
+    .input-memory-column .layer-title b {
+      font-size: 12px;
+    }
+
+    .input-memory-column .layer-title span,
+    .input-memory-column .layer-formula {
+      font-size: 11px;
+    }
+
+    .layer {
+      display: grid;
+      gap: 14px;
+      justify-items: center;
+      min-width: 86px;
+    }
+
+    .layer-title {
+      display: grid;
+      gap: 3px;
+      justify-items: center;
+      min-height: 54px;
+      text-align: center;
+    }
+
+    .layer-title b {
+      font-size: 13px;
+      line-height: 1.2;
+    }
+
+    .layer-title span,
+    .layer-formula {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.25;
+      font-family: var(--mono);
+    }
+
+    .node-stack {
+      display: grid;
+      gap: 8px;
+      align-content: center;
+    }
+
+    .node-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 39px;
+    }
+
+    .node-label {
+      min-width: 36px;
+      max-width: 74px;
+      color: #3f4d59;
+      font-size: 12px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      text-align: right;
+    }
+
+    .score-layer .node-label,
+    .probability-layer .node-label {
+      text-align: left;
+      min-width: 30px;
+    }
+
+    .node {
+      width: 55px;
+      height: 55px;
+      min-height: 55px;
+      padding: 0;
+      border-radius: 999px;
+      border: 1.5px solid #8bd3ad;
+      color: #19312c;
+      background: radial-gradient(circle at 30% 25%, #fff, #e7fff2);
+      box-shadow: 0 4px 12px rgba(14, 31, 53, 0.08);
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .node:hover {
+      transform: translateY(-1px);
+      border-color: var(--teal);
+    }
+
+    .node.selected {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(19, 119, 212, 0.13), 0 8px 18px rgba(14, 31, 53, 0.14);
+    }
+
+    .input-node {
+      border-color: #8fc6f7;
+      background: radial-gradient(circle at 30% 25%, #fff, #edf7ff);
+    }
+
+    .memory-node {
+      border-color: #c8b9ef;
+      background: radial-gradient(circle at 30% 25%, #fff, #f5f0ff);
+    }
+
+    .score-node {
+      width: 52px;
+      height: 30px;
+      min-height: 30px;
+      border-radius: 6px;
+      border-color: #c2cad2;
+      background: #fff;
+    }
+
+    .probability-node {
+      width: 66px;
+      height: 28px;
+      min-height: 28px;
+      border-radius: 6px;
+      border-color: #c7e5e5;
+      background: #f1ffff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .probability-node::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: calc(var(--probability, 0) * 100%);
+      background: rgba(0, 162, 168, 0.22);
+    }
+
+    .node-content {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      gap: 1px;
+      line-height: 1.15;
+    }
+
+    .node.has-gradient {
+      border-color: #f0a330;
+      box-shadow: 0 0 0 3px rgba(240, 163, 48, 0.16), 0 5px 14px rgba(14, 31, 53, 0.1);
+    }
+
+    .node-grad {
+      display: block;
+      color: #9b5a00;
+      font-size: 9px;
+      font-weight: 800;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .score-node .node-grad {
+      font-size: 8px;
+    }
+
+    .gradient-label {
+      fill: #9b5a00;
+    }
+
+    .current-token {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      background: var(--teal);
+      color: #fff;
+      font-weight: 800;
+      margin-left: 4px;
+      font-family: var(--sans);
+    }
+
+    .legend {
+      position: absolute;
+      left: 18px;
+      bottom: 10px;
+      display: flex;
+      gap: 18px;
+      color: var(--muted);
+      font-size: 11px;
+      z-index: 3;
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 6px 8px;
+    }
+
+    .legend p {
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-line {
+      width: 26px;
+      height: 2px;
+      display: inline-block;
+      background: var(--green);
+    }
+
+    .legend-line.red { background: var(--red); }
+    .legend-line.dashed { border-top: 2px dashed var(--blue); background: transparent; }
+
+    .timeline {
+      min-width: 720px;
+      padding: 12px 18px 15px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+    }
+
+    .timeline-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .timeline-head h3 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .time-cards {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      overflow-x: auto;
+      padding: 2px 2px 8px;
+    }
+
+    .time-card {
+      position: relative;
+      flex: 0 0 122px;
+      min-height: 112px;
+      display: grid;
+      gap: 5px;
+      justify-items: center;
+      align-content: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      transition: transform 120ms ease, border-color 120ms ease, opacity 120ms ease;
+      opacity: var(--fade, 1);
+    }
+
+    .time-card.active {
+      border-color: var(--teal);
+      color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(0, 162, 168, 0.1);
+    }
+
+    .time-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--teal);
+      z-index: 6;
+    }
+
+    .time-card b {
+      font-family: var(--mono);
+      color: inherit;
+    }
+
+    .time-token {
+      font-weight: 800;
+      color: var(--teal-2);
+    }
+
+    .vector-mini {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.35;
+      color: inherit;
+      white-space: pre;
+      text-align: right;
+    }
+
+    .time-arrow {
+      flex: 0 0 auto;
+      color: #98a3ad;
+      font-size: 32px;
+      line-height: 1;
+    }
+
+    .time-tooltip {
+      display: none;
+      position: absolute;
+      left: 50%;
+      bottom: calc(100% + 8px);
+      transform: translateX(-50%);
+      width: 320px;
+      max-width: 72vw;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      padding: 10px;
+      color: var(--ink);
+      font-size: 12px;
+      text-align: left;
+      line-height: 1.55;
+      z-index: 12;
+    }
+
+    .time-card:hover .time-tooltip { display: block; }
+
+    .kv {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 5px 8px;
+      align-items: baseline;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .kv b {
+      color: #3e4c5a;
+      font-family: var(--sans);
+    }
+
+    .mono {
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .pos { color: #098253; }
+    .neg { color: #c83d3d; }
+    .zero { color: #77828d; }
+
+    .chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 34px;
+      min-height: 24px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 3px 6px;
+      font-family: var(--mono);
+      font-size: 12px;
+      background: #fff;
+    }
+
+    .param-section {
+      display: grid;
+      gap: 8px;
+    }
+
+    .matrix-section {
+      display: grid;
+      gap: 8px;
+      padding-bottom: 12px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .matrix-section:last-child {
+      border-bottom: 0;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .formula-box {
+      display: grid;
+      gap: 7px;
+      padding: 9px;
+      border: 1px solid #d9e8f4;
+      border-radius: 6px;
+      background: #f7fbff;
+      color: #405363;
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .formula-box code {
+      color: #185e9f;
+      font-family: var(--mono);
+    }
+
+    .backprop-step {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      overflow: hidden;
+    }
+
+    .backprop-step summary {
+      cursor: pointer;
+      padding: 8px 9px;
+      background: #f8fafc;
+      color: var(--ink);
+      font-weight: 800;
+      font-size: 12px;
+    }
+
+    .backprop-step-body {
+      display: grid;
+      gap: 8px;
+      padding: 9px;
+    }
+
+    .summary-table td:last-child {
+      font-family: var(--mono);
+      text-align: left;
+    }
+
+    .chart {
+      width: 100%;
+      height: 150px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .log {
+      display: grid;
+      gap: 5px;
+      max-height: 110px;
+      overflow: auto;
+    }
+
+    .log-line {
+      padding: 6px 7px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fbfcfd;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .file-input { display: none; }
+
+    @media (max-width: 1180px) {
+      .topbar {
+        grid-template-columns: 1fr;
+        height: auto;
+        width: 100vw;
+        max-width: 100vw;
+        padding: 10px 12px;
+      }
+
+      .top-actions,
+      .segmented {
+        justify-content: flex-start;
+      }
+
+      .top-actions {
+        display: grid;
+        grid-template-columns: repeat(3, max-content);
+        width: 100%;
+        max-width: calc(100vw - 24px);
+        min-width: 0;
+        justify-content: start;
+      }
+
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar,
+      .inspector,
+      .workspace {
+        max-height: none;
+        overflow: visible;
+      }
+
+      .sidebar,
+      .inspector {
+        border: 0;
+        border-bottom: 1px solid var(--line);
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="menu-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <h1>RNN 循环语言网络模拟器</h1>
+    </div>
+    <div class="segmented" aria-label="模式">
+      <button id="normalModeButton" type="button" data-mode="normal">普通模式</button>
+      <button id="breakdownModeButton" type="button" data-mode="breakdown">拆解模式</button>
+    </div>
+    <div class="top-actions">
+      <button id="topTrainOneButton" class="ghost" type="button" title="训练一步">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"></path></svg>
+        训练一步
+      </button>
+      <button id="topTrainManyButton" class="ghost" type="button" title="连续训练">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h8V3z" fill="currentColor"></path></svg>
+        连续训练
+      </button>
+      <button id="resetButton" class="ghost" type="button" title="重置">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5V2L7 7l5 5V9a5 5 0 1 1-4.6 7H5.3A7 7 0 1 0 12 5z" fill="currentColor"></path></svg>
+        重置
+      </button>
+      <button id="exportButton" class="ghost" type="button" title="保存参数">保存</button>
+      <button id="importButton" class="ghost" type="button" title="加载参数">加载</button>
+      <input id="importInput" class="file-input" type="file" accept="application/json,.json">
+    </div>
+  </header>
+
+  <main class="app">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>词表</h2>
+          <span class="hint" id="vocabSizeHint">3 维词向量</span>
+        </div>
+        <div class="panel-body">
+          <label>
+            默认语料 / 批量生成
+            <textarea id="corpusInput" spellcheck="false"></textarea>
+          </label>
+          <div class="button-row">
+            <button id="buildVocabButton" type="button">从文本生成词表</button>
+            <button id="sortVocabButton" type="button">按当前顺序</button>
+          </div>
+          <div class="grid-2">
+            <label>
+              添加词表文字
+              <input id="addTokenInput" maxlength="24" placeholder="输入一个或多个字">
+            </label>
+            <label>
+              输出维度
+              <input id="outputDimInput" type="number" disabled>
+            </label>
+          </div>
+          <button id="addTokenButton" type="button">+ 添加到词表</button>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>ID</th><th>字</th><th>E1</th><th>E2</th><th>E3</th><th></th></tr>
+              </thead>
+              <tbody id="vocabBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>输入序列</h2>
+          <span class="hint">循环预测下一个 token</span>
+        </div>
+        <div class="panel-body">
+          <label>
+            训练文本
+            <textarea id="sequenceInput" spellcheck="false"></textarea>
+          </label>
+          <div class="grid-2">
+            <label>
+              当前时间步
+              <input id="timeIndexInput" type="number" min="0" step="1">
+            </label>
+            <label>
+              循环到这里输出
+              <select id="outputStopSelect"></select>
+            </label>
+          </div>
+          <label>
+            输出目标（预测下一个字）
+            <input id="targetPreviewInput" disabled>
+          </label>
+          <div class="status" id="sequenceStatus"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>网络结构</h2>
+          <span class="hint">真实 RNN：6 → 3 → V</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid-2">
+            <label>
+              隐藏层层数
+              <input id="hiddenCountInput" type="number" min="1" max="5" step="1">
+            </label>
+            <label>
+              最后记忆维度
+              <input id="memoryDimInput" type="number" disabled value="3">
+            </label>
+          </div>
+          <label class="toggle">
+            <span>权重共享：输出层使用词表向量 E</span>
+            <input id="shareOutputInput" type="checkbox">
+          </label>
+          <div id="layerConfigs"></div>
+          <div class="status" id="validationStatus"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>激活函数</h2>
+          <span class="hint">内置或自定义</span>
+        </div>
+        <div class="panel-body">
+          <label>
+            全局激活函数
+            <select id="activationSelect"></select>
+          </label>
+          <label>
+            自定义 f(x)
+            <input id="customActivationInput" spellcheck="false" value="Math.tanh(x)">
+          </label>
+          <div class="hint">自定义激活会用数值导数训练，可使用 <code>x</code> 与 <code>Math</code>。</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>损失函数</h2>
+          <span class="hint">输出层目标</span>
+        </div>
+        <div class="panel-body">
+          <label>
+            损失函数
+            <select id="lossSelect"></select>
+          </label>
+          <label>
+            自定义 loss(y,t,p,k,V)
+            <input id="customLossInput" spellcheck="false" value="-t * Math.log(Math.max(p, 1e-12))">
+          </label>
+          <div class="hint">自定义损失按输出项求平均，并用数值梯度计算 <code>∂L/∂score</code>。</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>训练控制</h2>
+          <span class="hint">在线训练</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid-2">
+            <label>
+              学习率
+              <input id="learningRateInput" type="number" min="0.0001" max="2" step="0.001">
+            </label>
+            <label>
+              训练步数
+              <input id="stepsInput" type="number" min="1" max="20000" step="1">
+            </label>
+          </div>
+          <div class="button-row">
+            <button id="trainManyButton" class="primary" type="button">连续训练</button>
+            <button id="trainOneButton" type="button">单步训练</button>
+          </div>
+          <div class="status" id="trainStatus"></div>
+          <div class="log" id="trainLog"></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="workspace-head">
+        <div class="workspace-title">
+          <h2 id="workspaceTitle">网络结构与数据流</h2>
+          <div class="hint" id="workspaceHint">圆圈表示神经元，线条颜色表示权重正负，粗细表示权重强度。</div>
+        </div>
+        <div class="metrics">
+          <div class="metric"><b id="lossMetric">0.000000</b><span>当前损失</span></div>
+          <div class="metric"><b id="sequenceLossMetric">0.000000</b><span>序列均损失</span></div>
+          <div class="metric"><b id="stepMetric">0</b><span>训练步数</span></div>
+          <div class="metric"><b id="paramMetric">0</b><span>参数数量</span></div>
+          <label class="toggle">
+            <span>显示权重</span>
+            <input id="showWeightsInput" type="checkbox">
+          </label>
+          <label class="toggle">
+            <span>显示偏导</span>
+            <input id="showGradientsInput" type="checkbox">
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <div class="breakdown-controls" id="breakdownControls">
+          <button id="breakdownInputButton" class="step-command input" type="button">
+            输入词向量
+            <span>按顺序取当前 token 的 E 向量</span>
+          </button>
+          <button id="breakdownMemoryButton" class="step-command memory" type="button">
+            计算记忆向量
+            <span>拼接 x_t 与 h_(t-1)，计算 h_t</span>
+          </button>
+          <button id="breakdownTrainButton" class="step-command train" type="button">
+            训练这一步
+            <span>只更新当前时间步的参数</span>
+          </button>
+        </div>
+
+        <div class="network-canvas" id="networkCanvas">
+          <svg id="connectionSvg" class="connections" aria-hidden="true"></svg>
+          <div id="layers" class="layers"></div>
+          <div class="legend">
+            <p><span class="legend-line"></span>正权重</p>
+            <p><span class="legend-line red"></span>负权重</p>
+            <p><span class="legend-line dashed"></span>softmax</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-head">
+          <h3>时间步展开</h3>
+          <span class="hint" id="timelineHint">悬停卡片查看每步 x、h、scores、softmax 和 loss。</span>
+        </div>
+        <div id="timeCards" class="time-cards"></div>
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>完整参数</h2>
+          <span class="hint">所有权重和数值</span>
+        </div>
+        <div class="panel-body" id="parameterPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>权重矩阵</h3>
+          <span class="hint">可直接编辑</span>
+        </div>
+        <div class="panel-body" id="matrixPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>记忆向量变化</h3>
+          <span class="hint">按时间步</span>
+        </div>
+        <div class="panel-body">
+          <svg id="memoryChart" class="chart" viewBox="0 0 320 150" aria-label="记忆向量折线图"></svg>
+          <div id="memoryTable"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>当前 softmax 得分</h3>
+          <span class="hint">scores 与概率</span>
+        </div>
+        <div class="panel-body" id="softmaxPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>反向传播过程</h3>
+          <span class="hint">δ、梯度与记忆回传</span>
+        </div>
+        <div class="panel-body" id="backpropPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>选中节点</h3>
+        </div>
+        <div class="panel-body" id="selectedPanel"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const VECTOR_DIM = 3;
+    const MEMORY_DIM = 3;
+    const INPUT_DIM = VECTOR_DIM + MEMORY_DIM;
+    const DEFAULT_TEXT = "我养的这只猫已经五岁了它会抓老鼠";
+    const ACTIVATIONS = ["tanh", "sigmoid", "ReLU", "linear", "step", "custom"];
+    const LOSSES = [
+      { id: "CrossEntropy", label: "交叉熵 (Cross-Entropy)" },
+      { id: "MSE", label: "均方误差 (MSE)" },
+      { id: "MAE", label: "平均绝对误差 (MAE)" },
+      { id: "custom", label: "自定义 loss" }
+    ];
+    const LEGACY_VECTORS = new Map([
+      ["猫", [0.2, -0.1, 0.4]],
+      ["会", [-0.3, 0.2, 0.1]],
+      ["抓", [0.5, 0.1, -0.2]],
+      ["老", [-0.1, 0.3, 0.2]],
+      ["鼠", [0.4, -0.2, 0.3]]
+    ]);
+
+    const els = {
+      normalModeButton: document.getElementById("normalModeButton"),
+      breakdownModeButton: document.getElementById("breakdownModeButton"),
+      topTrainOneButton: document.getElementById("topTrainOneButton"),
+      topTrainManyButton: document.getElementById("topTrainManyButton"),
+      resetButton: document.getElementById("resetButton"),
+      exportButton: document.getElementById("exportButton"),
+      importButton: document.getElementById("importButton"),
+      importInput: document.getElementById("importInput"),
+      corpusInput: document.getElementById("corpusInput"),
+      buildVocabButton: document.getElementById("buildVocabButton"),
+      sortVocabButton: document.getElementById("sortVocabButton"),
+      addTokenInput: document.getElementById("addTokenInput"),
+      addTokenButton: document.getElementById("addTokenButton"),
+      vocabBody: document.getElementById("vocabBody"),
+      vocabSizeHint: document.getElementById("vocabSizeHint"),
+      outputDimInput: document.getElementById("outputDimInput"),
+      sequenceInput: document.getElementById("sequenceInput"),
+      timeIndexInput: document.getElementById("timeIndexInput"),
+      outputStopSelect: document.getElementById("outputStopSelect"),
+      targetPreviewInput: document.getElementById("targetPreviewInput"),
+      sequenceStatus: document.getElementById("sequenceStatus"),
+      hiddenCountInput: document.getElementById("hiddenCountInput"),
+      shareOutputInput: document.getElementById("shareOutputInput"),
+      layerConfigs: document.getElementById("layerConfigs"),
+      validationStatus: document.getElementById("validationStatus"),
+      activationSelect: document.getElementById("activationSelect"),
+      customActivationInput: document.getElementById("customActivationInput"),
+      lossSelect: document.getElementById("lossSelect"),
+      customLossInput: document.getElementById("customLossInput"),
+      learningRateInput: document.getElementById("learningRateInput"),
+      stepsInput: document.getElementById("stepsInput"),
+      trainManyButton: document.getElementById("trainManyButton"),
+      trainOneButton: document.getElementById("trainOneButton"),
+      trainStatus: document.getElementById("trainStatus"),
+      trainLog: document.getElementById("trainLog"),
+      workspaceTitle: document.getElementById("workspaceTitle"),
+      workspaceHint: document.getElementById("workspaceHint"),
+      lossMetric: document.getElementById("lossMetric"),
+      sequenceLossMetric: document.getElementById("sequenceLossMetric"),
+      stepMetric: document.getElementById("stepMetric"),
+      paramMetric: document.getElementById("paramMetric"),
+      showWeightsInput: document.getElementById("showWeightsInput"),
+      showGradientsInput: document.getElementById("showGradientsInput"),
+      breakdownControls: document.getElementById("breakdownControls"),
+      breakdownInputButton: document.getElementById("breakdownInputButton"),
+      breakdownMemoryButton: document.getElementById("breakdownMemoryButton"),
+      breakdownTrainButton: document.getElementById("breakdownTrainButton"),
+      networkCanvas: document.getElementById("networkCanvas"),
+      connectionSvg: document.getElementById("connectionSvg"),
+      layers: document.getElementById("layers"),
+      timeCards: document.getElementById("timeCards"),
+      timelineHint: document.getElementById("timelineHint"),
+      parameterPanel: document.getElementById("parameterPanel"),
+      matrixPanel: document.getElementById("matrixPanel"),
+      memoryChart: document.getElementById("memoryChart"),
+      memoryTable: document.getElementById("memoryTable"),
+      softmaxPanel: document.getElementById("softmaxPanel"),
+      backpropPanel: document.getElementById("backpropPanel"),
+      selectedPanel: document.getElementById("selectedPanel")
+    };
+
+    let state = createDefaultState();
+    let selectedNode = null;
+    let latestBundle = null;
+    let latestDisplay = null;
+
+    function createDefaultState() {
+      const vocab = uniqueTokens(DEFAULT_TEXT).map((token, index) => ({
+        token,
+        vector: vectorForNewToken(token, index)
+      }));
+      return {
+        corpusText: DEFAULT_TEXT,
+        sequenceText: DEFAULT_TEXT,
+        vocab,
+        layers: [{ size: MEMORY_DIM, activation: "tanh" }],
+        weights: [],
+        shareOutput: true,
+        outputWeights: null,
+        customActivationExpr: "Math.tanh(x)",
+        lossType: "CrossEntropy",
+        customLossExpr: "-t * Math.log(Math.max(p, 1e-12))",
+        learningRate: 0.05,
+        steps: 200,
+        trainedSteps: 0,
+        mode: "breakdown",
+        currentIndex: 0,
+        outputStopIndex: Array.from(DEFAULT_TEXT).length - 1,
+        showWeights: false,
+        showGradients: false,
+        log: [],
+        breakdown: {
+          phase: "awaitInput",
+          current: null,
+          memory: zeroMemory(),
+          lastComputedResult: null,
+          lastOutputResult: null,
+          lastOutputHistoryIndex: -1,
+          history: []
+        }
+      };
+    }
+
+    function uniqueTokens(text) {
+      const seen = new Set();
+      return Array.from(String(text || "").replace(/\s+/g, "")).filter((token) => {
+        if (!token || seen.has(token)) return false;
+        seen.add(token);
+        return true;
+      });
+    }
+
+    function sequenceTokens() {
+      return Array.from(String(state.sequenceText || "").replace(/\s+/g, ""));
+    }
+
+    function zeroMemory() {
+      return Array.from({ length: MEMORY_DIM }, () => 0);
+    }
+
+    function cloneMatrix(matrix) {
+      return matrix.map((row) => row.slice());
+    }
+
+    function vectorForNewToken(token, index = 0) {
+      if (LEGACY_VECTORS.has(token)) return LEGACY_VECTORS.get(token).slice();
+      return Array.from({ length: VECTOR_DIM }, (_, dim) => seededWeight(index, dim, 7, 11));
+    }
+
+    function seededWeight(row, col, rows, cols) {
+      const seed = Math.sin((row + 1) * 19.17 + (col + 1) * 7.31 + rows * 0.11 + cols * 0.07) * 10000;
+      return Number(((seed - Math.floor(seed)) * 0.42 - 0.21).toFixed(3));
+    }
+
+    function fmt(value, digits = 6) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0.000000";
+      if (Math.abs(numeric) < 0.0000005) return "0.000000";
+      return numeric.toFixed(digits);
+    }
+
+    function short(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0";
+      if (Math.abs(numeric) < 0.0005) return "0.000";
+      return numeric.toFixed(3);
+    }
+
+    function roundForInput(value) {
+      const numeric = Number(value);
+      return Number.isFinite(numeric) ? Number(numeric.toFixed(6)) : 0;
+    }
+
+    function numericClass(value) {
+      if (value > 0.0000001) return "pos";
+      if (value < -0.0000001) return "neg";
+      return "zero";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function clampNumber(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, numeric));
+    }
+
+    function clampInt(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, Math.round(numeric)));
+    }
+
+    function tokenIndex(token) {
+      const index = state.vocab.findIndex((item) => item.token === token);
+      return index >= 0 ? index : -1;
+    }
+
+    function vectorForToken(token) {
+      const index = tokenIndex(token);
+      if (index < 0) return zeroMemory();
+      return state.vocab[index].vector.slice();
+    }
+
+    function targetTokenAt(index, tokens = sequenceTokens()) {
+      if (!tokens.length) return "";
+      return tokens[(index + 1) % tokens.length];
+    }
+
+    function outputStopIndex(tokens = sequenceTokens()) {
+      return clampInt(state.outputStopIndex, 0, Math.max(0, tokens.length - 1), Math.max(0, tokens.length - 1));
+    }
+
+    function targetVector(targetToken) {
+      const index = tokenIndex(targetToken);
+      return state.vocab.map((_, vocabIndex) => vocabIndex === index ? 1 : 0);
+    }
+
+    function syncWeightShapes() {
+      if (!Array.isArray(state.layers) || !state.layers.length) {
+        state.layers = [{ size: MEMORY_DIM, activation: "tanh" }];
+      }
+      state.layers = state.layers.slice(0, 5).map((layer) => ({
+        size: clampInt(layer.size, 1, 12, MEMORY_DIM),
+        activation: ACTIVATIONS.includes(layer.activation) ? layer.activation : "tanh"
+      }));
+      const sizes = [INPUT_DIM, ...state.layers.map((layer) => layer.size)];
+      const nextWeights = [];
+      for (let layerIndex = 0; layerIndex < state.layers.length; layerIndex += 1) {
+        const rows = sizes[layerIndex + 1];
+        const cols = sizes[layerIndex];
+        nextWeights.push(resizeMatrix(state.weights[layerIndex], rows, cols, layerIndex));
+      }
+      state.weights = nextWeights;
+      if (state.shareOutput) {
+        state.outputWeights = null;
+      } else {
+        state.outputWeights = resizeMatrix(state.outputWeights, state.vocab.length, lastHiddenSize(), 99);
+      }
+    }
+
+    function resizeMatrix(existing, rows, cols, seedOffset) {
+      return Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: cols }, (_, col) => {
+          if (Number.isFinite(Number(existing?.[row]?.[col]))) return Number(existing[row][col]);
+          return seededWeight(row + seedOffset * 13, col, rows, cols);
+        })
+      );
+    }
+
+    function lastHiddenSize() {
+      return state.layers[state.layers.length - 1]?.size || 0;
+    }
+
+    function validateModel() {
+      const tokens = sequenceTokens();
+      if (!state.vocab.length) return { ok: false, text: "词表不能为空。" };
+      if (!tokens.length) return { ok: false, text: "输入序列不能为空。" };
+      const missing = tokens.filter((token) => tokenIndex(token) < 0);
+      if (missing.length) return { ok: false, text: `输入序列里有不在词表中的 token：${Array.from(new Set(missing)).join("、")}` };
+      if (lastHiddenSize() !== MEMORY_DIM) {
+        return { ok: false, text: "RNN 的最后隐藏层必须是 3 个神经元，因为它就是下一步 h_(t-1) 的记忆向量。" };
+      }
+      if (state.shareOutput && lastHiddenSize() !== VECTOR_DIM) {
+        return { ok: false, text: "权重共享开启时，最后隐藏层神经元数量必须等于词向量维度 3。" };
+      }
+      return {
+        ok: true,
+        text: `结构有效：每步输入 [x_t; h_(t-1)] = 6，隐藏层 ${state.layers.map((layer) => layer.size).join(" → ")}，softmax 输出 V=${state.vocab.length}。`
+      };
+    }
+
+    function compileExpression(expr, args) {
+      try {
+        return new Function(...args, `"use strict"; return (${expr});`);
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function activate(value, type) {
+      if (type === "tanh") return Math.tanh(value);
+      if (type === "sigmoid") return 1 / (1 + Math.exp(-Math.max(-60, Math.min(60, value))));
+      if (type === "ReLU") return Math.max(0, value);
+      if (type === "linear") return value;
+      if (type === "step") return value >= 0 ? 1 : 0;
+      const fn = compileExpression(state.customActivationExpr || "x", ["x", "Math"]);
+      if (!fn) return Math.tanh(value);
+      try {
+        const result = Number(fn(value, Math));
+        return Number.isFinite(result) ? result : Math.tanh(value);
+      } catch (error) {
+        return Math.tanh(value);
+      }
+    }
+
+    function activationDerivative(output, preActivation, type) {
+      if (type === "tanh") return 1 - output * output;
+      if (type === "sigmoid") return output * (1 - output);
+      if (type === "ReLU") return preActivation > 0 ? 1 : 0;
+      if (type === "linear") return 1;
+      if (type === "step") return 1;
+      const epsilon = 1e-4;
+      const up = activate(preActivation + epsilon, "custom");
+      const down = activate(preActivation - epsilon, "custom");
+      const derivative = (up - down) / (2 * epsilon);
+      return Number.isFinite(derivative) ? derivative : 1;
+    }
+
+    function softmax(values) {
+      const max = Math.max(...values);
+      const exps = values.map((value) => Math.exp(value - max));
+      const total = exps.reduce((sum, value) => sum + value, 0) || 1;
+      return exps.map((value) => value / total);
+    }
+
+    function matVec(matrix, vector) {
+      return matrix.map((row) =>
+        row.reduce((sum, weight, index) => sum + weight * (vector[index] || 0), 0)
+      );
+    }
+
+    function dot(a, b) {
+      return a.reduce((sum, value, index) => sum + value * (b[index] || 0), 0);
+    }
+
+    function computeMemoryStep(index, previousMemory) {
+      syncWeightShapes();
+      const tokens = sequenceTokens();
+      const token = tokens[index % tokens.length];
+      const nextToken = targetTokenAt(index, tokens);
+      const x = vectorForToken(token);
+      const hPrev = previousMemory.slice(0, MEMORY_DIM);
+      const input = x.concat(hPrev);
+      const activations = [input];
+      const preActivations = [];
+      let current = input.slice();
+
+      state.weights.forEach((matrix, layerIndex) => {
+        const z = matVec(matrix, current);
+        const activation = state.layers[layerIndex].activation;
+        const next = z.map((value) => activate(value, activation));
+        preActivations.push(z);
+        activations.push(next);
+        current = next;
+      });
+
+      const memory = current.slice(0, MEMORY_DIM);
+      const target = targetVector(nextToken);
+      return {
+        index,
+        token,
+        targetToken: nextToken,
+        tokenIndex: tokenIndex(token),
+        targetIndex: tokenIndex(nextToken),
+        x,
+        hPrev,
+        input,
+        preActivations,
+        activations,
+        memory,
+        scores: state.vocab.map(() => 0),
+        probabilities: state.vocab.map(() => 0),
+        target,
+        loss: 0,
+        outputReady: false
+      };
+    }
+
+    function computeOutput(memoryResult, targetToken = memoryResult.targetToken) {
+      const lastActivation = memoryResult.activations[memoryResult.activations.length - 1];
+      const scores = state.shareOutput
+        ? state.vocab.map((item) => dot(item.vector, memoryResult.memory))
+        : state.outputWeights.map((row) => dot(row, lastActivation));
+      const probabilities = softmax(scores);
+      const target = targetVector(targetToken);
+      const loss = computeLoss(scores, target, state.lossType, probabilities);
+      return {
+        ...memoryResult,
+        targetToken,
+        targetIndex: tokenIndex(targetToken),
+        scores,
+        probabilities,
+        target,
+        loss,
+        outputReady: true
+      };
+    }
+
+    function forwardStep(index, previousMemory) {
+      return computeOutput(computeMemoryStep(index, previousMemory), targetTokenAt(index));
+    }
+
+    function forwardSequence() {
+      const validation = validateModel();
+      if (!validation.ok) {
+        return { ok: false, validation, results: [], loss: 0 };
+      }
+      const tokens = sequenceTokens();
+      let memory = zeroMemory();
+      const results = [];
+      for (let index = 0; index < tokens.length; index += 1) {
+        const result = forwardStep(index, memory);
+        results.push(result);
+        memory = result.memory.slice();
+      }
+      const loss = results.reduce((sum, result) => sum + result.loss, 0) / Math.max(1, results.length);
+      return { ok: true, validation, results, loss };
+    }
+
+    function computeLoss(scores, target, type, probabilities = softmax(scores)) {
+      const count = Math.max(1, target.length);
+      if (type === "MSE") {
+        return scores.reduce((sum, value, index) => {
+          const error = value - target[index];
+          return sum + error * error;
+        }, 0) / count;
+      }
+      if (type === "MAE") {
+        return scores.reduce((sum, value, index) => sum + Math.abs(value - target[index]), 0) / count;
+      }
+      if (type === "custom") {
+        return computeCustomLoss(scores, target, probabilities);
+      }
+      return -target.reduce((sum, value, index) => sum + value * Math.log(Math.max(1e-12, probabilities[index])), 0);
+    }
+
+    function computeCustomLoss(scores, target, probabilities = softmax(scores)) {
+      const fn = compileExpression(state.customLossExpr || "0", ["y", "t", "p", "k", "V", "Math"]);
+      if (!fn) return computeLoss(scores, target, "CrossEntropy", probabilities);
+      const total = scores.reduce((sum, score, index) => {
+        try {
+          const value = Number(fn(score, target[index], probabilities[index], index, scores.length, Math));
+          return sum + (Number.isFinite(value) ? value : 0);
+        } catch (error) {
+          return sum;
+        }
+      }, 0);
+      return total / Math.max(1, scores.length);
+    }
+
+    function lossDelta(result) {
+      if (!result.outputReady) {
+        return state.vocab.map(() => 0);
+      }
+      const count = Math.max(1, result.target.length);
+      if (state.lossType === "MSE") {
+        return result.scores.map((score, index) => 2 * (score - result.target[index]) / count);
+      }
+      if (state.lossType === "MAE") {
+        return result.scores.map((score, index) => Math.sign(score - result.target[index]) / count);
+      }
+      if (state.lossType === "custom") {
+        return numericalLossDelta(result.scores, result.target);
+      }
+      return result.probabilities.map((probability, index) => probability - result.target[index]);
+    }
+
+    function numericalLossDelta(scores, target) {
+      const epsilon = 1e-4;
+      return scores.map((_, index) => {
+        const up = scores.slice();
+        const down = scores.slice();
+        up[index] += epsilon;
+        down[index] -= epsilon;
+        const upLoss = computeLoss(up, target, "custom", softmax(up));
+        const downLoss = computeLoss(down, target, "custom", softmax(down));
+        const gradient = (upLoss - downLoss) / (2 * epsilon);
+        return Number.isFinite(gradient) ? gradient : 0;
+      });
+    }
+
+    function createGradientShell() {
+      return {
+        gradWeights: state.weights.map((matrix) => matrix.map((row) => row.map(() => 0))),
+        gradEmbeddings: state.vocab.map((item) => item.vector.map(() => 0)),
+        gradInputEmbeddings: state.vocab.map((item) => item.vector.map(() => 0)),
+        gradOutputEmbeddings: state.vocab.map((item) => item.vector.map(() => 0)),
+        gradOutputWeights: state.shareOutput ? null : state.outputWeights.map((row) => row.map(() => 0)),
+        results: [],
+        timeSteps: []
+      };
+    }
+
+    function computeGradientsForResults(results) {
+      const gradients = createGradientShell();
+      gradients.results = results;
+      let futureMemoryGradient = zeroMemory();
+
+      for (let time = results.length - 1; time >= 0; time -= 1) {
+        const result = results[time];
+        const memoryGradientFromFuture = futureMemoryGradient.slice();
+        const deltaScores = lossDelta(result);
+        const lastActivation = result.activations[result.activations.length - 1];
+        let gradActivation = Array(lastActivation.length).fill(0);
+        const hiddenDeltas = Array(state.layers.length);
+
+        if (state.shareOutput) {
+          state.vocab.forEach((item, vocabIndex) => {
+            for (let dim = 0; dim < VECTOR_DIM; dim += 1) {
+              gradActivation[dim] += deltaScores[vocabIndex] * item.vector[dim];
+              gradients.gradOutputEmbeddings[vocabIndex][dim] += deltaScores[vocabIndex] * result.memory[dim];
+              gradients.gradEmbeddings[vocabIndex][dim] += deltaScores[vocabIndex] * result.memory[dim];
+            }
+          });
+        } else {
+          state.outputWeights.forEach((row, vocabIndex) => {
+            row.forEach((weight, hiddenIndex) => {
+              gradients.gradOutputWeights[vocabIndex][hiddenIndex] += deltaScores[vocabIndex] * lastActivation[hiddenIndex];
+              gradActivation[hiddenIndex] += deltaScores[vocabIndex] * weight;
+            });
+          });
+        }
+
+        const memoryGradientFromOutput = gradActivation.slice(0, MEMORY_DIM);
+        for (let dim = 0; dim < Math.min(MEMORY_DIM, gradActivation.length); dim += 1) {
+          gradActivation[dim] += futureMemoryGradient[dim];
+        }
+        const memoryGradientTotal = gradActivation.slice(0, MEMORY_DIM);
+
+        for (let layerIndex = state.layers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+          const outputs = result.activations[layerIndex + 1];
+          const pre = result.preActivations[layerIndex];
+          const prev = result.activations[layerIndex];
+          const activation = state.layers[layerIndex].activation;
+          const delta = outputs.map((value, index) =>
+            (gradActivation[index] || 0) * activationDerivative(value, pre[index], activation)
+          );
+          hiddenDeltas[layerIndex] = delta.slice();
+          const prevGradient = Array(prev.length).fill(0);
+          state.weights[layerIndex].forEach((row, rowIndex) => {
+            row.forEach((weight, colIndex) => {
+              gradients.gradWeights[layerIndex][rowIndex][colIndex] += delta[rowIndex] * prev[colIndex];
+              prevGradient[colIndex] += delta[rowIndex] * weight;
+            });
+          });
+          gradActivation = prevGradient;
+        }
+
+        if (result.tokenIndex >= 0) {
+          for (let dim = 0; dim < VECTOR_DIM; dim += 1) {
+            gradients.gradInputEmbeddings[result.tokenIndex][dim] += gradActivation[dim] || 0;
+            gradients.gradEmbeddings[result.tokenIndex][dim] += gradActivation[dim] || 0;
+          }
+        }
+        const inputGradient = gradActivation.slice();
+        futureMemoryGradient = inputGradient.slice(VECTOR_DIM, VECTOR_DIM + MEMORY_DIM);
+        gradients.timeSteps.unshift({
+          index: result.index,
+          token: result.token,
+          targetToken: result.targetToken,
+          outputReady: result.outputReady,
+          loss: result.loss,
+          deltaScores,
+          memoryGradientFromOutput,
+          memoryGradientFromFuture,
+          memoryGradientTotal,
+          hiddenDeltas,
+          inputGradient,
+          xGradient: inputGradient.slice(0, VECTOR_DIM),
+          previousMemoryGradient: futureMemoryGradient.slice()
+        });
+      }
+
+      return gradients;
+    }
+
+    function applyGradients(gradients, scale = 1) {
+      const lr = state.learningRate * scale;
+      state.weights.forEach((matrix, layerIndex) => {
+        matrix.forEach((row, rowIndex) => {
+          row.forEach((weight, colIndex) => {
+            row[colIndex] = weight - lr * gradients.gradWeights[layerIndex][rowIndex][colIndex];
+          });
+        });
+      });
+      if (!state.shareOutput && gradients.gradOutputWeights) {
+        state.outputWeights.forEach((row, rowIndex) => {
+          row.forEach((weight, colIndex) => {
+            row[colIndex] = weight - lr * gradients.gradOutputWeights[rowIndex][colIndex];
+          });
+        });
+      }
+      state.vocab.forEach((item, vocabIndex) => {
+        item.vector = item.vector.map((value, dim) =>
+          value - lr * gradients.gradEmbeddings[vocabIndex][dim]
+        );
+      });
+    }
+
+    function trainOneEpoch() {
+      const bundle = forwardSequence();
+      if (!bundle.ok) return false;
+      const gradients = computeGradientsForResults(bundle.results);
+      applyGradients(gradients, 1 / Math.max(1, bundle.results.length));
+      state.trainedSteps += 1;
+      return true;
+    }
+
+    function trainMany(steps) {
+      return trainBreakdownToOutputStopMany(steps);
+    }
+
+    function trainBreakdownCurrent() {
+      const result = state.breakdown.lastOutputResult;
+      if (!result || !result.outputReady) return false;
+      const beforeLoss = result.loss;
+      const gradients = computeGradientsForResults([result]);
+      applyGradients(gradients, 1);
+      state.trainedSteps += 1;
+      const trainCount = (result.trainCount || 0) + 1;
+      const updated = computeOutput(computeMemoryStep(result.index, result.hPrev), result.targetToken);
+      updated.trainCount = trainCount;
+      addLog(`输出点 t=${result.index} 训练第 ${trainCount} 次：${fmt(beforeLoss)} → ${fmt(updated.loss)}`);
+      state.breakdown.lastComputedResult = updated;
+      state.breakdown.lastOutputResult = updated;
+      if (state.breakdown.lastOutputHistoryIndex >= 0 && state.breakdown.history[state.breakdown.lastOutputHistoryIndex]) {
+        state.breakdown.history[state.breakdown.lastOutputHistoryIndex] = updated;
+      }
+      state.breakdown.memory = updated.memory.slice();
+      state.breakdown.phase = "awaitInput";
+      state.breakdown.current = null;
+      return true;
+    }
+
+    function computeTraceToOutputStop() {
+      const validation = validateModel();
+      if (!validation.ok) return null;
+      const tokens = sequenceTokens();
+      if (!tokens.length) return null;
+      const stop = outputStopIndex(tokens);
+      let memory = zeroMemory();
+      const trace = [];
+      for (let index = 0; index <= stop; index += 1) {
+        const memoryResult = computeMemoryStep(index, memory);
+        const result = index === stop
+          ? computeOutput(memoryResult, targetTokenAt(index, tokens))
+          : memoryResult;
+        trace.push(result);
+        memory = result.memory.slice();
+      }
+      return {
+        tokens,
+        stop,
+        trace,
+        output: trace[trace.length - 1]
+      };
+    }
+
+    function outputStopBundle() {
+      const validation = validateModel();
+      if (!validation.ok) {
+        return { ok: false, validation, results: [], loss: 0 };
+      }
+      const computed = computeTraceToOutputStop();
+      if (!computed?.output) {
+        return { ok: false, validation: { ok: false, text: "无法计算输出点。" }, results: [], loss: 0 };
+      }
+      const previousOutput = state.breakdown.lastOutputResult;
+      if (previousOutput?.index === computed.stop) {
+        computed.output.trainCount = previousOutput.trainCount || 0;
+      }
+      state.currentIndex = computed.stop;
+      return {
+        ok: true,
+        validation,
+        results: computed.trace,
+        loss: computed.output.loss,
+        output: computed.output,
+        stop: computed.stop
+      };
+    }
+
+    function setBreakdownTrace(trace, trainCount = 0) {
+      const history = trace.slice(-80);
+      const outputHistoryIndex = history.findIndex((result) => result.outputReady);
+      if (outputHistoryIndex >= 0) {
+        history[outputHistoryIndex].trainCount = trainCount;
+      }
+      const output = outputHistoryIndex >= 0 ? history[outputHistoryIndex] : history[history.length - 1];
+      state.breakdown.history = history;
+      state.breakdown.lastComputedResult = output || null;
+      state.breakdown.lastOutputResult = output?.outputReady ? output : null;
+      state.breakdown.lastOutputHistoryIndex = output?.outputReady ? outputHistoryIndex : -1;
+      state.breakdown.memory = output?.memory ? output.memory.slice() : zeroMemory();
+      state.breakdown.phase = "awaitInput";
+      state.breakdown.current = null;
+      state.currentIndex = output?.index ?? state.currentIndex;
+    }
+
+    function trainBreakdownToOutputStop(logResult = true) {
+      const before = computeTraceToOutputStop();
+      if (!before?.output?.outputReady) return null;
+      const previousTrainCount = state.breakdown.lastOutputResult?.index === before.stop
+        ? state.breakdown.lastOutputResult.trainCount || 0
+        : 0;
+      const gradients = computeGradientsForResults(before.trace);
+      applyGradients(gradients, 1);
+      state.trainedSteps += 1;
+
+      const after = computeTraceToOutputStop();
+      if (!after?.output?.outputReady) return null;
+      const trainCount = previousTrainCount + 1;
+      after.output.trainCount = trainCount;
+      setBreakdownTrace(after.trace, trainCount);
+
+      if (logResult) {
+        addLog(`训练一步到 t=${after.stop} “${after.tokens[after.stop]}”：${fmt(before.output.loss)} → ${fmt(after.output.loss)}，目标 “${after.output.targetToken}”`);
+      }
+      return {
+        beforeLoss: before.output.loss,
+        afterLoss: after.output.loss,
+        output: after.output,
+        trainCount,
+        stop: after.stop,
+        token: after.tokens[after.stop]
+      };
+    }
+
+    function trainBreakdownToOutputStopMany(steps) {
+      const before = computeTraceToOutputStop();
+      if (!before?.output?.outputReady) return false;
+      const count = clampInt(steps, 1, 20000, state.steps);
+      let completed = 0;
+      let finalResult = null;
+      for (let step = 0; step < count; step += 1) {
+        finalResult = trainBreakdownToOutputStop(false);
+        if (!finalResult) break;
+        completed += 1;
+      }
+      if (!completed || !finalResult) return false;
+      addLog(`连续训练 ${completed} 次到 t=${finalResult.stop} “${finalResult.token}”：${fmt(before.output.loss)} → ${fmt(finalResult.afterLoss)}，目标 “${finalResult.output.targetToken}”`);
+      return true;
+    }
+
+    function advanceBreakdownIndex() {
+      const tokens = sequenceTokens();
+      state.currentIndex = tokens.length ? (state.currentIndex + 1) % tokens.length : 0;
+    }
+
+    function addLog(message) {
+      state.log.unshift(message);
+      state.log = state.log.slice(0, 8);
+    }
+
+    function parameterCount() {
+      const hidden = state.weights.reduce((sum, matrix) => sum + matrix.length * (matrix[0]?.length || 0), 0);
+      const embeddings = state.vocab.length * VECTOR_DIM;
+      const output = state.shareOutput ? 0 : state.vocab.length * lastHiddenSize();
+      return hidden + embeddings + output;
+    }
+
+    function setHiddenCount(count) {
+      const nextCount = clampInt(count, 1, 5, 1);
+      const current = state.layers.length;
+      if (nextCount > current) {
+        for (let index = current; index < nextCount; index += 1) {
+          state.layers.push({ size: index === nextCount - 1 ? MEMORY_DIM : MEMORY_DIM, activation: state.layers[current - 1]?.activation || "tanh" });
+        }
+      } else {
+        state.layers = state.layers.slice(0, nextCount);
+      }
+      if (state.layers.length) {
+        state.layers[state.layers.length - 1].size = MEMORY_DIM;
+      }
+      syncWeightShapes();
+    }
+
+    function setMode(mode) {
+      const previousMode = state.mode;
+      state.mode = mode === "normal" ? "normal" : "breakdown";
+      if (state.mode === "breakdown" && !state.breakdown) {
+        state.breakdown = {
+          phase: "awaitInput",
+          current: null,
+          memory: zeroMemory(),
+          lastComputedResult: null,
+          lastOutputResult: null,
+          lastOutputHistoryIndex: -1,
+          history: []
+        };
+      }
+      if (state.mode === "breakdown" && previousMode !== "breakdown") {
+        resetBreakdown(false);
+      }
+      render();
+    }
+
+    function resetBreakdown(keepIndex = true) {
+      state.breakdown = {
+        phase: "awaitInput",
+        current: null,
+        memory: zeroMemory(),
+        lastComputedResult: null,
+        lastOutputResult: null,
+        lastOutputHistoryIndex: -1,
+        history: []
+      };
+      if (!keepIndex) state.currentIndex = 0;
+    }
+
+    function buildVocabFromText(text) {
+      const oldVectors = new Map(state.vocab.map((item) => [item.token, item.vector.slice()]));
+      const tokens = uniqueTokens(text);
+      state.vocab = tokens.map((token, index) => ({
+        token,
+        vector: oldVectors.get(token)?.slice() || vectorForNewToken(token, index)
+      }));
+      syncWeightShapes();
+      resetBreakdown(false);
+    }
+
+    function addTokens(raw) {
+      const additions = uniqueTokens(raw);
+      additions.forEach((token) => {
+        if (tokenIndex(token) < 0) {
+          state.vocab.push({ token, vector: vectorForNewToken(token, state.vocab.length) });
+        }
+      });
+      syncWeightShapes();
+    }
+
+    function emptyDisplayResult() {
+      const input = Array.from({ length: INPUT_DIM }, () => 0);
+      const activations = [input].concat(state.layers.map((layer) => Array.from({ length: layer.size }, () => 0)));
+      return {
+        index: state.currentIndex,
+        token: sequenceTokens()[state.currentIndex] || "",
+        targetToken: targetTokenAt(state.currentIndex),
+        tokenIndex: tokenIndex(sequenceTokens()[state.currentIndex] || ""),
+        targetIndex: tokenIndex(targetTokenAt(state.currentIndex)),
+        x: zeroMemory(),
+        hPrev: zeroMemory(),
+        input,
+        preActivations: state.layers.map((layer) => Array.from({ length: layer.size }, () => 0)),
+        activations,
+        memory: zeroMemory(),
+        scores: state.vocab.map(() => 0),
+        probabilities: state.vocab.map(() => 1 / Math.max(1, state.vocab.length)),
+        target: targetVector(targetTokenAt(state.currentIndex)),
+        loss: 0,
+        outputReady: false
+      };
+    }
+
+    function inputPreviewResult(current) {
+      const targetToken = targetTokenAt(current.index);
+      const input = current.x.concat(current.hPrev);
+      return {
+        index: current.index,
+        token: current.token,
+        targetToken,
+        tokenIndex: tokenIndex(current.token),
+        targetIndex: tokenIndex(targetToken),
+        x: current.x.slice(),
+        hPrev: current.hPrev.slice(),
+        input,
+        preActivations: state.layers.map((layer) => Array.from({ length: layer.size }, () => 0)),
+        activations: [input].concat(state.layers.map((layer) => Array.from({ length: layer.size }, () => 0))),
+        memory: current.hPrev.slice(),
+        scores: state.vocab.map(() => 0),
+        probabilities: state.vocab.map(() => 1 / Math.max(1, state.vocab.length)),
+        target: targetVector(targetToken),
+        loss: 0,
+        outputReady: false,
+        previewOnly: true
+      };
+    }
+
+    function displayBundle() {
+      const bundle = state.mode === "normal" ? outputStopBundle() : forwardSequence();
+      latestBundle = bundle;
+      if (!bundle.ok) {
+        latestDisplay = emptyDisplayResult();
+        return { bundle, display: latestDisplay };
+      }
+      const current = state.mode === "breakdown"
+        ? (state.breakdown.current?.result
+          || (state.breakdown.current ? inputPreviewResult(state.breakdown.current) : null)
+          || state.breakdown.lastOutputResult
+          || state.breakdown.lastComputedResult)
+        : (state.mode === "normal" ? bundle.output : null);
+      const displayCurrent = current
+        || (state.mode === "breakdown" ? emptyDisplayResult() : bundle.results[Math.min(state.currentIndex, bundle.results.length - 1)] || bundle.results[0]);
+      latestDisplay = displayCurrent || emptyDisplayResult();
+      return { bundle, display: latestDisplay };
+    }
+
+    function render() {
+      syncWeightShapes();
+      const { bundle, display } = displayBundle();
+      const sequenceBundle = state.mode === "breakdown" ? bundle : forwardSequence();
+      renderMode();
+      renderVocab();
+      renderSequence(bundle);
+      renderStructure();
+      renderTraining(bundle, display, sequenceBundle);
+      renderWorkspace(bundle, display, sequenceBundle);
+      renderNetwork(display, bundle.validation);
+      renderTimeline(bundle);
+      renderInspector(bundle, display);
+      requestAnimationFrame(drawConnections);
+    }
+
+    function renderMode() {
+      els.normalModeButton.classList.toggle("active", state.mode === "normal");
+      els.breakdownModeButton.classList.toggle("active", state.mode === "breakdown");
+      els.breakdownControls.style.display = state.mode === "breakdown" ? "flex" : "none";
+      const valid = validateModel().ok;
+      els.topTrainManyButton.disabled = !valid;
+      els.trainManyButton.disabled = !valid;
+    }
+
+    function renderVocab() {
+      els.corpusInput.value = state.corpusText;
+      els.vocabSizeHint.textContent = `${state.vocab.length} 个 token，3 维词向量`;
+      els.outputDimInput.value = state.vocab.length;
+      els.vocabBody.innerHTML = state.vocab.map((item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><input class="word-input" data-vocab-index="${index}" data-field="token" value="${escapeHtml(item.token)}"></td>
+          ${item.vector.map((value, dim) => `
+            <td><input class="matrix-input" type="number" step="0.001" data-vocab-index="${index}" data-dim="${dim}" value="${roundForInput(value)}"></td>
+          `).join("")}
+          <td><button class="danger" type="button" data-delete-token="${index}"${state.vocab.length <= 1 ? " disabled" : ""}>删</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function renderSequence(bundle) {
+      const tokens = sequenceTokens();
+      state.outputStopIndex = outputStopIndex(tokens);
+      els.sequenceInput.value = state.sequenceText;
+      els.timeIndexInput.max = Math.max(0, tokens.length - 1);
+      els.timeIndexInput.value = Math.min(state.currentIndex, Math.max(0, tokens.length - 1));
+      els.outputStopSelect.innerHTML = tokens.map((token, index) =>
+        `<option value="${index}"${index === state.outputStopIndex ? " selected" : ""}>t=${index} ${escapeHtml(token)}</option>`
+      ).join("");
+      els.targetPreviewInput.value = targetTokenAt(state.outputStopIndex, tokens);
+      els.sequenceStatus.className = `status ${bundle.validation.ok ? "ok" : "error"}`;
+      els.sequenceStatus.textContent = bundle.validation.ok
+        ? `序列长度 ${tokens.length}。当前输入“${tokens[state.currentIndex] || ""}”。读到 t=${state.outputStopIndex} “${tokens[state.outputStopIndex] || ""}”才输出，目标是下一个 token “${targetTokenAt(state.outputStopIndex, tokens)}”。`
+        : bundle.validation.text;
+    }
+
+    function renderStructure() {
+      els.hiddenCountInput.value = state.layers.length;
+      els.shareOutputInput.checked = state.shareOutput;
+      els.activationSelect.innerHTML = ACTIVATIONS.map((name) =>
+        `<option value="${name}"${state.layers.every((layer) => layer.activation === name) ? " selected" : ""}>${name}</option>`
+      ).join("");
+      els.customActivationInput.value = state.customActivationExpr;
+      els.lossSelect.innerHTML = LOSSES.map((loss) =>
+        `<option value="${loss.id}"${state.lossType === loss.id ? " selected" : ""}>${loss.label}</option>`
+      ).join("");
+      els.customLossInput.value = state.customLossExpr;
+      els.layerConfigs.innerHTML = state.layers.map((layer, index) => `
+        <div class="layer-config">
+          <b>H${index + 1}</b>
+          <label>
+            神经元
+            <input type="number" min="1" max="12" step="1" data-layer-index="${index}" data-layer-field="size" value="${layer.size}"${index === state.layers.length - 1 ? "" : ""}>
+          </label>
+          <label>
+            激活函数
+            <select data-layer-index="${index}" data-layer-field="activation">
+              ${ACTIVATIONS.map((name) => `<option value="${name}"${layer.activation === name ? " selected" : ""}>${name}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+      `).join("");
+      const validation = validateModel();
+      els.validationStatus.className = `status ${validation.ok ? "ok" : "error"}`;
+      els.validationStatus.textContent = validation.text;
+    }
+
+    function displayLoss(bundle, display) {
+      if (state.mode === "breakdown") {
+        const output = display?.outputReady ? display : state.breakdown.lastOutputResult;
+        return output?.outputReady ? output.loss : null;
+      }
+      return bundle.ok ? bundle.loss : display.loss;
+    }
+
+    function sequenceAverageLoss(sequenceBundle) {
+      return sequenceBundle?.ok ? sequenceBundle.loss : null;
+    }
+
+    function renderTraining(bundle, display, sequenceBundle) {
+      els.learningRateInput.value = state.learningRate;
+      els.stepsInput.value = state.steps;
+      const valid = bundle.validation.ok;
+      const currentLoss = displayLoss(bundle, display);
+      const seqLoss = sequenceAverageLoss(sequenceBundle);
+      els.trainOneButton.disabled = !valid;
+      els.topTrainOneButton.disabled = !valid;
+      els.topTrainManyButton.disabled = !valid;
+      els.trainManyButton.disabled = !valid;
+      els.trainStatus.className = `status ${valid ? "ok" : "error"}`;
+      els.trainStatus.textContent = valid
+        ? state.mode === "breakdown"
+          ? currentLoss === null
+            ? `拆解模式：尚未到输出点；完整序列平均损失 ${seqLoss === null ? "等待" : fmt(seqLoss)}。`
+            : `拆解模式：当前输出点损失 ${fmt(currentLoss)}；完整序列平均损失 ${seqLoss === null ? "等待" : fmt(seqLoss)}。`
+          : `普通模式：当前输出点损失 ${fmt(currentLoss)}；完整序列平均损失 ${seqLoss === null ? "等待" : fmt(seqLoss)}。`
+        : `无法训练：${bundle.validation.text}`;
+      els.trainLog.innerHTML = state.log.map((line) => `<div class="log-line">${escapeHtml(line)}</div>`).join("");
+    }
+
+    function renderWorkspace(bundle, display, sequenceBundle) {
+      const tokenText = display.token ? `，词：${display.token}` : "";
+      els.workspaceTitle.textContent = `网络结构与数据流（当前时间步：t = ${display.index}${tokenText}）`;
+      els.workspaceHint.textContent = state.mode === "breakdown"
+        ? `拆解阶段：${breakdownPhaseText()}。圆圈和线展示当前单步计算。`
+        : `普通模式固定读到 t=${state.outputStopIndex} 后输出；圆圈表示神经元，线条颜色表示权重正负，粗细表示权重强度。`;
+      const currentLoss = displayLoss(bundle, display);
+      const seqLoss = sequenceAverageLoss(sequenceBundle);
+      els.lossMetric.textContent = currentLoss === null ? "等待" : fmt(currentLoss);
+      els.sequenceLossMetric.textContent = seqLoss === null ? "等待" : fmt(seqLoss);
+      els.stepMetric.textContent = String(state.trainedSteps);
+      els.paramMetric.textContent = String(parameterCount());
+      els.showWeightsInput.checked = state.showWeights;
+      els.showGradientsInput.checked = state.showGradients;
+      const valid = bundle.validation.ok;
+      els.breakdownInputButton.disabled = !valid || state.breakdown.phase !== "awaitInput";
+      els.breakdownMemoryButton.disabled = !valid || state.breakdown.phase !== "tokenReady";
+      els.breakdownTrainButton.disabled = !valid || !state.breakdown.lastOutputResult;
+    }
+
+    function breakdownPhaseText() {
+      if (state.breakdown.phase === "tokenReady") return "已输入词向量，等待计算记忆向量";
+      if (state.breakdown.lastOutputResult && !state.breakdown.current) return "已到输出点，可查看 softmax，也可反复训练这一步";
+      if (state.breakdown.lastComputedResult && !state.breakdown.current) return "已得到 h_t；未到输出点，继续输入下一个 token";
+      return "等待输入词向量";
+    }
+
+    function layerDisplayData(display) {
+      const layers = [
+        {
+          key: "input",
+          title: "输入词向量 x_t",
+          subtitle: "D_x = 3",
+          formula: `E(${display.token || "?"})`,
+          labels: ["x1", "x2", "x3"],
+          values: display.x,
+          type: "input"
+        },
+        {
+          key: "memory-prev",
+          title: "初始/上一时刻记忆 h_(t-1)",
+          subtitle: "D_h = 3",
+          formula: `[${display.hPrev.map(short).join(", ")}]`,
+          labels: ["m1", "m2", "m3"],
+          values: display.hPrev,
+          type: "memory"
+        }
+      ];
+
+      state.layers.forEach((layer, index) => {
+        layers.push({
+          key: `hidden-${index}`,
+          title: index === state.layers.length - 1 ? "隐藏层（记忆）" : `隐藏层 ${index + 1}`,
+          subtitle: `D = ${layer.size}`,
+          formula: index === 0 ? `h=${layer.activation}(W·[x;h])` : `a=${layer.activation}(W·a)`,
+          labels: Array.from({ length: layer.size }, (_, node) => `h${index + 1}.${node + 1}`),
+          values: display.activations[index + 1] || Array.from({ length: layer.size }, () => 0),
+          type: "hidden"
+        });
+      });
+
+      const outputReady = Boolean(display.outputReady);
+      layers.push({
+        key: "score",
+        title: outputReady ? "输出得分 o_t" : "输出得分（等待）",
+        subtitle: `D_y = ${state.vocab.length}`,
+        formula: outputReady ? (state.shareOutput ? "o_k = E_k · h_t" : "o = W_y · h_t") : `读到 t=${state.outputStopIndex} 后计算`,
+        labels: state.vocab.map((item) => item.token),
+        values: display.scores,
+        type: "score"
+      });
+      layers.push({
+        key: "probability",
+        title: outputReady ? "Softmax 概率 p_t" : "Softmax（等待）",
+        subtitle: `V = ${state.vocab.length}`,
+        formula: outputReady ? "p_k = exp(o_k)/Σ exp(o_j)" : "循环阶段暂不输出",
+        labels: state.vocab.map((item) => item.token),
+        values: display.probabilities,
+        type: "probability"
+      });
+      return layers;
+    }
+
+    function renderNetwork(display, validation) {
+      const layers = layerDisplayData(display);
+      const gradients = activeVisualGradients();
+      const renderLayer = (layer, layerIndex) => `
+        <div class="layer ${layer.type}-layer" data-layer-column="${layerIndex}">
+          <div class="layer-title">
+            <b>${escapeHtml(layer.title)}${layer.type === "input" && display.token ? `<span class="current-token">${escapeHtml(display.token)}</span>` : ""}</b>
+            <span>${escapeHtml(layer.subtitle)}</span>
+            <div class="layer-formula">${escapeHtml(layer.formula)}</div>
+          </div>
+          <div class="node-stack">
+            ${layer.values.map((value, nodeIndex) => {
+              const selected = selectedNode && selectedNode.layerIndex === layerIndex && selectedNode.nodeIndex === nodeIndex;
+              const label = layer.labels[nodeIndex] || `${nodeIndex + 1}`;
+              const leftLabel = layer.type === "input" || layer.type === "memory" || layer.type === "hidden" ? `<span class="node-label">${escapeHtml(label)}</span>` : "";
+              const rightLabel = layer.type === "score" || layer.type === "probability" ? `<span class="node-label">${escapeHtml(label)}</span>` : "";
+              const probabilityStyle = layer.type === "probability" ? ` style="--probability:${Math.max(0, Math.min(1, value))}"` : "";
+              const gradient = nodeGradient(layer, layerIndex, nodeIndex, gradients, display);
+              const showGradient = gradient && Number.isFinite(gradient.value);
+              return `
+                <div class="node-row">
+                  ${leftLabel}
+                  <button class="node ${layer.type}-node${selected ? " selected" : ""}${showGradient ? " has-gradient" : ""}" type="button" data-node-layer="${layerIndex}" data-node-index="${nodeIndex}" title="${escapeHtml(label)} = ${fmt(value)}${showGradient ? `, ${gradient.title} = ${fmt(gradient.value)}` : ""}"${probabilityStyle}>
+                    <span class="node-content">
+                      <span>${short(value)}</span>
+                      ${showGradient ? `<span class="node-grad">${escapeHtml(gradient.prefix)}${short(gradient.value)}</span>` : ""}
+                    </span>
+                  </button>
+                  ${rightLabel}
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `;
+      els.layers.style.gridTemplateColumns = `minmax(112px, 0.9fr) repeat(${Math.max(0, layers.length - 2)}, minmax(84px, 1fr))`;
+      els.layers.innerHTML = `
+        <div class="input-memory-column" data-layer-column="input-memory">
+          ${renderLayer(layers[0], 0)}
+          ${renderLayer(layers[1], 1)}
+        </div>
+        ${layers.slice(2).map((layer, offset) => renderLayer(layer, offset + 2)).join("")}
+      `;
+      if (!validation.ok) {
+        els.layers.insertAdjacentHTML("afterbegin", `<div class="status error" style="grid-column:1/-1">${escapeHtml(validation.text)}</div>`);
+      }
+    }
+
+    function activeVisualGradients() {
+      if (!state.showGradients || !latestBundle?.validation?.ok) return null;
+      const trace = activeBackpropTrace(latestBundle);
+      const output = trace[trace.length - 1];
+      if (!trace.length || !output?.outputReady) return null;
+      return computeGradientsForResults(trace);
+    }
+
+    function gradientStepForDisplay(gradients, display) {
+      if (!gradients?.timeSteps?.length) return null;
+      return gradients.timeSteps.find((step) => step.index === display.index) || gradients.timeSteps[gradients.timeSteps.length - 1];
+    }
+
+    function nodeGradient(layer, layerIndex, nodeIndex, gradients, display) {
+      if (!gradients) return null;
+      const step = gradientStepForDisplay(gradients, display);
+      if (!step) return null;
+      if (layer.type === "input") {
+        return { value: step.xGradient[nodeIndex], prefix: "∂x=", title: "∂L/∂x_t" };
+      }
+      if (layer.type === "memory") {
+        return { value: step.previousMemoryGradient[nodeIndex], prefix: "∂h=", title: "∂L/∂h_(t-1)" };
+      }
+      if (layer.type === "hidden") {
+        const hiddenIndex = layerIndex - 2;
+        return { value: step.hiddenDeltas[hiddenIndex]?.[nodeIndex], prefix: "δ=", title: "δ = ∂L/∂z" };
+      }
+      if (layer.type === "score") {
+        const outputStep = gradients.timeSteps[gradients.timeSteps.length - 1];
+        return { value: outputStep.deltaScores[nodeIndex], prefix: "∂=", title: "∂L/∂score" };
+      }
+      return null;
+    }
+
+    function connectionPairs(layers) {
+      const firstHidden = 2;
+      const lastHidden = 2 + state.layers.length - 1;
+      const scoreLayer = 2 + state.layers.length;
+      const probabilityLayer = scoreLayer + 1;
+      const pairs = [
+        { fromLayer: 0, toLayer: firstHidden, type: "input" },
+        { fromLayer: 1, toLayer: firstHidden, type: "memory" }
+      ];
+      for (let layerIndex = 0; layerIndex < state.layers.length - 1; layerIndex += 1) {
+        pairs.push({ fromLayer: 2 + layerIndex, toLayer: 3 + layerIndex, type: "hidden", weightLayer: layerIndex + 1 });
+      }
+      pairs.push({ fromLayer: lastHidden, toLayer: scoreLayer, type: "output" });
+      pairs.push({ fromLayer: scoreLayer, toLayer: probabilityLayer, type: "softmax" });
+      return pairs.filter((pair) => layers[pair.fromLayer] && layers[pair.toLayer]);
+    }
+
+    function connectionWeight(pair, fromIndex, toIndex) {
+      if (pair.type === "input") return state.weights[0]?.[toIndex]?.[fromIndex] || 0;
+      if (pair.type === "memory") return state.weights[0]?.[toIndex]?.[VECTOR_DIM + fromIndex] || 0;
+      if (pair.type === "hidden") return state.weights[pair.weightLayer]?.[toIndex]?.[fromIndex] || 0;
+      if (pair.type === "output") {
+        return state.shareOutput
+          ? state.vocab[toIndex]?.vector[fromIndex] || 0
+          : state.outputWeights?.[toIndex]?.[fromIndex] || 0;
+      }
+      return fromIndex === toIndex ? latestDisplay.probabilities[toIndex] || 0 : 0;
+    }
+
+    function connectionGradient(pair, fromIndex, toIndex, gradients) {
+      if (!gradients || pair.type === "softmax") return null;
+      if (pair.type === "input") return gradients.gradWeights[0]?.[toIndex]?.[fromIndex] ?? null;
+      if (pair.type === "memory") return gradients.gradWeights[0]?.[toIndex]?.[VECTOR_DIM + fromIndex] ?? null;
+      if (pair.type === "hidden") return gradients.gradWeights[pair.weightLayer]?.[toIndex]?.[fromIndex] ?? null;
+      if (pair.type === "output") {
+        return state.shareOutput
+          ? gradients.gradOutputEmbeddings[toIndex]?.[fromIndex] ?? null
+          : gradients.gradOutputWeights?.[toIndex]?.[fromIndex] ?? null;
+      }
+      return null;
+    }
+
+    function drawConnections() {
+      const svg = els.connectionSvg;
+      const canvasRect = els.networkCanvas.getBoundingClientRect();
+      const width = Math.max(els.networkCanvas.scrollWidth, els.networkCanvas.clientWidth);
+      const height = Math.max(els.networkCanvas.scrollHeight, els.networkCanvas.clientHeight);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = "";
+      const layers = layerDisplayData(latestDisplay || emptyDisplayResult());
+      const pairs = connectionPairs(layers);
+      const gradients = activeVisualGradients();
+
+      pairs.forEach((pair) => {
+        const fromCount = layers[pair.fromLayer].values.length;
+        const toCount = layers[pair.toLayer].values.length;
+        for (let toIndex = 0; toIndex < toCount; toIndex += 1) {
+          const to = nodeAnchor(pair.toLayer, toIndex, canvasRect, "left");
+          if (!to) continue;
+          for (let fromIndex = 0; fromIndex < fromCount; fromIndex += 1) {
+            if (pair.type === "softmax" && fromIndex !== toIndex) continue;
+            const from = nodeAnchor(pair.fromLayer, fromIndex, canvasRect, "right");
+            if (!from) continue;
+            const weight = connectionWeight(pair, fromIndex, toIndex);
+            const related = isRelatedConnection(pair, fromIndex, toIndex);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", from.x);
+            line.setAttribute("y1", from.y);
+            line.setAttribute("x2", to.x);
+            line.setAttribute("y2", to.y);
+            line.setAttribute("stroke", pair.type === "softmax" ? "rgba(19,119,212,0.55)" : weight >= 0 ? "rgba(18,150,95,0.66)" : "rgba(217,75,75,0.64)");
+            line.setAttribute("stroke-width", String(pair.type === "softmax" ? 1.5 : 0.6 + Math.min(1, Math.abs(weight) * 3) * 2.4));
+            line.setAttribute("opacity", selectedNode ? (related ? "0.95" : "0.12") : "0.72");
+            if (pair.type === "softmax") line.setAttribute("stroke-dasharray", "5 5");
+            svg.appendChild(line);
+
+            const gradient = connectionGradient(pair, fromIndex, toIndex, gradients);
+            const showGradientLabel = state.showGradients && Number.isFinite(gradient) && pair.type !== "softmax" && (!selectedNode || related);
+            const showWeightLabel = state.showWeights && pair.type !== "softmax" && (!selectedNode || related);
+            if (showGradientLabel || showWeightLabel) {
+              const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              label.textContent = showGradientLabel ? `∂=${short(gradient)}` : short(weight);
+              label.setAttribute("class", showGradientLabel ? "gradient-label" : "weight-label");
+              label.setAttribute("x", String((from.x + to.x) / 2));
+              label.setAttribute("y", String((from.y + to.y) / 2 - 4));
+              label.setAttribute("font-size", "10");
+              label.setAttribute("font-family", "Consolas, monospace");
+              label.setAttribute("text-anchor", "middle");
+              label.setAttribute("fill", showGradientLabel ? "#9b5a00" : weight >= 0 ? "#087a4f" : "#bd3333");
+              label.setAttribute("paint-order", "stroke");
+              label.setAttribute("stroke", "#fff");
+              label.setAttribute("stroke-width", "3");
+              svg.appendChild(label);
+            }
+          }
+        }
+      });
+    }
+
+    function nodeAnchor(layerIndex, nodeIndex, canvasRect, side) {
+      const node = els.layers.querySelector(`[data-node-layer="${layerIndex}"][data-node-index="${nodeIndex}"]`);
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      return {
+        x: (side === "right" ? rect.right : rect.left) - canvasRect.left + els.networkCanvas.scrollLeft,
+        y: rect.top - canvasRect.top + rect.height / 2 + els.networkCanvas.scrollTop
+      };
+    }
+
+    function isRelatedConnection(pair, fromIndex, toIndex) {
+      if (!selectedNode) return false;
+      return (selectedNode.layerIndex === pair.fromLayer && selectedNode.nodeIndex === fromIndex)
+        || (selectedNode.layerIndex === pair.toLayer && selectedNode.nodeIndex === toIndex);
+    }
+
+    function renderTimeline(bundle) {
+      const source = state.mode === "breakdown" && state.breakdown.history.length
+        ? state.breakdown.history
+        : bundle.results;
+      const sequence = sequenceTokens();
+      const currentIndex = latestDisplay?.index ?? state.currentIndex;
+      els.timelineHint.textContent = state.mode === "breakdown"
+        ? "拆解模式会保留每一次循环；越早的记忆卡片越淡，悬停查看完整中间量。"
+        : "普通模式只展开到指定输出点；前面的时间步只更新记忆，输出点才计算 softmax。";
+      if (!source.length) {
+        els.timeCards.innerHTML = `<div class="status warn">暂无可展示的时间步。修正结构后会显示记忆向量变化。</div>`;
+        return;
+      }
+      els.timeCards.innerHTML = source.map((result, idx) => {
+        const age = source.length - 1 - idx;
+        const fade = Math.max(0.34, 1 - age * 0.1);
+        const active = result.index === currentIndex;
+        const prefix = state.mode === "breakdown"
+          ? source.slice(0, idx + 1).map((step) => step.token).join("")
+          : sequence.slice(0, result.index + 1).join("");
+        const badges = [
+          result.outputReady ? "已输出" : "",
+          result.trainCount ? `训练×${result.trainCount}` : ""
+        ].filter(Boolean).join(" · ");
+        const outputDetails = result.outputReady
+          ? `
+                <b>loss</b><span class="mono">${fmt(result.loss)}</span>
+                <b>top p</b><span>${escapeHtml(topPrediction(result).token)} = ${short(topPrediction(result).probability)}</span>`
+          : `
+                <b>输出</b><span>尚未到输出点，未计算 score/softmax</span>`;
+        const card = `
+          <div class="time-card${active ? " active" : ""}" style="--fade:${fade}">
+            <b>t = ${result.index}</b>
+            <div class="time-token">${escapeHtml(prefix)}</div>
+            <div class="hint">${escapeHtml(result.token)} → ${escapeHtml(result.targetToken)}${badges ? ` · ${escapeHtml(badges)}` : ""}</div>
+            <div class="vector-mini">[${result.memory.map(short).join(",\n ")}]</div>
+            <div class="time-tooltip">
+              <div class="kv">
+                <b>累计输入</b><span>${escapeHtml(prefix)}</span>
+                <b>token</b><span>${escapeHtml(result.token)}，目标 ${escapeHtml(result.targetToken)}</span>
+                <b>x_t</b><span class="mono">[${result.x.map(short).join(", ")}]</span>
+                <b>h_(t-1)</b><span class="mono">[${result.hPrev.map(short).join(", ")}]</span>
+                <b>z_t</b><span class="mono">[${(result.preActivations.at(-1) || []).map(short).join(", ")}]</span>
+                <b>h_t</b><span class="mono">[${result.memory.map(short).join(", ")}]</span>
+                ${outputDetails}
+              </div>
+            </div>
+          </div>
+        `;
+        return idx === 0 ? card : `<div class="time-arrow">→</div>${card}`;
+      }).join("");
+    }
+
+    function topPrediction(result) {
+      let bestIndex = 0;
+      result.probabilities.forEach((value, index) => {
+        if (value > result.probabilities[bestIndex]) bestIndex = index;
+      });
+      return {
+        token: state.vocab[bestIndex]?.token || "",
+        probability: result.probabilities[bestIndex] || 0,
+        score: result.scores[bestIndex] || 0
+      };
+    }
+
+    function renderInspector(bundle, display) {
+      renderParameterSummary(bundle);
+      renderMatrices();
+      renderMemoryChart(bundle);
+      renderSoftmax(display);
+      renderBackpropPanel(bundle);
+      renderSelected(display);
+    }
+
+    function renderParameterSummary(bundle) {
+      const rows = [
+        ["E", `${state.vocab.length} × ${VECTOR_DIM}`, matrixStats(state.vocab.map((item) => item.vector))],
+        ...state.weights.map((matrix, index) => [`W${index + 1}`, `${matrix.length} × ${matrix[0]?.length || 0}`, matrixStats(matrix)]),
+        [state.shareOutput ? "W_y = E" : "W_y", `${state.vocab.length} × ${lastHiddenSize()}`, state.shareOutput ? "共享词向量" : matrixStats(state.outputWeights || [])],
+        ["总参数量", String(parameterCount()), "可训练"]
+      ];
+      els.parameterPanel.innerHTML = `
+        <div class="table-scroll">
+          <table class="summary-table">
+            <thead><tr><th>参数</th><th>形状</th><th>统计（均值 / 标准差）</th></tr></thead>
+            <tbody>${rows.map((row) => `<tr><th>${escapeHtml(row[0])}</th><td>${escapeHtml(row[1])}</td><td>${escapeHtml(row[2])}</td></tr>`).join("")}</tbody>
+          </table>
+        </div>
+        <div class="status ${bundle.validation.ok ? "ok" : "error"}">${escapeHtml(bundle.validation.text)}</div>
+      `;
+    }
+
+    function matrixStats(matrix) {
+      const values = matrix.flat().map(Number).filter(Number.isFinite);
+      if (!values.length) return "0.000 / 0.000";
+      const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+      const variance = values.reduce((sum, value) => sum + (value - mean) * (value - mean), 0) / values.length;
+      return `${short(mean)} / ${short(Math.sqrt(variance))}`;
+    }
+
+    function renderMatrices() {
+      const sections = [];
+      sections.push(`
+        <div class="param-section">
+          <div class="small-title">词向量矩阵 E（${state.vocab.length}×3）</div>
+          ${embeddingTable()}
+        </div>
+      `);
+      state.weights.forEach((matrix, index) => {
+        sections.push(`
+          <div class="param-section">
+            <div class="small-title">W${index + 1}（${matrix.length}×${matrix[0]?.length || 0}）</div>
+            ${editableMatrixTable(matrix, index)}
+          </div>
+        `);
+      });
+      sections.push(`
+        <div class="param-section">
+          <div class="small-title">${state.shareOutput ? "输出权重 E^T（共享）" : "输出权重 W_y"}（${state.vocab.length}×${lastHiddenSize()}）</div>
+          ${outputMatrixTable()}
+        </div>
+      `);
+      els.matrixPanel.innerHTML = sections.join("");
+    }
+
+    function embeddingTable() {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>token</th><th>E1</th><th>E2</th><th>E3</th></tr></thead>
+            <tbody>${state.vocab.map((item, index) => `
+              <tr>
+                <th>${escapeHtml(item.token)}</th>
+                ${item.vector.map((value, dim) => `<td><input class="matrix-input" type="number" step="0.001" data-param="embedding" data-vocab-index="${index}" data-dim="${dim}" value="${roundForInput(value)}"></td>`).join("")}
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function editableMatrixTable(matrix, matrixIndex) {
+      const headers = matrix[0]?.map((_, colIndex) => inputHeader(matrixIndex, colIndex)) || [];
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>神经元</th>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+            <tbody>${matrix.map((row, rowIndex) => `
+              <tr>
+                <th>h${matrixIndex + 1}.${rowIndex + 1}</th>
+                ${row.map((value, colIndex) => `<td><input class="matrix-input" type="number" step="0.001" data-param="weight" data-matrix-index="${matrixIndex}" data-row="${rowIndex}" data-col="${colIndex}" value="${roundForInput(value)}"></td>`).join("")}
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function inputHeader(matrixIndex, colIndex) {
+      if (matrixIndex === 0) return colIndex < VECTOR_DIM ? `x${colIndex + 1}` : `hprev${colIndex - VECTOR_DIM + 1}`;
+      return `h${matrixIndex}.${colIndex + 1}`;
+    }
+
+    function outputMatrixTable() {
+      const matrix = state.shareOutput
+        ? state.vocab.map((item) => item.vector.slice(0, lastHiddenSize()))
+        : state.outputWeights || [];
+      if (!matrix.length) return `<div class="status warn">当前没有输出矩阵。</div>`;
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>输出 token</th>${matrix[0].map((_, index) => `<th>h${index + 1}</th>`).join("")}</tr></thead>
+            <tbody>${matrix.map((row, rowIndex) => `
+              <tr>
+                <th>${escapeHtml(state.vocab[rowIndex]?.token || "")}</th>
+                ${row.map((value, colIndex) => state.shareOutput
+                  ? `<td class="${numericClass(value)}">${short(value)}</td>`
+                  : `<td><input class="matrix-input" type="number" step="0.001" data-param="outputWeight" data-row="${rowIndex}" data-col="${colIndex}" value="${roundForInput(value)}"></td>`
+                ).join("")}
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderMemoryChart(bundle) {
+      const results = bundle.ok ? bundle.results : state.breakdown.history;
+      const svg = els.memoryChart;
+      svg.innerHTML = "";
+      const width = 320;
+      const height = 150;
+      const pad = 22;
+      const axis = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      axis.setAttribute("d", `M${pad},${height - pad}H${width - 8}M${pad},${height - pad}V${pad - 4}`);
+      axis.setAttribute("stroke", "#cbd5df");
+      axis.setAttribute("fill", "none");
+      svg.appendChild(axis);
+      if (!results.length) {
+        els.memoryTable.innerHTML = `<div class="status warn">暂无记忆向量。</div>`;
+        return;
+      }
+      const values = results.flatMap((result) => result.memory);
+      const min = Math.min(-1, ...values);
+      const max = Math.max(1, ...values);
+      const colors = ["#1377d4", "#12965f", "#d88713"];
+      for (let dim = 0; dim < MEMORY_DIM; dim += 1) {
+        const points = results.map((result, index) => {
+          const x = pad + (results.length === 1 ? 0 : index * (width - pad - 12) / (results.length - 1));
+          const y = height - pad - ((result.memory[dim] - min) / (max - min || 1)) * (height - pad * 2);
+          return `${x},${y}`;
+        }).join(" ");
+        const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+        polyline.setAttribute("points", points);
+        polyline.setAttribute("fill", "none");
+        polyline.setAttribute("stroke", colors[dim]);
+        polyline.setAttribute("stroke-width", "2");
+        svg.appendChild(polyline);
+      }
+      els.memoryTable.innerHTML = `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>t</th><th>token</th><th>h1</th><th>h2</th><th>h3</th></tr></thead>
+            <tbody>${results.map((result) => `
+              <tr><th>${result.index}</th><td>${escapeHtml(result.token)}</td>${result.memory.map((value) => `<td class="${numericClass(value)}">${short(value)}</td>`).join("")}</tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderSoftmax(display) {
+      if (!display.outputReady) {
+        const tokens = sequenceTokens();
+        els.softmaxPanel.innerHTML = `
+          <div class="status warn">尚未到输出点。当前只在更新记忆向量 h_t；读到 t=${state.outputStopIndex} “${escapeHtml(tokens[state.outputStopIndex] || "")}” 后才会计算 score 和 softmax。</div>
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th>token</th><th>score</th><th>softmax</th><th>目标</th></tr></thead>
+              <tbody>${state.vocab.map((item) => `
+                <tr>
+                  <th>${escapeHtml(item.token)}</th>
+                  <td class="zero">等待</td>
+                  <td class="zero">等待</td>
+                  <td class="zero">等待</td>
+                </tr>
+              `).join("")}</tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+      const top = topPrediction(display);
+      els.softmaxPanel.innerHTML = `
+        <div class="status ok">当前输出点 loss=${fmt(display.loss)}。最高概率：${escapeHtml(top.token)}，p=${fmt(top.probability)}，score=${fmt(top.score)}</div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>token</th><th>score</th><th>softmax</th><th>目标</th></tr></thead>
+            <tbody>${state.vocab.map((item, index) => `
+              <tr>
+                <th>${escapeHtml(item.token)}</th>
+                <td class="${numericClass(display.scores[index])}">${fmt(display.scores[index])}</td>
+                <td class="${numericClass(display.probabilities[index])}">${fmt(display.probabilities[index])}</td>
+                <td>${display.target[index] ? "1" : "0"}</td>
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function activeBackpropTrace(bundle) {
+      if (state.mode === "breakdown") {
+        const history = state.breakdown.history || [];
+        const lastOutputIndex = history.reduce((found, result, index) => result.outputReady ? index : found, -1);
+        return lastOutputIndex >= 0 ? history.slice(0, lastOutputIndex + 1) : [];
+      }
+      return bundle.ok ? bundle.results : [];
+    }
+
+    function renderBackpropPanel(bundle) {
+      if (!bundle.validation.ok) {
+        els.backpropPanel.innerHTML = `<div class="status error">${escapeHtml(bundle.validation.text)}</div>`;
+        return;
+      }
+      const trace = activeBackpropTrace(bundle);
+      const output = trace[trace.length - 1];
+      if (!trace.length || !output?.outputReady) {
+        els.backpropPanel.innerHTML = `<div class="status warn">尚未到输出点。反向传播需要先得到 score、softmax 和 loss。</div>`;
+        return;
+      }
+
+      const gradients = computeGradientsForResults(trace);
+      const outputStep = gradients.timeSteps[gradients.timeSteps.length - 1];
+      const sections = [
+        `<div class="formula-box">
+          <div><code>u_t = [x_t; h_(t-1)]</code>，每个循环步先拼接输入词向量和上一刻记忆。</div>
+          <div><code>z_t^l = W^l a_t^{l-1}</code>，<code>a_t^l = f_l(z_t^l)</code>，最后一层输出就是 <code>h_t</code>。</div>
+          <div>${backpropLossFormulaText()}</div>
+          <div><code>δ_t^l = ∂L/∂z_t^l = (∂L/∂a_t^l) · f'(z_t^l)</code>，<code>∂L/∂W^l = Σ_t δ_t^l · a_t^{l-1}</code>。</div>
+          <div><code>∂L/∂h_(t-1)</code> 会继续传回上一个时间步，这就是 RNN 的 BPTT 记忆回传。</div>
+        </div>`,
+        `<div class="matrix-section">
+          <div class="small-title">输出点 t=${output.index} “${escapeHtml(output.token)}” 的误差信号 ∂L/∂score</div>
+          ${vectorTable(state.vocab.map((item) => item.token), outputStep.deltaScores, "∂L/∂score")}
+        </div>`,
+        `<div class="matrix-section">
+          <div class="small-title">按时间步反传（从输出点往前看）</div>
+          ${gradients.timeSteps.slice().reverse().map((step, position) => renderBackpropStep(step, position === 0)).join("")}
+        </div>`,
+        `<div class="matrix-section">
+          <div class="small-title">输入词向量贡献 ∂L/∂E_in（来自每个 token 的 x_t）</div>
+          ${gradientMatrixTable(gradients.gradInputEmbeddings, state.vocab.map((item) => item.token), ["E1", "E2", "E3"])}
+        </div>`
+      ];
+
+      if (state.shareOutput) {
+        sections.push(`
+          <div class="matrix-section">
+            <div class="small-title">共享输出词向量贡献 ∂L/∂E_out（来自 score = E_k · h_t）</div>
+            ${gradientMatrixTable(gradients.gradOutputEmbeddings, state.vocab.map((item) => item.token), ["E1", "E2", "E3"])}
+          </div>
+        `);
+      }
+
+      sections.push(`
+        <div class="matrix-section">
+          <div class="small-title">词向量矩阵 E 的总偏导 ∂L/∂E（输入贡献 + 输出共享贡献）</div>
+          ${gradientMatrixTable(gradients.gradEmbeddings, state.vocab.map((item) => item.token), ["E1", "E2", "E3"])}
+        </div>
+      `);
+
+      gradients.gradWeights.forEach((matrix, index) => {
+        sections.push(`
+          <div class="matrix-section">
+            <div class="small-title">循环权重 W${index + 1} 的偏导 ∂L/∂W${index + 1}（${matrix.length}×${matrix[0]?.length || 0}）</div>
+            ${gradientMatrixTable(
+              matrix,
+              matrix.map((_, rowIndex) => `h${index + 1}.${rowIndex + 1}`),
+              matrix[0]?.map((_, colIndex) => inputHeader(index, colIndex)) || []
+            )}
+          </div>
+        `);
+      });
+
+      if (!state.shareOutput && gradients.gradOutputWeights) {
+        sections.push(`
+          <div class="matrix-section">
+            <div class="small-title">独立输出权重 W_y 的偏导 ∂L/∂W_y</div>
+            ${gradientMatrixTable(
+              gradients.gradOutputWeights,
+              state.vocab.map((item) => item.token),
+              gradients.gradOutputWeights[0]?.map((_, index) => `h${index + 1}`) || []
+            )}
+          </div>
+        `);
+      }
+
+      els.backpropPanel.innerHTML = sections.join("");
+    }
+
+    function renderBackpropStep(step, open) {
+      const hiddenSections = step.hiddenDeltas.map((delta, index) => `
+        <div>
+          <div class="small-title">隐藏层 ${index + 1}：δ = ∂L/∂z</div>
+          ${vectorTable(delta.map((_, nodeIndex) => `h${index + 1}.${nodeIndex + 1}`), delta, "δ")}
+        </div>
+      `).join("");
+      return `
+        <details class="backprop-step"${open ? " open" : ""}>
+          <summary>t=${step.index} “${escapeHtml(step.token)}”${step.outputReady ? " · 输出点" : " · 只回传记忆梯度"}</summary>
+          <div class="backprop-step-body">
+            <div class="kv">
+              <b>目标</b><span>${escapeHtml(step.targetToken)}</span>
+              <b>loss</b><span class="mono">${step.outputReady ? fmt(step.loss) : "无本步输出"}</span>
+              <b>来自本步输出的 ∂L/∂h_t</b><span class="mono">[${step.memoryGradientFromOutput.map(short).join(", ")}]</span>
+              <b>来自下一时间步的 ∂L/∂h_t</b><span class="mono">[${step.memoryGradientFromFuture.map(short).join(", ")}]</span>
+              <b>合计 ∂L/∂h_t</b><span class="mono">[${step.memoryGradientTotal.map(short).join(", ")}]</span>
+            </div>
+            ${hiddenSections}
+            <div>
+              <div class="small-title">拼接输入 u_t = [x_t; h_(t-1)] 的偏导</div>
+              ${vectorTable(step.inputGradient.map((_, index) => inputHeader(0, index)), step.inputGradient, "∂L/∂u_t")}
+            </div>
+            <div class="kv">
+              <b>∂L/∂x_t</b><span class="mono">[${step.xGradient.map(short).join(", ")}]</span>
+              <b>继续传给上一时刻的 ∂L/∂h_(t-1)</b><span class="mono">[${step.previousMemoryGradient.map(short).join(", ")}]</span>
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
+    function backpropLossFormulaText() {
+      if (state.lossType === "CrossEntropy") {
+        return `<code>L = -Σ_k t_k log(p_k)</code>，所以输出层 <code>∂L/∂score_k = p_k - t_k</code>。`;
+      }
+      if (state.lossType === "MSE") {
+        return `<code>L = (1/K)Σ_k(score_k - t_k)^2</code>，所以 <code>∂L/∂score_k = 2(score_k - t_k)/K</code>。`;
+      }
+      if (state.lossType === "MAE") {
+        return `<code>L = (1/K)Σ_k |score_k - t_k|</code>，所以 <code>∂L/∂score_k = sign(score_k - t_k)/K</code>。`;
+      }
+      return `<code>L = custom(score,t,p,k,V)</code>，输出层偏导用数值梯度近似。`;
+    }
+
+    function vectorTable(labels, values, valueHeader) {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>节点</th><th>${escapeHtml(valueHeader)}</th></tr></thead>
+            <tbody>${values.map((value, index) => `
+              <tr>
+                <th>${escapeHtml(labels[index] || String(index + 1))}</th>
+                <td class="${numericClass(value)}">${fmt(value)}</td>
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function gradientMatrixTable(matrix, rowHeaders, colHeaders) {
+      if (!matrix?.length) return `<div class="status warn">暂无梯度。</div>`;
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>参数</th>${colHeaders.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+            <tbody>${matrix.map((row, rowIndex) => `
+              <tr>
+                <th>${escapeHtml(rowHeaders[rowIndex] || String(rowIndex + 1))}</th>
+                ${row.map((value) => `<td class="${numericClass(value)}">${fmt(value)}</td>`).join("")}
+              </tr>
+            `).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderSelected(display) {
+      if (!selectedNode) {
+        els.selectedPanel.innerHTML = `<div class="status">点击任意神经元圆圈后，这里会显示它的当前值和含义。</div>`;
+        return;
+      }
+      const layers = layerDisplayData(display);
+      const layer = layers[selectedNode.layerIndex];
+      if (!layer || selectedNode.nodeIndex >= layer.values.length) {
+        selectedNode = null;
+        renderSelected(display);
+        return;
+      }
+      const value = layer.values[selectedNode.nodeIndex];
+      els.selectedPanel.innerHTML = `
+        <div class="status ok">${escapeHtml(layer.title)}：${escapeHtml(layer.labels[selectedNode.nodeIndex] || "")} = ${fmt(value)}</div>
+        <div class="kv">
+          <b>层</b><span>${escapeHtml(layer.key)}</span>
+          <b>公式</b><span><code>${escapeHtml(layer.formula)}</code></span>
+          <b>数值</b><span class="mono">${fmt(value)}</span>
+          <b>当前 token</b><span>${escapeHtml(display.token)} → ${escapeHtml(display.targetToken)}</span>
+        </div>
+      `;
+    }
+
+    function handleBreakdownInput() {
+      const validation = validateModel();
+      if (!validation.ok || state.breakdown.phase !== "awaitInput") return;
+      const tokens = sequenceTokens();
+      if (state.breakdown.lastComputedResult && state.breakdown.lastComputedResult.index === state.currentIndex) {
+        advanceBreakdownIndex();
+      }
+      const index = Math.min(state.currentIndex, Math.max(0, tokens.length - 1));
+      const token = tokens[index];
+      state.breakdown.lastOutputResult = null;
+      state.breakdown.lastOutputHistoryIndex = -1;
+      state.breakdown.current = {
+        index,
+        token,
+        x: vectorForToken(token),
+        hPrev: state.breakdown.memory.slice(),
+        result: null
+      };
+      state.breakdown.phase = "tokenReady";
+      render();
+    }
+
+    function handleBreakdownMemory() {
+      const validation = validateModel();
+      if (!validation.ok || state.breakdown.phase !== "tokenReady" || !state.breakdown.current) return;
+      const memoryResult = computeMemoryStep(state.breakdown.current.index, state.breakdown.current.hPrev);
+      const result = memoryResult.index === outputStopIndex()
+        ? computeOutput(memoryResult, targetTokenAt(memoryResult.index))
+        : memoryResult;
+      result.trainCount = 0;
+      state.breakdown.current.result = result;
+      state.breakdown.lastComputedResult = result;
+      state.breakdown.memory = result.memory.slice();
+      state.breakdown.history.push(result);
+      state.breakdown.history = state.breakdown.history.slice(-80);
+      if (result.outputReady) {
+        state.breakdown.lastOutputResult = result;
+        state.breakdown.lastOutputHistoryIndex = state.breakdown.history.length - 1;
+      } else {
+        state.breakdown.lastOutputResult = null;
+        state.breakdown.lastOutputHistoryIndex = -1;
+      }
+      state.breakdown.phase = "awaitInput";
+      state.breakdown.current = null;
+      render();
+    }
+
+    function handleTrainOne() {
+      if (trainBreakdownToOutputStop()) render();
+    }
+
+    function wireEvents() {
+      els.normalModeButton.addEventListener("click", () => setMode("normal"));
+      els.breakdownModeButton.addEventListener("click", () => setMode("breakdown"));
+      els.topTrainOneButton.addEventListener("click", handleTrainOne);
+      els.trainOneButton.addEventListener("click", handleTrainOne);
+      els.topTrainManyButton.addEventListener("click", () => {
+        if (trainMany(state.steps)) render();
+      });
+      els.trainManyButton.addEventListener("click", () => {
+        if (trainMany(state.steps)) render();
+      });
+      els.resetButton.addEventListener("click", () => {
+        state = createDefaultState();
+        selectedNode = null;
+        syncWeightShapes();
+        render();
+      });
+      els.exportButton.addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "rnn-language-simulator.json";
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+      els.importButton.addEventListener("click", () => els.importInput.click());
+      els.importInput.addEventListener("change", async () => {
+        const file = els.importInput.files?.[0];
+        if (!file) return;
+        try {
+          state = sanitizeImportedState(JSON.parse(await file.text()));
+          selectedNode = null;
+          syncWeightShapes();
+          addLog("已加载保存的 RNN 参数。");
+          render();
+        } catch (error) {
+          alert(`加载失败：${error.message}`);
+        } finally {
+          els.importInput.value = "";
+        }
+      });
+      els.corpusInput.addEventListener("input", () => {
+        state.corpusText = els.corpusInput.value;
+      });
+      els.buildVocabButton.addEventListener("click", () => {
+        state.corpusText = els.corpusInput.value || DEFAULT_TEXT;
+        buildVocabFromText(state.corpusText);
+        if (!state.sequenceText.trim()) state.sequenceText = state.corpusText;
+        render();
+      });
+      els.sortVocabButton.addEventListener("click", () => {
+        state.corpusText = state.vocab.map((item) => item.token).join("");
+        render();
+      });
+      els.addTokenButton.addEventListener("click", () => {
+        addTokens(els.addTokenInput.value);
+        els.addTokenInput.value = "";
+        render();
+      });
+      els.vocabBody.addEventListener("input", (event) => {
+        const target = event.target;
+        const index = Number(target.dataset.vocabIndex);
+        if (!Number.isInteger(index) || !state.vocab[index]) return;
+        if (target.dataset.field === "token") {
+          const previous = state.vocab[index].token;
+          const next = Array.from(target.value.trim())[0] || previous;
+          state.vocab[index].token = next;
+          state.sequenceText = Array.from(state.sequenceText).map((token) => token === previous ? next : token).join("");
+          state.corpusText = Array.from(state.corpusText).map((token) => token === previous ? next : token).join("");
+        } else if (target.dataset.dim !== undefined) {
+          state.vocab[index].vector[Number(target.dataset.dim)] = clampNumber(target.value, -100, 100, 0);
+        }
+        resetBreakdown(true);
+        render();
+      });
+      els.vocabBody.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-token]");
+        if (!button) return;
+        const index = Number(button.dataset.deleteToken);
+        state.vocab.splice(index, 1);
+        syncWeightShapes();
+        resetBreakdown(false);
+        render();
+      });
+      els.sequenceInput.addEventListener("input", () => {
+        state.sequenceText = els.sequenceInput.value;
+        state.currentIndex = Math.min(state.currentIndex, Math.max(0, sequenceTokens().length - 1));
+        resetBreakdown(true);
+        render();
+      });
+      els.timeIndexInput.addEventListener("change", () => {
+        state.currentIndex = clampInt(els.timeIndexInput.value, 0, Math.max(0, sequenceTokens().length - 1), 0);
+        resetBreakdown(true);
+        render();
+      });
+      els.outputStopSelect.addEventListener("change", () => {
+        state.outputStopIndex = clampInt(els.outputStopSelect.value, 0, Math.max(0, sequenceTokens().length - 1), 0);
+        resetBreakdown(true);
+        render();
+      });
+      els.hiddenCountInput.addEventListener("change", () => {
+        setHiddenCount(els.hiddenCountInput.value);
+        resetBreakdown(true);
+        render();
+      });
+      els.shareOutputInput.addEventListener("change", () => {
+        state.shareOutput = els.shareOutputInput.checked;
+        syncWeightShapes();
+        render();
+      });
+      els.layerConfigs.addEventListener("input", (event) => {
+        const target = event.target;
+        const index = Number(target.dataset.layerIndex);
+        if (!Number.isInteger(index) || !state.layers[index]) return;
+        if (target.dataset.layerField === "size") {
+          state.layers[index].size = clampInt(target.value, 1, 12, MEMORY_DIM);
+        } else if (target.dataset.layerField === "activation") {
+          state.layers[index].activation = target.value;
+        }
+        syncWeightShapes();
+        resetBreakdown(true);
+        render();
+      });
+      els.activationSelect.addEventListener("change", () => {
+        state.layers.forEach((layer) => { layer.activation = els.activationSelect.value; });
+        resetBreakdown(true);
+        render();
+      });
+      els.customActivationInput.addEventListener("input", () => {
+        state.customActivationExpr = els.customActivationInput.value || "x";
+      });
+      els.lossSelect.addEventListener("change", () => {
+        state.lossType = els.lossSelect.value;
+        render();
+      });
+      els.customLossInput.addEventListener("input", () => {
+        state.customLossExpr = els.customLossInput.value || "0";
+      });
+      els.learningRateInput.addEventListener("input", () => {
+        state.learningRate = clampNumber(els.learningRateInput.value, 0.0001, 2, 0.05);
+      });
+      els.stepsInput.addEventListener("input", () => {
+        state.steps = clampInt(els.stepsInput.value, 1, 20000, 200);
+      });
+      els.showWeightsInput.addEventListener("change", () => {
+        state.showWeights = els.showWeightsInput.checked;
+        render();
+      });
+      els.showGradientsInput.addEventListener("change", () => {
+        state.showGradients = els.showGradientsInput.checked;
+        render();
+      });
+      els.breakdownInputButton.addEventListener("click", handleBreakdownInput);
+      els.breakdownMemoryButton.addEventListener("click", handleBreakdownMemory);
+      els.breakdownTrainButton.addEventListener("click", () => {
+        if (trainBreakdownCurrent()) render();
+      });
+      els.matrixPanel.addEventListener("input", handleParameterInput);
+      els.layers.addEventListener("click", (event) => {
+        const node = event.target.closest("[data-node-layer]");
+        if (!node) return;
+        selectedNode = {
+          layerIndex: Number(node.dataset.nodeLayer),
+          nodeIndex: Number(node.dataset.nodeIndex)
+        };
+        render();
+      });
+      window.addEventListener("resize", () => requestAnimationFrame(drawConnections));
+    }
+
+    function handleParameterInput(event) {
+      const target = event.target;
+      if (!target.matches("[data-param]")) return;
+      const value = clampNumber(target.value, -100, 100, 0);
+      if (target.dataset.param === "embedding") {
+        state.vocab[Number(target.dataset.vocabIndex)].vector[Number(target.dataset.dim)] = value;
+      } else if (target.dataset.param === "weight") {
+        state.weights[Number(target.dataset.matrixIndex)][Number(target.dataset.row)][Number(target.dataset.col)] = value;
+      } else if (target.dataset.param === "outputWeight" && state.outputWeights) {
+        state.outputWeights[Number(target.dataset.row)][Number(target.dataset.col)] = value;
+      }
+      resetBreakdown(true);
+      render();
+    }
+
+    function sanitizeImportedState(imported) {
+      const base = createDefaultState();
+      const next = { ...base, ...imported };
+      next.corpusText = String(imported.corpusText || base.corpusText);
+      next.sequenceText = String(imported.sequenceText || base.sequenceText);
+      next.vocab = Array.isArray(imported.vocab) && imported.vocab.length
+        ? imported.vocab.slice(0, 80).map((item, index) => ({
+          token: Array.from(String(item.token || `词${index + 1}`))[0] || `词${index + 1}`,
+          vector: Array.from({ length: VECTOR_DIM }, (_, dim) => clampNumber(item.vector?.[dim], -100, 100, 0))
+        }))
+        : base.vocab;
+      next.layers = Array.isArray(imported.layers) && imported.layers.length
+        ? imported.layers.slice(0, 5).map((layer) => ({
+          size: clampInt(layer.size, 1, 12, MEMORY_DIM),
+          activation: ACTIVATIONS.includes(layer.activation) ? layer.activation : "tanh"
+        }))
+        : base.layers;
+      next.weights = Array.isArray(imported.weights) ? imported.weights : base.weights;
+      next.shareOutput = imported.shareOutput !== false;
+      next.outputWeights = Array.isArray(imported.outputWeights) ? imported.outputWeights : null;
+      next.customActivationExpr = String(imported.customActivationExpr || base.customActivationExpr);
+      next.lossType = LOSSES.some((loss) => loss.id === imported.lossType) ? imported.lossType : base.lossType;
+      next.customLossExpr = String(imported.customLossExpr || base.customLossExpr);
+      next.learningRate = clampNumber(imported.learningRate, 0.0001, 2, base.learningRate);
+      next.steps = clampInt(imported.steps, 1, 20000, base.steps);
+      next.trainedSteps = clampInt(imported.trainedSteps, 0, 100000000, 0);
+      next.mode = imported.mode === "normal" ? "normal" : "breakdown";
+      next.currentIndex = clampInt(imported.currentIndex, 0, Math.max(0, Array.from(next.sequenceText).length - 1), 0);
+      next.outputStopIndex = clampInt(imported.outputStopIndex, 0, Math.max(0, Array.from(next.sequenceText).length - 1), Math.max(0, Array.from(next.sequenceText).length - 1));
+      next.showWeights = Boolean(imported.showWeights);
+      next.showGradients = Boolean(imported.showGradients);
+      next.log = Array.isArray(imported.log) ? imported.log.map(String).slice(0, 8) : [];
+      next.breakdown = {
+        phase: "awaitInput",
+        current: null,
+        memory: zeroMemory(),
+        lastComputedResult: null,
+        lastOutputResult: null,
+        lastOutputHistoryIndex: -1,
+        history: []
+      };
+      return next;
+    }
+
+    syncWeightShapes();
+    wireEvents();
+    render();
+  </script>
+</body>
+</html>

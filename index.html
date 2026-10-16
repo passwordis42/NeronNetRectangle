@@ -1,0 +1,2680 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>神经网络像素画布可视化</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #181818;
+      --muted: #5f6368;
+      --surface: #fbfbfb;
+      --panel: #ffffff;
+      --line: #d9dde0;
+      --line-strong: #aeb6bb;
+      --dark: #111111;
+      --teal: #009f7a;
+      --pink: #e43f64;
+      --yellow: #f1d54a;
+      --gray: #edf0f1;
+      --shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
+      --radius: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.035) 1px, transparent 1px),
+        #f5f6f6;
+      background-size: 28px 28px;
+      color: var(--ink);
+      font-family: "Trebuchet MS", "Microsoft YaHei", "PingFang SC", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      border: 1px solid var(--dark);
+      border-radius: var(--radius);
+      background: var(--dark);
+      color: #fff;
+      min-height: 36px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: transform 140ms ease, box-shadow 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+    }
+
+    button.secondary {
+      background: #fff;
+      color: var(--ink);
+    }
+
+    button.danger {
+      background: var(--pink);
+      border-color: var(--pink);
+    }
+
+    input,
+    select {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      min-height: 34px;
+      padding: 6px 8px;
+    }
+
+    input[type="range"] {
+      padding: 0;
+      accent-color: var(--teal);
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .topbar {
+      display: grid;
+      gap: 10px;
+      padding: 22px clamp(14px, 4vw, 34px) 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: clamp(26px, 42px, 46px);
+      line-height: 1;
+      max-width: 920px;
+    }
+
+    .topbar p {
+      margin: 0;
+      max-width: 860px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: minmax(260px, 330px) minmax(0, 1fr) minmax(290px, 360px);
+      gap: 14px;
+      padding: 14px;
+      min-height: calc(100vh - 126px);
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+    }
+
+    .side {
+      display: grid;
+      gap: 14px;
+      align-content: start;
+    }
+
+    .section {
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .section + .section {
+      border-top: 1px solid var(--line);
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .section-title h2,
+    .section-title h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .section-title span,
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .pixel-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(42px, 1fr));
+      gap: 7px;
+      touch-action: none;
+      user-select: none;
+    }
+
+    .pixel {
+      aspect-ratio: 1;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      font-size: 13px;
+      cursor: crosshair;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+
+    .pixel:hover {
+      transform: scale(1.03);
+      border-color: var(--dark);
+    }
+
+    .brush-readout {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .brush-chip {
+      display: inline-grid;
+      place-items: center;
+      min-width: 52px;
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      font-family: Consolas, monospace;
+      font-weight: 700;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .network-panel {
+      min-width: 0;
+      display: grid;
+      grid-template-rows: auto minmax(0, 1fr) auto;
+      overflow: hidden;
+    }
+
+    .network-head {
+      padding: 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .network-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .metric-strip {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .network-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mode-button {
+      min-height: 34px;
+      padding: 7px 10px;
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .mode-button.is-active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #fff;
+    }
+
+    .mode-group {
+      display: inline-flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .mode-group .hint {
+      margin-right: 2px;
+    }
+
+    .zoom-control {
+      display: grid;
+      grid-template-columns: 64px 120px 46px;
+      gap: 7px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 7px 9px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .zoom-control input {
+      min-height: 20px;
+    }
+
+    .zoom-control b {
+      color: var(--ink);
+      font-family: Consolas, monospace;
+      text-align: right;
+    }
+
+    .metric {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 7px 9px;
+      display: grid;
+      gap: 2px;
+      min-width: 88px;
+    }
+
+    .metric b {
+      font-size: 14px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .network-scroll {
+      overflow: auto;
+      min-height: 560px;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+        #fbfbfb;
+      background-size: 22px 22px;
+    }
+
+    .network-canvas {
+      position: relative;
+      min-width: 100%;
+      min-height: 100%;
+      width: max-content;
+      padding: 28px 28px 48px;
+      transform-origin: 0 0;
+    }
+
+    .connections {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .layers {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      justify-items: center;
+      align-items: start;
+      gap: 62px;
+      min-height: 480px;
+    }
+
+    .layer {
+      position: relative;
+      min-width: 170px;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .layer::after {
+      content: "";
+      width: 1px;
+      height: 34px;
+      background: var(--line-strong);
+      opacity: 0.5;
+      position: absolute;
+      bottom: -48px;
+      left: 50%;
+    }
+
+    .layer:last-child::after {
+      display: none;
+    }
+
+    .layer-title {
+      display: grid;
+      gap: 3px;
+      justify-items: center;
+      min-height: 44px;
+      text-align: center;
+    }
+
+    .layer-title b {
+      font-size: 14px;
+    }
+
+    .layer-title span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .neuron-grid {
+      display: grid;
+      grid-template-columns: repeat(var(--cols), var(--node-size));
+      gap: 5px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.86);
+    }
+
+    .network-canvas.is-expanded {
+      min-width: max-content;
+      padding: 32px 54px 54px;
+    }
+
+    .layers.is-expanded {
+      display: flex;
+      align-items: flex-start;
+      justify-items: start;
+      gap: 150px;
+      min-height: 720px;
+    }
+
+    .layers.is-expanded .layer {
+      min-width: 112px;
+    }
+
+    .layers.is-expanded .layer::after {
+      display: none;
+    }
+
+    .layers.is-expanded .neuron-grid {
+      grid-template-columns: 1fr;
+      gap: 7px;
+      padding: 9px;
+    }
+
+    .layers.is-expanded .neuron {
+      width: 56px;
+      height: 30px;
+      font-size: 10px;
+      border-radius: 6px;
+    }
+
+    .neuron {
+      width: var(--node-size);
+      height: var(--node-size);
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      font-family: Consolas, monospace;
+      font-size: var(--node-font);
+      line-height: 1;
+      overflow: hidden;
+      white-space: nowrap;
+      transition: transform 140ms ease, box-shadow 140ms ease;
+    }
+
+    .neuron:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 0 2px #fff, 0 8px 18px rgba(0, 0, 0, 0.18);
+      z-index: 5;
+    }
+
+    .neuron[data-selectable] {
+      cursor: pointer;
+    }
+
+    .neuron.is-selected {
+      box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--yellow), 0 12px 24px rgba(0, 0, 0, 0.24);
+      transform: scale(1.1);
+      z-index: 6;
+    }
+
+    .summary-panel {
+      border-top: 1px solid var(--line);
+      padding: 12px 14px;
+      display: grid;
+      gap: 8px;
+      background: #fff;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .summary-item {
+      display: grid;
+      grid-template-columns: 110px 1fr 88px;
+      gap: 10px;
+      align-items: center;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .summary-bar {
+      display: grid;
+      grid-template-columns: repeat(20, 1fr);
+      gap: 2px;
+      min-height: 18px;
+    }
+
+    .summary-cell {
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    .weight-inspector {
+      border-top: 1px solid var(--line);
+      background: #fff;
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .weight-inspector-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .weight-inspector-head h3 {
+      margin: 0;
+      font-size: 16px;
+    }
+
+    .weight-inspector-meta {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .weight-chip {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 7px 9px;
+      background: #f9faf9;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .weight-chip b {
+      color: var(--ink);
+      font-family: Consolas, monospace;
+    }
+
+    .weight-sections {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .weight-section {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfbfb;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .weight-section h4 {
+      margin: 0;
+      padding: 10px 11px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .weight-table {
+      display: grid;
+      gap: 5px;
+      max-height: 280px;
+      overflow: auto;
+      padding: 9px;
+    }
+
+    .weight-row {
+      display: grid;
+      grid-template-columns: minmax(74px, 96px) minmax(0, 1fr) 76px;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .weight-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .weight-bar {
+      height: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+      border-radius: 6px;
+      background: #edf0f1;
+      overflow: hidden;
+    }
+
+    .weight-fill {
+      height: 100%;
+      width: max(4px, calc(var(--strength) * 100%));
+      border-radius: 6px;
+      background: var(--bar-color);
+    }
+
+    .weight-value {
+      color: var(--ink);
+      font-family: Consolas, monospace;
+      text-align: right;
+    }
+
+    .weight-empty {
+      color: var(--muted);
+      border: 1px dashed var(--line-strong);
+      border-radius: 7px;
+      padding: 12px;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    .contribution-section {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfbfb;
+      overflow: hidden;
+    }
+
+    .contribution-head {
+      padding: 10px 11px;
+      border-bottom: 1px solid var(--line);
+      background: #fff;
+      display: grid;
+      gap: 4px;
+    }
+
+    .contribution-head-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .contribution-head h4 {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .contribution-mode-group {
+      display: inline-flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .mini-mode-button {
+      min-height: 28px;
+      padding: 5px 9px;
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .mini-mode-button.is-active {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #fff;
+    }
+
+    .contribution-grid {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(54px, 1fr));
+      gap: 7px;
+      padding: 11px;
+    }
+
+    .contribution-cell {
+      aspect-ratio: 1;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 7px;
+      display: grid;
+      align-content: center;
+      justify-items: center;
+      gap: 4px;
+      padding: 6px 4px;
+      text-align: center;
+      font-family: Consolas, "Microsoft YaHei", monospace;
+    }
+
+    .contribution-name {
+      font-size: 10px;
+      line-height: 1.1;
+      opacity: 0.92;
+    }
+
+    .contribution-value {
+      font-size: 11px;
+      line-height: 1.2;
+      font-weight: 700;
+      overflow-wrap: anywhere;
+    }
+
+    .contribution-formula {
+      padding: 0 11px 11px;
+      color: var(--muted);
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .output-controls,
+    .preset-tools {
+      display: grid;
+      gap: 10px;
+    }
+
+    .preset-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .status-banner {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px 10px;
+      background: #fff;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status-banner.is-success {
+      border-color: rgba(0, 159, 122, 0.35);
+      background: rgba(0, 159, 122, 0.08);
+      color: #086a53;
+    }
+
+    .status-banner.is-error {
+      border-color: rgba(228, 63, 100, 0.35);
+      background: rgba(228, 63, 100, 0.08);
+      color: #9f1636;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .layer-configs,
+    .output-configs,
+    .sample-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    .config-row,
+    .output-row,
+    .sample-row {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px;
+      display: grid;
+      gap: 8px;
+      background: #fff;
+    }
+
+    .config-row {
+      grid-template-columns: 48px 1fr 1fr;
+      align-items: end;
+    }
+
+    .config-row b {
+      align-self: center;
+    }
+
+    .output-row {
+      grid-template-columns: 1fr 74px 74px;
+    }
+
+    .collapsible-panel {
+      overflow: hidden;
+    }
+
+    .collapsible-trigger {
+      width: 100%;
+      min-height: 52px;
+      border: 0;
+      border-bottom: 1px solid var(--line);
+      border-radius: 0;
+      background: #fff;
+      color: var(--ink);
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      text-align: left;
+      box-shadow: none;
+    }
+
+    .collapsible-trigger:hover {
+      transform: none;
+      box-shadow: none;
+      background: #f8faf9;
+    }
+
+    .collapsible-title {
+      display: grid;
+      gap: 3px;
+    }
+
+    .collapsible-title b {
+      font-size: 16px;
+    }
+
+    .collapsible-title span {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .collapse-mark {
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      min-width: 30px;
+      height: 30px;
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      transition: transform 160ms ease;
+    }
+
+    .collapsible-panel.is-collapsed .collapse-mark {
+      transform: rotate(-90deg);
+    }
+
+    .collapsible-body {
+      display: grid;
+    }
+
+    .collapsible-panel.is-collapsed .collapsible-body {
+      display: none;
+    }
+
+    .label-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .label-actions .negative {
+      background: var(--pink);
+      border-color: var(--pink);
+    }
+
+    .output-statuses {
+      display: grid;
+      gap: 8px;
+    }
+
+    .output-status {
+      border: 1px solid var(--line);
+      border-left: 5px solid var(--muted);
+      border-radius: 7px;
+      padding: 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+      background: #fff;
+    }
+
+    .output-status.yes {
+      border-left-color: var(--teal);
+    }
+
+    .output-status.no {
+      border-left-color: var(--pink);
+    }
+
+    .output-status strong {
+      display: block;
+      font-size: 14px;
+    }
+
+    .output-status span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .output-calc {
+      margin-top: 4px;
+      color: var(--muted);
+      font-family: Consolas, "Microsoft YaHei", monospace;
+      font-size: 11px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .badge {
+      min-width: 44px;
+      border-radius: 7px;
+      padding: 7px 9px;
+      text-align: center;
+      font-weight: 700;
+      color: #fff;
+      background: var(--muted);
+    }
+
+    .yes .badge {
+      background: var(--teal);
+    }
+
+    .no .badge {
+      background: var(--pink);
+    }
+
+    .sample-row {
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .sample-targets {
+      color: var(--muted);
+      font-family: Consolas, monospace;
+      overflow-wrap: anywhere;
+    }
+
+    .small-button {
+      min-height: 30px;
+      padding: 5px 8px;
+      font-size: 12px;
+    }
+
+    .empty {
+      color: var(--muted);
+      border: 1px dashed var(--line-strong);
+      border-radius: 7px;
+      padding: 12px;
+      text-align: center;
+      background: #fff;
+      font-size: 13px;
+    }
+
+    @media (max-width: 1180px) {
+      .app {
+        grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+      }
+
+      .right-side {
+        grid-column: 1 / -1;
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
+      }
+    }
+
+    @media (max-width: 780px) {
+      .app,
+      .right-side {
+        grid-template-columns: 1fr;
+      }
+
+      .network-scroll {
+        min-height: 390px;
+      }
+
+      .summary-item {
+        grid-template-columns: 1fr;
+      }
+
+      .weight-sections {
+        grid-template-columns: 1fr;
+      }
+
+      .weight-row {
+        grid-template-columns: 68px minmax(0, 1fr) 70px;
+      }
+
+      .contribution-grid {
+        grid-template-columns: repeat(5, minmax(48px, 1fr));
+      }
+
+      .contribution-name {
+        font-size: 9px;
+      }
+
+      .contribution-value {
+        font-size: 10px;
+      }
+
+      .output-row,
+      .config-row,
+      .form-grid,
+      .preset-actions {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <h1>神经网络像素画布可视化</h1>
+    <p>在 5x5 画布上画图，配置隐藏层和激活函数，把当前图案标成目标值，然后看一个小型神经网络怎样把明暗一路传到输出。</p>
+  </header>
+
+  <main class="app">
+    <aside class="side">
+      <section class="panel">
+        <div class="section">
+          <div class="section-title">
+            <h2>像素画布</h2>
+            <span>25 个输入</span>
+          </div>
+          <label>
+            画笔亮度
+            <input id="brushRange" type="range" min="0" max="1" step="0.05" value="1">
+          </label>
+          <div class="brush-readout">
+            <span class="hint">按住鼠标或触控拖动绘制</span>
+            <span id="brushChip" class="brush-chip">1.00</span>
+          </div>
+          <div id="pixelGrid" class="pixel-grid" aria-label="5x5 像素画布"></div>
+          <div class="button-row">
+            <button id="clearCanvasButton" class="secondary" type="button">清空画布</button>
+            <button id="invertCanvasButton" class="secondary" type="button">反转明暗</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section">
+          <div class="section-title">
+            <h2>输出判断</h2>
+            <span>线性输出</span>
+          </div>
+          <div id="outputStatuses" class="output-statuses"></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="panel network-panel">
+      <div class="network-head">
+        <div>
+          <h2>实时网络结构</h2>
+          <span class="hint" id="connectionModeText">连接准备中</span>
+        </div>
+        <div class="network-actions">
+          <button id="expandedModeButton" class="mode-button" type="button" aria-pressed="false">展开路径</button>
+          <div class="mode-group" aria-label="权重显示范围">
+            <span class="hint">权重显示</span>
+            <button id="weightLabelSelectedButton" class="mode-button" type="button" aria-pressed="true">仅选中相关</button>
+            <button id="weightLabelAllButton" class="mode-button" type="button" aria-pressed="false">全部权重</button>
+          </div>
+          <label class="zoom-control">
+            视窗缩放
+            <input id="viewportScaleInput" type="range" min="0.35" max="1.4" step="0.05" value="1">
+            <b id="viewportScaleText">100%</b>
+          </label>
+          <div class="metric-strip">
+            <div class="metric">
+              <b id="lossMetric">0.00</b>
+              <span>当前损失</span>
+            </div>
+            <div class="metric">
+              <b id="sampleMetric">0</b>
+              <span>训练样本</span>
+            </div>
+            <div class="metric">
+              <b id="paramMetric">0</b>
+              <span>参数数量</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="networkScroll" class="network-scroll">
+        <div id="networkCanvas" class="network-canvas">
+          <svg id="connectionSvg" class="connections" aria-hidden="true"></svg>
+          <div id="layers" class="layers"></div>
+        </div>
+      </div>
+      <div id="summaryPanel" class="summary-panel"></div>
+      <div id="weightInspector" class="weight-inspector"></div>
+    </section>
+
+    <aside class="side right-side">
+      <section class="panel collapsible-panel" data-panel-key="config">
+        <button class="collapsible-trigger" type="button" data-toggle-panel="config" aria-expanded="false">
+          <span class="collapsible-title">
+            <b>网络配置</b>
+            <span>修改结构会重置模型参数</span>
+          </span>
+          <span class="collapse-mark">⌄</span>
+        </button>
+        <div class="collapsible-body">
+          <div class="section">
+            <div class="form-grid">
+              <label>
+                隐藏层数
+                <input id="hiddenCountInput" type="number" min="0" max="5" step="1">
+              </label>
+              <label>
+                输出神经元
+                <input id="outputCountInput" type="number" min="1" max="10" step="1">
+              </label>
+            </div>
+            <div class="form-grid">
+              <label>
+                权重下限
+                <input id="weightMinInput" type="number" min="-10" max="10" step="0.1">
+              </label>
+              <label>
+                权重上限
+                <input id="weightMaxInput" type="number" min="-10" max="10" step="0.1">
+              </label>
+              <label>
+                权重小数位
+                <input id="weightPrecisionInput" type="number" min="0" max="6" step="1">
+              </label>
+              <label>
+                初始偏置
+                <input id="initialBiasInput" type="number" min="-100" max="100" step="0.1">
+              </label>
+              <label>
+                偏置开关
+                <button id="biasFrozenButton" class="secondary" type="button" aria-pressed="false">偏置可训练</button>
+              </label>
+              <span class="hint">打开冻结偏置时，所有偏置固定为 0，输出就是加权和本身。</span>
+            </div>
+            <div id="layerConfigs" class="layer-configs"></div>
+            <button id="resetModelButton" class="secondary" type="button">重置模型参数</button>
+            <div class="preset-tools">
+              <div class="preset-actions">
+                <button id="downloadPresetButton" class="secondary" type="button">下载预设</button>
+                <button id="importPresetButton" class="secondary" type="button">导入预设</button>
+              </div>
+              <input id="importPresetInput" class="visually-hidden" type="file" accept=".json,.nn-preset.json,application/json">
+              <div id="presetStatus" class="status-banner">预设文件会包含网络结构、激活函数、权重和偏置，不包含样本与当前画布。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel collapsible-panel" data-panel-key="outputs">
+        <button class="collapsible-trigger" type="button" data-toggle-panel="outputs" aria-expanded="false">
+          <span class="collapsible-title">
+            <b>输出任务</b>
+            <span>阈值独立判断</span>
+          </span>
+          <span class="collapse-mark">⌄</span>
+        </button>
+        <div class="collapsible-body">
+          <div class="section">
+            <div class="output-controls">
+              <label>
+                输出层激活函数
+                <select id="outputActivationSelect">
+                  <option value="linear">linear</option>
+                  <option value="sigmoid">sigmoid</option>
+                </select>
+              </label>
+              <span class="hint">linear 可输出大于 1 的值；sigmoid 会把输出压到 0-1。</span>
+            </div>
+            <div id="outputConfigs" class="output-configs"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel collapsible-panel" data-panel-key="training">
+        <button class="collapsible-trigger" type="button" data-toggle-panel="training" aria-expanded="true">
+          <span class="collapsible-title">
+            <b>训练</b>
+            <span>画完后由你来标注是不是正方形</span>
+          </span>
+          <span class="collapse-mark">⌄</span>
+        </button>
+        <div class="collapsible-body">
+          <div class="section">
+            <div class="form-grid">
+              <label>
+                学习率
+                <input id="learningRateInput" type="number" min="0.001" max="1" step="0.001">
+              </label>
+              <label>
+                训练轮数
+                <input id="epochsInput" type="number" min="1" max="5000" step="1">
+              </label>
+            </div>
+            <div class="label-actions">
+              <button id="addPositiveSampleButton" type="button">这是正方形</button>
+              <button id="addNegativeSampleButton" class="negative" type="button">不是正方形</button>
+            </div>
+            <div class="button-row">
+              <button id="trainOneButton" class="secondary" type="button">单步训练</button>
+              <button id="trainManyButton" type="button">批量训练</button>
+            </div>
+            <button id="clearSamplesButton" class="danger" type="button">清空样本</button>
+          </div>
+          <div class="section">
+            <div class="section-title">
+              <h3>训练样本</h3>
+              <span id="sampleCountText">0 个</span>
+            </div>
+            <div id="sampleList" class="sample-list"></div>
+          </div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "nn-pixel-visualizer-v1";
+    const INPUT_COUNT = 25;
+    const CONNECTION_LIMIT = 1200;
+    const DEFAULT_WEIGHT_SETTINGS = { min: -1, max: 1, precision: 4 };
+    const STEP_THRESHOLD = 1;
+    const PRESET_VERSION = 1;
+
+    const els = {
+      brushRange: document.getElementById("brushRange"),
+      brushChip: document.getElementById("brushChip"),
+      pixelGrid: document.getElementById("pixelGrid"),
+      clearCanvasButton: document.getElementById("clearCanvasButton"),
+      invertCanvasButton: document.getElementById("invertCanvasButton"),
+      hiddenCountInput: document.getElementById("hiddenCountInput"),
+      outputCountInput: document.getElementById("outputCountInput"),
+      weightMinInput: document.getElementById("weightMinInput"),
+      weightMaxInput: document.getElementById("weightMaxInput"),
+      weightPrecisionInput: document.getElementById("weightPrecisionInput"),
+      initialBiasInput: document.getElementById("initialBiasInput"),
+      biasFrozenButton: document.getElementById("biasFrozenButton"),
+      layerConfigs: document.getElementById("layerConfigs"),
+      outputActivationSelect: document.getElementById("outputActivationSelect"),
+      outputConfigs: document.getElementById("outputConfigs"),
+      outputStatuses: document.getElementById("outputStatuses"),
+      resetModelButton: document.getElementById("resetModelButton"),
+      downloadPresetButton: document.getElementById("downloadPresetButton"),
+      importPresetButton: document.getElementById("importPresetButton"),
+      importPresetInput: document.getElementById("importPresetInput"),
+      presetStatus: document.getElementById("presetStatus"),
+      learningRateInput: document.getElementById("learningRateInput"),
+      epochsInput: document.getElementById("epochsInput"),
+      addPositiveSampleButton: document.getElementById("addPositiveSampleButton"),
+      addNegativeSampleButton: document.getElementById("addNegativeSampleButton"),
+      expandedModeButton: document.getElementById("expandedModeButton"),
+      weightLabelSelectedButton: document.getElementById("weightLabelSelectedButton"),
+      weightLabelAllButton: document.getElementById("weightLabelAllButton"),
+      viewportScaleInput: document.getElementById("viewportScaleInput"),
+      viewportScaleText: document.getElementById("viewportScaleText"),
+      trainOneButton: document.getElementById("trainOneButton"),
+      trainManyButton: document.getElementById("trainManyButton"),
+      clearSamplesButton: document.getElementById("clearSamplesButton"),
+      sampleList: document.getElementById("sampleList"),
+      sampleCountText: document.getElementById("sampleCountText"),
+      lossMetric: document.getElementById("lossMetric"),
+      sampleMetric: document.getElementById("sampleMetric"),
+      paramMetric: document.getElementById("paramMetric"),
+      connectionModeText: document.getElementById("connectionModeText"),
+      networkCanvas: document.getElementById("networkCanvas"),
+      connectionSvg: document.getElementById("connectionSvg"),
+      layers: document.getElementById("layers"),
+      summaryPanel: document.getElementById("summaryPanel"),
+      weightInspector: document.getElementById("weightInspector")
+    };
+
+    let state = loadState();
+    let latestForward = null;
+    let isPainting = false;
+    let presetStatus = { type: "info", text: "预设文件会包含网络结构、激活函数、权重和偏置，不包含样本与当前画布。" };
+
+    function defaultState() {
+      const state = {
+        pixels: Array(INPUT_COUNT).fill(0),
+        brushValue: 1,
+        hiddenLayers: [{ size: 12, activation: "tanh" }],
+        outputActivation: "linear",
+        outputs: [{ name: "正方形", threshold: 1, target: 2 }],
+        learningRate: 0.08,
+        epochs: 200,
+        samples: [],
+        weightSettings: { ...DEFAULT_WEIGHT_SETTINGS },
+        initialBias: 0,
+        biasFrozen: false,
+        collapsedPanels: { config: true, outputs: true, training: false },
+        selectedNeuron: null,
+        contributionColorMode: "all",
+        weightLabelMode: "selected",
+        expandedMode: false,
+        viewportScale: 1,
+        model: null
+      };
+      state.model = createModel(topologyOf(state), state.weightSettings, state.initialBias);
+      return state;
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return defaultState();
+        const loaded = JSON.parse(raw);
+        const base = defaultState();
+        const next = { ...base, ...loaded };
+        next.pixels = validNumberArray(next.pixels, INPUT_COUNT, 0, 1) ? next.pixels : base.pixels;
+        next.hiddenLayers = sanitizeHiddenLayers(next.hiddenLayers);
+        next.outputActivation = sanitizeOutputActivation(next.outputActivation);
+        next.outputs = sanitizeOutputs(next.outputs);
+        next.learningRate = clampNumber(next.learningRate, 0.001, 1, base.learningRate);
+        next.epochs = clampInt(next.epochs, 1, 5000, base.epochs);
+        next.weightSettings = sanitizeWeightSettings(next.weightSettings);
+        next.initialBias = clampNumber(next.initialBias, -100, 100, 0);
+        next.biasFrozen = Boolean(next.biasFrozen);
+        next.collapsedPanels = sanitizeCollapsedPanels(next.collapsedPanels);
+        next.selectedNeuron = sanitizeSelectedNeuron(next.selectedNeuron, next);
+        next.contributionColorMode = sanitizeContributionColorMode(next.contributionColorMode);
+        next.weightLabelMode = sanitizeWeightLabelMode(next.weightLabelMode);
+        next.expandedMode = Boolean(next.expandedMode);
+        next.viewportScale = clampNumber(next.viewportScale, 0.35, 1.4, 1);
+        next.samples = Array.isArray(next.samples)
+          ? next.samples.filter((sample) => isValidSampleShape(sample) && sample.targets.length === next.outputs.length).slice(0, 200)
+          : [];
+        if (!modelMatches(next.model, topologyOf(next))) {
+          next.model = createModel(topologyOf(next), next.weightSettings, next.initialBias);
+        } else {
+          normalizeModelWeights(next);
+        }
+        if (next.biasFrozen) {
+          zeroAllBiases(next);
+        }
+        return next;
+      } catch (error) {
+        console.warn("读取本地状态失败，已使用默认状态。", error);
+        return defaultState();
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function sanitizeHiddenLayers(layers) {
+      const list = Array.isArray(layers) ? layers.slice(0, 5) : [];
+      return list.map((layer) => ({
+        size: clampInt(layer && layer.size, 1, 100, 12),
+        activation: sanitizeHiddenActivation(layer && layer.activation)
+      }));
+    }
+
+    function sanitizeHiddenActivation(type) {
+      return type === "step" || type === "sigmoid" ? type : "tanh";
+    }
+
+    function sanitizeOutputActivation(type) {
+      return type === "sigmoid" ? "sigmoid" : "linear";
+    }
+
+    function sanitizeOutputs(outputs) {
+      const list = Array.isArray(outputs) && outputs.length ? outputs.slice(0, 10) : [{ name: "正方形", threshold: 1, target: 2 }];
+      return list.map((output, index) => ({
+        name: String(output && output.name ? output.name : `输出 ${index + 1}`).slice(0, 20),
+        threshold: clampNumber(output && output.threshold, -100, 100, 1),
+        target: clampNumber(output && output.target, -100, 100, index === 0 ? 2 : 0)
+      }));
+    }
+
+    function sanitizeCollapsedPanels(panels) {
+      return {
+        config: typeof panels?.config === "boolean" ? panels.config : true,
+        outputs: typeof panels?.outputs === "boolean" ? panels.outputs : true,
+        training: typeof panels?.training === "boolean" ? panels.training : false
+      };
+    }
+
+    function sanitizeWeightSettings(settings) {
+      let min = clampNumber(settings?.min, -10, 10, DEFAULT_WEIGHT_SETTINGS.min);
+      let max = clampNumber(settings?.max, -10, 10, DEFAULT_WEIGHT_SETTINGS.max);
+      if (min > max) {
+        [min, max] = [max, min];
+      }
+      return {
+        min,
+        max,
+        precision: clampInt(settings?.precision, 0, 6, DEFAULT_WEIGHT_SETTINGS.precision)
+      };
+    }
+
+    function cloneModelForPreset(model) {
+      return {
+        topology: model.topology.slice(),
+        layers: model.layers.map((layer) => ({
+          weights: layer.weights.map((weights) => weights.slice()),
+          biases: layer.biases.slice()
+        }))
+      };
+    }
+
+    function sanitizeImportedModel(model, topology, settings) {
+      if (!model || !Array.isArray(model.topology) || !Array.isArray(model.layers)) return null;
+      if (model.topology.length !== topology.length || model.topology.some((value, index) => value !== topology[index])) return null;
+      if (model.layers.length !== topology.length - 1) return null;
+      const cleanSettings = sanitizeWeightSettings(settings);
+      const layers = [];
+      for (let layerIndex = 0; layerIndex < model.layers.length; layerIndex += 1) {
+        const inputSize = topology[layerIndex];
+        const outputSize = topology[layerIndex + 1];
+        const layer = model.layers[layerIndex];
+        if (!layer || !Array.isArray(layer.weights) || !Array.isArray(layer.biases)) return null;
+        if (layer.weights.length !== outputSize || layer.biases.length !== outputSize) return null;
+        const weights = [];
+        for (let neuronIndex = 0; neuronIndex < outputSize; neuronIndex += 1) {
+          const row = layer.weights[neuronIndex];
+          if (!Array.isArray(row) || row.length !== inputSize || row.some((value) => !Number.isFinite(value))) return null;
+          weights.push(row.map((value) => quantizeWeight(value, cleanSettings)));
+        }
+        if (layer.biases.some((value) => !Number.isFinite(value))) return null;
+        layers.push({
+          weights,
+          biases: layer.biases.map((value) => clampNumber(value, -100, 100, 0)),
+          weightResiduals: weights.map((row) => row.map(() => 0))
+        });
+      }
+      return { topology: topology.slice(), layers };
+    }
+
+    function buildPresetPayload() {
+      return {
+        version: PRESET_VERSION,
+        exportedAt: new Date().toISOString(),
+        preset: {
+          name: `神经网络预设-${new Date().toISOString().slice(0, 19).replaceAll(":", "-")}`,
+          hiddenLayers: state.hiddenLayers.map((layer) => ({ size: layer.size, activation: layer.activation })),
+          outputs: state.outputs.map((output) => ({ name: output.name, threshold: output.threshold, target: output.target })),
+          outputActivation: state.outputActivation,
+          weightSettings: { ...state.weightSettings },
+          initialBias: state.initialBias,
+          biasFrozen: state.biasFrozen,
+          model: cloneModelForPreset(state.model)
+        }
+      };
+    }
+
+    function setPresetStatus(type, text) {
+      presetStatus = { type, text };
+      renderPresetStatus();
+    }
+
+    function renderPresetStatus() {
+      if (!els.presetStatus) return;
+      els.presetStatus.className = "status-banner";
+      if (presetStatus?.type === "success") els.presetStatus.classList.add("is-success");
+      if (presetStatus?.type === "error") els.presetStatus.classList.add("is-error");
+      els.presetStatus.textContent = presetStatus?.text || "";
+    }
+
+    function sanitizeContributionColorMode(mode) {
+      return mode === "positive" ? "positive" : "all";
+    }
+
+    function sanitizeWeightLabelMode(mode) {
+      return mode === "all" ? "all" : "selected";
+    }
+
+    function sanitizeSelectedNeuron(selection, source = state) {
+      if (!selection) return null;
+      const layerIndex = Number(selection.layerIndex);
+      const neuronIndex = Number(selection.neuronIndex);
+      if (!Number.isInteger(layerIndex) || !Number.isInteger(neuronIndex)) return null;
+      const outputLayerIndex = source.hiddenLayers.length + 1;
+      if (layerIndex < 1 || layerIndex > outputLayerIndex) return null;
+      const size = layerIndex <= source.hiddenLayers.length
+        ? source.hiddenLayers[layerIndex - 1]?.size
+        : source.outputs.length;
+      if (!Number.isInteger(size) || neuronIndex < 0 || neuronIndex >= size) return null;
+      return { layerIndex, neuronIndex };
+    }
+
+    function validNumberArray(values, length, min, max) {
+      return Array.isArray(values)
+        && values.length === length
+        && values.every((value) => Number.isFinite(value) && value >= min && value <= max);
+    }
+
+    function isValidSampleShape(sample) {
+      return sample
+        && validNumberArray(sample.pixels, INPUT_COUNT, 0, 1)
+        && Array.isArray(sample.targets)
+        && sample.targets.every(Number.isFinite);
+    }
+
+    function clampNumber(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.min(max, Math.max(min, numeric));
+    }
+
+    function clampInt(value, min, max, fallback) {
+      return Math.round(clampNumber(value, min, max, fallback));
+    }
+
+    function topologyOf(source) {
+      return [INPUT_COUNT, ...source.hiddenLayers.map((layer) => layer.size), source.outputs.length];
+    }
+
+    function activationTypesOf(source) {
+      return [...source.hiddenLayers.map((layer) => layer.activation), sanitizeOutputActivation(source.outputActivation)];
+    }
+
+    function createModel(topology, settings = DEFAULT_WEIGHT_SETTINGS, initialBias = 0) {
+      const weightSettings = sanitizeWeightSettings(settings);
+      const biasValue = clampNumber(initialBias, -100, 100, 0);
+      const layers = [];
+      for (let layerIndex = 1; layerIndex < topology.length; layerIndex += 1) {
+        const inputSize = topology[layerIndex - 1];
+        const outputSize = topology[layerIndex];
+        const weights = Array.from({ length: outputSize }, () =>
+          Array.from({ length: inputSize }, () => randomWeight(weightSettings))
+        );
+        const weightResiduals = Array.from({ length: outputSize }, () => Array(inputSize).fill(0));
+        const biases = Array(outputSize).fill(biasValue);
+        layers.push({ weights, weightResiduals, biases });
+      }
+      return { topology, layers };
+    }
+
+    function randomWeight(settings = state.weightSettings) {
+      const clean = sanitizeWeightSettings(settings);
+      return quantizeWeight(clean.min + Math.random() * (clean.max - clean.min), clean);
+    }
+
+    function quantizeWeight(value, settings = state.weightSettings) {
+      const clean = sanitizeWeightSettings(settings);
+      const clamped = clampNumber(value, clean.min, clean.max, 0);
+      return Number(clamped.toFixed(clean.precision));
+    }
+
+    function normalizeModelWeights(source = state) {
+      if (!source.model?.layers) return;
+      const settings = sanitizeWeightSettings(source.weightSettings);
+      source.model.layers.forEach((layer) => {
+        layer.weights = layer.weights.map((weights) => weights.map((value) => quantizeWeight(value, settings)));
+        layer.weightResiduals = layer.weights.map((weights) => weights.map(() => 0));
+      });
+    }
+
+    function zeroAllBiases(source = state) {
+      if (!source.model?.layers) return;
+      source.model.layers.forEach((layer) => {
+        layer.biases = layer.biases.map(() => 0);
+      });
+    }
+
+    function ensureWeightResiduals() {
+      state.model.layers.forEach((layer) => {
+        if (!Array.isArray(layer.weightResiduals)
+          || layer.weightResiduals.length !== layer.weights.length
+          || layer.weightResiduals.some((residuals, index) => !Array.isArray(residuals) || residuals.length !== layer.weights[index].length)) {
+          layer.weightResiduals = layer.weights.map((weights) => weights.map(() => 0));
+        }
+      });
+    }
+
+    function modelMatches(model, topology) {
+      if (!model || !Array.isArray(model.topology) || !Array.isArray(model.layers)) return false;
+      if (model.topology.length !== topology.length || model.topology.some((value, index) => value !== topology[index])) return false;
+      if (model.layers.length !== topology.length - 1) return false;
+      return model.layers.every((layer, index) => {
+        const inputSize = topology[index];
+        const outputSize = topology[index + 1];
+        return layer
+          && Array.isArray(layer.biases)
+          && layer.biases.length === outputSize
+          && layer.biases.every(Number.isFinite)
+          && Array.isArray(layer.weights)
+          && layer.weights.length === outputSize
+          && layer.weights.every((weights) =>
+            Array.isArray(weights) && weights.length === inputSize && weights.every(Number.isFinite)
+          );
+      });
+    }
+
+    function resetModel() {
+      state.model = createModel(topologyOf(state), state.weightSettings, state.initialBias);
+      if (state.biasFrozen) {
+        zeroAllBiases();
+      }
+      clearInvalidSelection();
+    }
+
+    function activate(value, type) {
+      if (type === "tanh") return Math.tanh(value);
+      if (type === "step") return value >= STEP_THRESHOLD ? 1 : 0;
+      if (type === "sigmoid") return 1 / (1 + Math.exp(-Math.max(-60, Math.min(60, value))));
+      return value;
+    }
+
+    function activationDerivativeFromOutput(value, type) {
+      if (type === "tanh") return 1 - value * value;
+      if (type === "step") return 1;
+      if (type === "sigmoid") return value * (1 - value);
+      return 1;
+    }
+
+    function forward(inputValues) {
+      const activations = [inputValues.slice()];
+      const preActivations = [];
+      const types = activationTypesOf(state);
+      let current = inputValues.slice();
+
+      state.model.layers.forEach((layer, layerIndex) => {
+        const next = layer.weights.map((weights, neuronIndex) => {
+          let sum = layer.biases[neuronIndex];
+          for (let i = 0; i < weights.length; i += 1) {
+            sum += weights[i] * current[i];
+          }
+          return sum;
+        });
+        preActivations.push(next);
+        current = next.map((value) => activate(value, types[layerIndex]));
+        activations.push(current);
+      });
+
+      return { activations, preActivations, outputs: current };
+    }
+
+    function trainSample(sample, learningRate) {
+      ensureWeightResiduals();
+      const types = activationTypesOf(state);
+      const result = forward(sample.pixels);
+      const layerCount = state.model.layers.length;
+      const deltas = Array(layerCount);
+      const output = result.activations[layerCount];
+      deltas[layerCount - 1] = output.map((value, index) => value - sample.targets[index]);
+
+      for (let layerIndex = layerCount - 2; layerIndex >= 0; layerIndex -= 1) {
+        const nextLayer = state.model.layers[layerIndex + 1];
+        const nextDelta = deltas[layerIndex + 1];
+        const currentOutput = result.activations[layerIndex + 1];
+        deltas[layerIndex] = currentOutput.map((value, neuronIndex) => {
+          let weighted = 0;
+          for (let nextIndex = 0; nextIndex < nextDelta.length; nextIndex += 1) {
+            weighted += nextLayer.weights[nextIndex][neuronIndex] * nextDelta[nextIndex];
+          }
+          return weighted * activationDerivativeFromOutput(value, types[layerIndex]);
+        });
+      }
+
+      state.model.layers.forEach((layer, layerIndex) => {
+        const previous = result.activations[layerIndex];
+        for (let neuronIndex = 0; neuronIndex < layer.weights.length; neuronIndex += 1) {
+          const delta = deltas[layerIndex][neuronIndex];
+          for (let inputIndex = 0; inputIndex < layer.weights[neuronIndex].length; inputIndex += 1) {
+            const currentWeight = layer.weights[neuronIndex][inputIndex];
+            const rawUpdate = -learningRate * delta * previous[inputIndex] + layer.weightResiduals[neuronIndex][inputIndex];
+            const proposedWeight = currentWeight + rawUpdate;
+            const nextWeight = quantizeWeight(proposedWeight);
+            layer.weights[neuronIndex][inputIndex] = nextWeight;
+            const settings = sanitizeWeightSettings(state.weightSettings);
+            const hitBoundary = proposedWeight <= settings.min || proposedWeight >= settings.max;
+            layer.weightResiduals[neuronIndex][inputIndex] = hitBoundary ? 0 : proposedWeight - nextWeight;
+          }
+          if (!state.biasFrozen) {
+            layer.biases[neuronIndex] -= learningRate * delta;
+          } else {
+            layer.biases[neuronIndex] = 0;
+          }
+        }
+      });
+    }
+
+    function train(epochs) {
+      if (!state.samples.length) return;
+      const learningRate = clampNumber(els.learningRateInput.value, 0.001, 1, state.learningRate);
+      state.learningRate = learningRate;
+      for (let epoch = 0; epoch < epochs; epoch += 1) {
+        const shuffled = state.samples.slice().sort(() => Math.random() - 0.5);
+        shuffled.forEach((sample) => trainSample(sample, learningRate));
+      }
+      saveAndRender();
+    }
+
+    function computeLoss() {
+      if (!state.samples.length) return 0;
+      let total = 0;
+      state.samples.forEach((sample) => {
+        const output = forward(sample.pixels).outputs;
+        const targetCount = Math.min(output.length, sample.targets.length);
+        for (let i = 0; i < targetCount; i += 1) {
+          const error = output[i] - sample.targets[i];
+          total += error * error;
+        }
+      });
+      return total / (state.samples.length * state.outputs.length);
+    }
+
+    function parameterCount() {
+      return state.model.layers.reduce((sum, layer) =>
+        sum + layer.biases.length + layer.weights.reduce((inner, weights) => inner + weights.length, 0), 0
+      );
+    }
+
+    function connectionCount() {
+      return state.model.layers.reduce((sum, layer) =>
+        sum + layer.weights.reduce((inner, weights) => inner + weights.length, 0), 0
+      );
+    }
+
+    function totalNeuronCount() {
+      return topologyOf(state).reduce((sum, count) => sum + count, 0);
+    }
+
+    function shouldPreferDetailedConnections() {
+      return totalNeuronCount() < 100;
+    }
+
+    function shouldUseLineMode(count = connectionCount()) {
+      return count <= CONNECTION_LIMIT || shouldPreferDetailedConnections();
+    }
+
+    function showsAllWeightLabels() {
+      return sanitizeWeightLabelMode(state.weightLabelMode) === "all";
+    }
+
+    function fmt(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0.00";
+      return numeric.toFixed(2);
+    }
+
+    function colorFor(value, type) {
+      const clamped = Math.min(1, Math.max(0, value));
+      const lightness = 12 + clamped * 70;
+      const hue = type === "negative" ? 344 : type === "positive" ? 166 : 52;
+      return `hsl(${hue} 76% ${lightness}%)`;
+    }
+
+    function valueToBrightness(values, value, kind) {
+      if (kind === "input") return Math.min(1, Math.max(0, value));
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) return 0.5;
+      if (Math.abs(max - min) < 0.000001) return Math.min(1, Math.max(0, (value + 1) / 2));
+      return (value - min) / (max - min);
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function renderPixelGrid() {
+      els.pixelGrid.innerHTML = state.pixels.map((value, index) => {
+        const brightness = Math.round(value * 255);
+        const textColor = value > 0.62 ? "#111" : "#fff";
+        return `<div class="pixel" data-index="${index}" style="background: rgb(${brightness}, ${brightness}, ${brightness}); color: ${textColor};">${fmt(value)}</div>`;
+      }).join("");
+    }
+
+    function renderConfig() {
+      els.brushRange.value = state.brushValue;
+      els.brushChip.textContent = fmt(state.brushValue);
+      els.brushChip.style.background = colorFor(state.brushValue, "neutral");
+      els.brushChip.style.color = state.brushValue > 0.62 ? "#111" : "#fff";
+      els.hiddenCountInput.value = state.hiddenLayers.length;
+      els.outputCountInput.value = state.outputs.length;
+      els.weightMinInput.value = state.weightSettings.min;
+      els.weightMaxInput.value = state.weightSettings.max;
+      els.weightPrecisionInput.value = state.weightSettings.precision;
+      els.initialBiasInput.value = state.initialBias;
+      els.initialBiasInput.disabled = state.biasFrozen;
+      els.biasFrozenButton.textContent = state.biasFrozen ? "偏置固定为 0" : "偏置可训练";
+      els.biasFrozenButton.classList.toggle("is-active", state.biasFrozen);
+      els.biasFrozenButton.setAttribute("aria-pressed", String(state.biasFrozen));
+      els.outputActivationSelect.value = sanitizeOutputActivation(state.outputActivation);
+      els.learningRateInput.value = state.learningRate;
+      els.epochsInput.value = state.epochs;
+      renderPresetStatus();
+
+      els.layerConfigs.innerHTML = state.hiddenLayers.length
+        ? state.hiddenLayers.map((layer, index) => `
+          <div class="config-row">
+            <b>H${index + 1}</b>
+            <label>
+              神经元
+              <input data-layer-index="${index}" data-layer-field="size" type="number" min="1" max="100" step="1" value="${layer.size}">
+            </label>
+            <label>
+              激活函数
+              <select data-layer-index="${index}" data-layer-field="activation">
+                <option value="tanh"${layer.activation === "tanh" ? " selected" : ""}>tanh</option>
+                <option value="step"${layer.activation === "step" ? " selected" : ""}>step</option>
+                <option value="sigmoid"${layer.activation === "sigmoid" ? " selected" : ""}>sigmoid</option>
+              </select>
+            </label>
+          </div>
+        `).join("")
+        : `<div class="empty">当前没有隐藏层，输入会直接连接到输出层。</div>`;
+
+      els.outputConfigs.innerHTML = state.outputs.map((output, index) => `
+        <div class="output-row">
+          <label>
+            名称
+            <input data-output-index="${index}" data-output-field="name" maxlength="20" value="${escapeHtml(output.name)}">
+          </label>
+          <label>
+            阈值
+            <input data-output-index="${index}" data-output-field="threshold" type="number" min="-100" max="100" step="0.1" value="${output.threshold}">
+          </label>
+          <label>
+            样本目标
+            <input data-output-index="${index}" data-output-field="target" type="number" min="-100" max="100" step="0.1" value="${output.target}">
+          </label>
+        </div>
+      `).join("");
+    }
+
+    function renderOutputs(outputs) {
+      els.outputStatuses.innerHTML = state.outputs.map((output, index) => {
+        const value = outputs[index] || 0;
+        const yes = value >= output.threshold;
+        const calc = outputFormula(index);
+        return `
+          <div class="output-status ${yes ? "yes" : "no"}">
+            <div>
+              <strong>${escapeHtml(output.name)}</strong>
+              <span>输出 ${fmt(value)} / 阈值 ${fmt(output.threshold)}</span>
+              ${calc ? `<div class="output-calc">${calc}</div>` : ""}
+            </div>
+            <div class="badge">${yes ? "是" : "否"}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function outputFormula(outputIndex) {
+      if (!latestForward || !state.model.layers.length) return "";
+      const outputLayerIndex = state.model.layers.length - 1;
+      const outputLayer = state.model.layers[outputLayerIndex];
+      const preActivation = latestForward.preActivations[outputLayerIndex]?.[outputIndex];
+      const outputValue = latestForward.outputs[outputIndex];
+      const bias = outputLayer.biases[outputIndex] || 0;
+      if (!Number.isFinite(preActivation)) return "";
+      const weightedSum = preActivation - bias;
+      const sourceName = state.hiddenLayers.length ? "上一层加权和" : "输入×权重求和";
+      if (state.outputActivation === "sigmoid") {
+        return `${sourceName} ${fmt4(weightedSum)} + 偏置 ${fmt4(bias)} = ${fmt4(preActivation)}，sigmoid 后得到 ${fmt4(outputValue)}`;
+      }
+      return `${sourceName} ${fmt4(weightedSum)} + 偏置 ${fmt4(bias)} = ${fmt4(preActivation)}`;
+    }
+
+    function renderNetwork() {
+      latestForward = forward(state.pixels);
+      els.networkCanvas.classList.toggle("is-expanded", state.expandedMode);
+      els.networkCanvas.style.transform = `scale(${state.viewportScale})`;
+      els.layers.classList.toggle("is-expanded", state.expandedMode);
+      els.expandedModeButton.classList.toggle("is-active", state.expandedMode);
+      els.expandedModeButton.setAttribute("aria-pressed", String(state.expandedMode));
+      els.expandedModeButton.textContent = state.expandedMode ? "收起路径" : "展开路径";
+      els.weightLabelSelectedButton.classList.toggle("is-active", !showsAllWeightLabels());
+      els.weightLabelSelectedButton.setAttribute("aria-pressed", String(!showsAllWeightLabels()));
+      els.weightLabelAllButton.classList.toggle("is-active", showsAllWeightLabels());
+      els.weightLabelAllButton.setAttribute("aria-pressed", String(showsAllWeightLabels()));
+      els.viewportScaleInput.value = state.viewportScale;
+      els.viewportScaleText.textContent = `${Math.round(state.viewportScale * 100)}%`;
+      const layerValues = [
+        { title: "输入层", subtitle: "5x5 像素", values: state.pixels, kind: "input" },
+        ...state.hiddenLayers.map((layer, index) => ({
+          title: `隐藏层 ${index + 1}`,
+          subtitle: `${layer.size} 个神经元 · ${layer.activation}`,
+          values: latestForward.activations[index + 1],
+          kind: "hidden"
+        })),
+        {
+          title: "输出层",
+          subtitle: `${state.outputs.length} 个${state.outputActivation === "sigmoid" ? "sigmoid 输出" : "线性输出"}`,
+          values: latestForward.outputs,
+          kind: "output"
+        }
+      ];
+
+      els.layers.innerHTML = layerValues.map((layer, layerIndex) => {
+        const count = layer.values.length;
+        const cols = state.expandedMode ? 1 : count <= 10 ? Math.min(5, count) : count <= 25 ? 5 : count <= 64 ? 8 : 10;
+        const nodeSize = state.expandedMode ? 56 : count <= 10 ? 46 : count <= 25 ? 38 : count <= 64 ? 31 : 25;
+        const nodeFont = state.expandedMode ? 10 : count <= 25 ? 11 : 9;
+        const neurons = layer.values.map((value, neuronIndex) => {
+          const brightness = valueToBrightness(layer.values, value, layer.kind);
+          const tone = layer.kind === "output" && value < 0 ? "negative" : "neutral";
+          const color = colorFor(brightness, tone);
+          const textColor = brightness > 0.62 ? "#111" : "#fff";
+          const isSelectableLayer = layer.kind === "hidden" || layer.kind === "output";
+          const isSelected = state.selectedNeuron
+            && state.selectedNeuron.layerIndex === layerIndex
+            && state.selectedNeuron.neuronIndex === neuronIndex;
+          const selectable = isSelectableLayer ? ` data-selectable="${layer.kind}" tabindex="0" role="button" aria-label="${layer.title} 神经元 ${neuronIndex + 1} 权重详情"` : "";
+          return `<div class="neuron${isSelected ? " is-selected" : ""}" data-layer="${layerIndex}" data-neuron="${neuronIndex}"${selectable} title="${fmt(value)}" style="background:${color}; color:${textColor};">${fmt(value)}</div>`;
+        }).join("");
+        return `
+          <div class="layer">
+            <div class="layer-title">
+              <b>${layer.title}</b>
+              <span>${layer.subtitle}</span>
+            </div>
+            <div class="neuron-grid" style="--cols:${cols}; --node-size:${nodeSize}px; --node-font:${nodeFont}px;">
+              ${neurons}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      renderOutputs(latestForward.outputs);
+      renderConnectionVisualization();
+      renderWeightInspector();
+    }
+
+    function renderConnectionVisualization() {
+      const count = connectionCount();
+      const useLines = shouldUseLineMode(count);
+      const neuronCount = totalNeuronCount();
+      const forcedDetailed = shouldPreferDetailedConnections() && count > CONNECTION_LIMIT;
+      const showAllLabels = showsAllWeightLabels();
+      els.connectionModeText.textContent = useLines
+        ? state.expandedMode
+          ? `展开路径：显示 ${count} 条连接${showAllLabels ? "，当前显示全部权重数字" : state.selectedNeuron ? "，当前显示选中神经元相关权重数字" : "，选择神经元后显示相关权重数字"}`
+          : `显示 ${count} 条真实连接`
+        : `连接数 ${count}，已切换为层间权重摘要`;
+      if (useLines) {
+        els.summaryPanel.innerHTML = state.expandedMode
+          ? `<span class="hint">${showAllLabels ? `当前模式为“全部权重”。总神经元 ${neuronCount} 时所有权重数字都会显示，数字较密时可切回“仅选中相关”。` : forcedDetailed ? `当前模式为“仅选中相关”。总神经元 ${neuronCount} 小于 100，仍保持真实连线；点选神经元后只显示它相关的权重数字。` : `当前模式为“仅选中相关”。点选隐藏层或输出层神经元后，只显示它相关路径的权重数字。`}</span>`
+          : `<span class="hint">小网络模式：线条从上一层向下连接到下一层，颜色表示权重方向，粗细表示权重强度。</span>`;
+        requestAnimationFrame(drawConnectionLines);
+      } else {
+        els.connectionSvg.innerHTML = "";
+        renderWeightSummary();
+      }
+    }
+
+    function drawConnectionLines() {
+      const svg = els.connectionSvg;
+      const canvasRect = els.networkCanvas.getBoundingClientRect();
+      const width = Math.max(els.networkCanvas.scrollWidth, els.networkCanvas.clientWidth);
+      const height = Math.max(els.networkCanvas.scrollHeight, els.networkCanvas.clientHeight);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = "";
+      const pendingLabels = [];
+
+      state.model.layers.forEach((layer, layerIndex) => {
+        layer.weights.forEach((weights, outputIndex) => {
+          const fromSide = state.expandedMode ? "right" : "bottom";
+          const toSide = state.expandedMode ? "left" : "top";
+          const to = getNeuronAnchor(layerIndex + 1, outputIndex, canvasRect, toSide);
+          if (!to) return;
+          weights.forEach((weight, inputIndex) => {
+            const from = getNeuronAnchor(layerIndex, inputIndex, canvasRect, fromSide);
+            if (!from) return;
+            const strength = Math.min(1, Math.abs(weight));
+            const related = isSelectedConnection(layerIndex, inputIndex, outputIndex);
+            const shouldLabel = shouldLabelConnection(layerIndex, inputIndex, outputIndex);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("x1", from.x);
+            line.setAttribute("y1", from.y);
+            line.setAttribute("x2", to.x);
+            line.setAttribute("y2", to.y);
+            line.setAttribute("stroke", connectionColor(weight, related));
+            line.setAttribute("stroke-width", String((related ? 1.3 : 0.35) + strength * (related ? 2.5 : 1.1)));
+            line.setAttribute("opacity", showsAllWeightLabels() ? "1" : state.selectedNeuron ? (related ? "0.95" : "0.12") : "1");
+            const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+            title.textContent = `权重 ${fmt4(weight)}`;
+            line.appendChild(title);
+            svg.appendChild(line);
+            if (shouldLabel) {
+              pendingLabels.push({ from, to, weight, related });
+            }
+          });
+        });
+      });
+      pendingLabels.forEach((item) => appendWeightLabel(svg, item.from, item.to, item.weight, item.related));
+    }
+
+    function shouldLabelConnection(modelLayerIndex, inputIndex, outputIndex) {
+      if (!state.expandedMode) return false;
+      if (showsAllWeightLabels()) return true;
+      return isSelectedConnection(modelLayerIndex, inputIndex, outputIndex);
+    }
+
+    function labelAllConnections(count) {
+      return state.expandedMode && showsAllWeightLabels() && (count <= 80 || shouldPreferDetailedConnections());
+    }
+
+    function appendWeightLabel(svg, from, to, weight, related) {
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.textContent = fmt4(weight);
+      label.setAttribute("x", String((from.x + to.x) / 2));
+      label.setAttribute("y", String((from.y + to.y) / 2 - 4));
+      label.setAttribute("text-anchor", "middle");
+      label.setAttribute("font-size", related ? "11" : "9");
+      label.setAttribute("font-family", "Consolas, monospace");
+      label.setAttribute("fill", weight >= 0 ? "#007f62" : "#c82f50");
+      label.setAttribute("stroke", "#ffffff");
+      label.setAttribute("stroke-width", related ? "4" : "3");
+      label.setAttribute("paint-order", "stroke");
+      label.setAttribute("opacity", showsAllWeightLabels() ? "1" : related || !state.selectedNeuron ? "1" : "0.3");
+      svg.appendChild(label);
+    }
+
+    function connectionColor(weight, related) {
+      if (!related) return weight >= 0 ? "rgba(0, 159, 122, 0.38)" : "rgba(228, 63, 100, 0.36)";
+      return weight >= 0 ? "rgba(0, 159, 122, 0.92)" : "rgba(228, 63, 100, 0.9)";
+    }
+
+    function isSelectedConnection(modelLayerIndex, inputIndex, outputIndex) {
+      const selected = state.selectedNeuron;
+      if (!selected) return false;
+      return (modelLayerIndex === selected.layerIndex - 1 && outputIndex === selected.neuronIndex)
+        || (modelLayerIndex === selected.layerIndex && inputIndex === selected.neuronIndex);
+    }
+
+    function getNeuronAnchor(layerIndex, neuronIndex, canvasRect, side) {
+      const node = els.layers.querySelector(`.neuron[data-layer="${layerIndex}"][data-neuron="${neuronIndex}"]`);
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      const scale = state.viewportScale || 1;
+      const x = side === "right" ? rect.right - canvasRect.left : side === "left" ? rect.left - canvasRect.left : rect.left - canvasRect.left + rect.width / 2;
+      const y = side === "bottom" ? rect.top - canvasRect.top + rect.height : side === "top" ? rect.top - canvasRect.top : rect.top - canvasRect.top + rect.height / 2;
+      return {
+        x: x / scale,
+        y: y / scale
+      };
+    }
+
+    function renderWeightSummary() {
+      const items = state.model.layers.map((layer, layerIndex) => {
+        const flattened = layer.weights.flat();
+        const chunks = chunkStats(flattened, 20);
+        const cells = chunks.map((item) => {
+          const strength = Math.min(1, item.absMean);
+          const color = item.mean >= 0 ? colorFor(strength, "positive") : colorFor(strength, "negative");
+          return `<span class="summary-cell" title="均值 ${fmt(item.mean)} / 强度 ${fmt(item.absMean)}" style="background:${color};"></span>`;
+        }).join("");
+        const from = layerIndex === 0 ? "输入" : `H${layerIndex}`;
+        const to = layerIndex === state.model.layers.length - 1 ? "输出" : `H${layerIndex + 1}`;
+        return `
+          <div class="summary-item">
+            <b>${from} → ${to}</b>
+            <div class="summary-bar">${cells}</div>
+            <span>${flattened.length} 权重</span>
+          </div>
+        `;
+      }).join("");
+      els.summaryPanel.innerHTML = `
+        <span class="hint">大网络模式：每条层间热条按顺序汇总连接权重。绿色偏正，红色偏负，亮度代表平均强度。</span>
+        <div class="summary-list">${items}</div>
+      `;
+    }
+
+    function chunkStats(values, count) {
+      if (!values.length) return [];
+      return Array.from({ length: count }, (_, index) => {
+        const start = Math.floor(index * values.length / count);
+        const end = Math.max(start + 1, Math.floor((index + 1) * values.length / count));
+        const chunk = values.slice(start, end);
+        const mean = chunk.reduce((sum, value) => sum + value, 0) / chunk.length;
+        const absMean = chunk.reduce((sum, value) => sum + Math.abs(value), 0) / chunk.length;
+        return { mean, absMean };
+      });
+    }
+
+    function clearInvalidSelection() {
+      state.selectedNeuron = sanitizeSelectedNeuron(state.selectedNeuron);
+    }
+
+    function selectNeuron(layerIndex, neuronIndex) {
+      state.selectedNeuron = sanitizeSelectedNeuron({ layerIndex, neuronIndex });
+      saveAndRender();
+    }
+
+    function getSelectedWeightDetails() {
+      const selected = sanitizeSelectedNeuron(state.selectedNeuron);
+      if (!selected || !latestForward) return null;
+      const isOutputLayer = selected.layerIndex === state.hiddenLayers.length + 1;
+      const incomingLayer = state.model.layers[selected.layerIndex - 1];
+      const outgoingLayer = isOutputLayer ? null : state.model.layers[selected.layerIndex];
+      const currentValue = latestForward.activations[selected.layerIndex]?.[selected.neuronIndex] ?? 0;
+      const preActivation = latestForward.preActivations[selected.layerIndex - 1]?.[selected.neuronIndex] ?? 0;
+      const previousSize = state.model.topology[selected.layerIndex - 1];
+      const nextSize = isOutputLayer ? 0 : (state.model.topology[selected.layerIndex + 1] || 0);
+      const inputWeights = incomingLayer.weights[selected.neuronIndex].map((value, index) => ({
+        label: selected.layerIndex === 1 ? `输入 ${index + 1}` : `H${selected.layerIndex - 1}-${index + 1}`,
+        value
+      }));
+      const outputWeights = outgoingLayer
+        ? outgoingLayer.weights.map((weights, index) => ({
+          label: selected.layerIndex === state.hiddenLayers.length ? `输出 ${index + 1}` : `H${selected.layerIndex + 1}-${index + 1}`,
+          value: weights[selected.neuronIndex]
+        }))
+        : [];
+      const contributionMap = selected.layerIndex === 1 && !isOutputLayer
+        ? incomingLayer.weights[selected.neuronIndex].map((weight, index) => {
+          const inputValue = state.pixels[index] ?? 0;
+          return {
+            inputLabel: `X${index + 1}`,
+            weightLabel: `W${index + 1}`,
+            inputValue,
+            weight,
+            contribution: inputValue * weight
+          };
+        })
+        : [];
+      const weightedInputSum = contributionMap.reduce((sum, item) => sum + item.contribution, 0);
+      return {
+        ...selected,
+        layerKind: isOutputLayer ? "output" : "hidden",
+        hiddenLayerNumber: selected.layerIndex,
+        neuronNumber: selected.neuronIndex + 1,
+        currentValue,
+        preActivation,
+        bias: incomingLayer.biases[selected.neuronIndex],
+        previousSize,
+        nextSize,
+        inputWeights,
+        outputWeights,
+        contributionMap,
+        weightedInputSum
+      };
+    }
+
+    function renderWeightInspector() {
+      const details = getSelectedWeightDetails();
+      if (!details) {
+        els.weightInspector.innerHTML = `
+          <div class="weight-empty">选择一个隐藏层或输出层神经元查看它关联的权重和偏置。点第一隐藏层神经元时，还会出现 5x5 的加权输入明暗图。</div>
+        `;
+        return;
+      }
+
+      const isOutputLayer = details.layerKind === "output";
+      const title = isOutputLayer
+        ? `输出层 · 神经元 ${details.neuronNumber}`
+        : `隐藏层 ${details.hiddenLayerNumber} · 神经元 ${details.neuronNumber}`;
+      const hint = isOutputLayer
+        ? "这里显示连接到该输出神经元的全部输入权重、偏置和当前输出值。训练后这里会跟着刷新。"
+        : "输入权重来自上一层，输出权重指向下一层。训练后这里会跟着刷新。";
+      const sections = isOutputLayer
+        ? renderWeightSection("连接到该输出的权重", details.inputWeights)
+        : `${renderWeightSection("输入权重", details.inputWeights)}${renderWeightSection("输出权重", details.outputWeights)}`;
+
+      els.weightInspector.innerHTML = `
+        <div class="weight-inspector-head">
+          <div>
+            <h3>${title}</h3>
+            <span class="hint">${hint}</span>
+          </div>
+          <div class="weight-inspector-meta">
+            <span class="weight-chip">当前值 <b>${fmt4(details.currentValue)}</b></span>
+            <span class="weight-chip">偏置 <b>${fmt4(details.bias)}</b></span>
+            <span class="weight-chip">输入 ${details.previousSize}</span>
+            <span class="weight-chip">输出 ${details.nextSize}</span>
+          </div>
+        </div>
+        <div class="weight-sections">
+          ${sections}
+        </div>
+        ${renderContributionSection(details)}
+      `;
+    }
+
+    function renderWeightSection(title, weights) {
+      if (!weights.length) {
+        return `
+          <section class="weight-section">
+            <h4>${title}</h4>
+            <div class="weight-table">
+              <div class="weight-empty">没有可显示的权重。</div>
+            </div>
+          </section>
+        `;
+      }
+      const maxAbs = Math.max(...weights.map((item) => Math.abs(item.value)), 0.000001);
+      const rows = weights.map((item) => {
+        const strength = Math.min(1, Math.abs(item.value) / maxAbs);
+        const positive = item.value >= 0;
+        const color = positive ? "var(--teal)" : "var(--pink)";
+        return `
+          <div class="weight-row">
+            <span class="weight-label" title="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span>
+            <span class="weight-bar" aria-hidden="true">
+              <span class="weight-fill" style="--strength:${strength}; --bar-color:${color};"></span>
+            </span>
+            <span class="weight-value">${fmt4(item.value)}</span>
+          </div>
+        `;
+      }).join("");
+      return `
+        <section class="weight-section">
+          <h4>${title}</h4>
+          <div class="weight-table">${rows}</div>
+        </section>
+      `;
+    }
+
+    function renderContributionSection(details) {
+      if (!details.contributionMap.length) return "";
+      const colorMode = sanitizeContributionColorMode(state.contributionColorMode);
+      const maxAbs = Math.max(...details.contributionMap.map((item) => Math.abs(item.contribution)), 0.000001);
+      const cells = details.contributionMap.map((item) => {
+        const absValue = Math.abs(item.contribution);
+        const strength = absValue < 0.000001 ? 0 : absValue / maxAbs;
+        const tone = item.contribution > 0 ? "positive" : item.contribution < 0 ? "negative" : "neutral";
+        const dimmed = colorMode === "positive" && item.contribution <= 0;
+        const background = dimmed
+          ? "#2a2d2f"
+          : absValue < 0.000001
+            ? "#171717"
+            : colorFor(Math.max(0.16, strength), tone);
+        const textColor = dimmed || absValue < 0.000001 ? "#fff" : strength > 0.62 ? "#111" : "#fff";
+        const title = `${item.inputLabel} = ${fmt(item.inputValue)}，${item.weightLabel} = ${fmt4(item.weight)}，乘积 = ${fmt4(item.contribution)}`;
+        return `
+          <div class="contribution-cell" title="${escapeHtml(title)}" style="background:${background}; color:${textColor};">
+            <span class="contribution-name">${item.inputLabel} × ${item.weightLabel}</span>
+            <span class="contribution-value">${fmt4(item.contribution)}</span>
+          </div>
+        `;
+      }).join("");
+      return `
+        <section class="contribution-section">
+          <div class="contribution-head">
+            <div class="contribution-head-top">
+              <h4>第一隐藏层加权输入图</h4>
+              <div class="contribution-mode-group" role="group" aria-label="加权输入着色模式">
+                <button class="mini-mode-button${colorMode === "all" ? " is-active" : ""}" type="button" data-contribution-mode="all" aria-pressed="${colorMode === "all"}">全部显示</button>
+                <button class="mini-mode-button${colorMode === "positive" ? " is-active" : ""}" type="button" data-contribution-mode="positive" aria-pressed="${colorMode === "positive"}">只显 &gt; 0</button>
+              </div>
+            </div>
+            <span class="hint">${colorMode === "positive" ? "当前只高亮大于 0 的贡献，负值和 0 会压暗显示。绿色越亮，正向贡献越强。" : "每一格都是输入像素乘上对应权重后的结果。绿色偏正，红色偏负，越亮代表绝对值越大。"}</span>
+          </div>
+          <div class="contribution-grid">${cells}</div>
+          <div class="contribution-formula">Σ(Xi × Wi) = ${fmt4(details.weightedInputSum)}，加上偏置 ${fmt4(details.bias)}，得到输入和 ${fmt4(details.preActivation)}，激活后为 ${fmt4(details.currentValue)}</div>
+        </section>
+      `;
+    }
+
+    function fmt4(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0.0000";
+      return numeric.toFixed(4);
+    }
+
+    function renderSamples() {
+      els.sampleMetric.textContent = String(state.samples.length);
+      els.sampleCountText.textContent = `${state.samples.length} 个`;
+      if (!state.samples.length) {
+        els.sampleList.innerHTML = `<div class="empty">还没有样本。画完图后，点击“这是正方形”或“不是正方形”来加入样本。</div>`;
+        return;
+      }
+      els.sampleList.innerHTML = state.samples.map((sample, index) => {
+        const targets = sample.targets.map((value, outputIndex) => `${state.outputs[outputIndex]?.name || outputIndex + 1}:${fmt(value)}`).join(" / ");
+        const label = sample.label || (sample.targets[0] >= state.outputs[0].threshold ? "正方形" : "不是正方形");
+        return `
+          <div class="sample-row">
+            <div>
+              <b>样本 ${index + 1} · ${escapeHtml(label)}</b>
+              <div class="sample-targets">${escapeHtml(targets)}</div>
+            </div>
+            <button class="small-button secondary" type="button" data-sample-action="load" data-sample-index="${index}">套用</button>
+            <button class="small-button danger" type="button" data-sample-action="delete" data-sample-index="${index}">删除</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderMetrics() {
+      els.lossMetric.textContent = fmt(computeLoss());
+      els.paramMetric.textContent = String(parameterCount());
+    }
+
+    function renderAll() {
+      clearInvalidSelection();
+      renderPixelGrid();
+      renderConfig();
+      renderNetwork();
+      renderSamples();
+      renderCollapsiblePanels();
+      renderMetrics();
+    }
+
+    function saveAndRender() {
+      saveState();
+      renderAll();
+    }
+
+    function outputDefaultsForActivation(index, activation = state.outputActivation) {
+      const cleanActivation = sanitizeOutputActivation(activation);
+      if (cleanActivation === "sigmoid") {
+        return {
+          threshold: 0.5,
+          target: index === 0 ? 1 : 0
+        };
+      }
+      return {
+        threshold: 1,
+        target: index === 0 ? 2 : 0
+      };
+    }
+
+    function applySigmoidOutputDefaults() {
+      state.outputs = sanitizeOutputs(state.outputs).map((output) => ({
+        ...output,
+        threshold: 0.5,
+        target: output.target > 0 ? 1 : 0
+      }));
+      state.samples = [];
+    }
+
+    function handleOutputActivationChange(value) {
+      const nextActivation = sanitizeOutputActivation(value);
+      if (nextActivation === state.outputActivation) return;
+      state.outputActivation = nextActivation;
+      if (nextActivation === "sigmoid") {
+        applySigmoidOutputDefaults();
+      }
+      resetModel();
+      saveAndRender();
+    }
+
+    function downloadPreset() {
+      const payload = JSON.stringify(buildPresetPayload(), null, 2);
+      const blob = new Blob([payload], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+      link.href = url;
+      link.download = `neural-preset-${stamp}.nn-preset.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      setPresetStatus("success", "预设文件已生成，包含当前网络结构、激活函数、权重和偏置。");
+    }
+
+    function importPresetObject(payload) {
+      if (!payload || typeof payload !== "object" || !payload.preset || typeof payload.preset !== "object") {
+        throw new Error("预设文件缺少 preset 主体。");
+      }
+      const preset = payload.preset;
+      const hiddenLayers = sanitizeHiddenLayers(preset.hiddenLayers);
+      const outputActivation = sanitizeOutputActivation(preset.outputActivation);
+      const outputs = sanitizeOutputs(preset.outputs);
+      const weightSettings = sanitizeWeightSettings(preset.weightSettings);
+      const initialBias = clampNumber(preset.initialBias, -100, 100, 0);
+      const biasFrozen = Boolean(preset.biasFrozen);
+      const topology = [INPUT_COUNT, ...hiddenLayers.map((layer) => layer.size), outputs.length];
+      const model = sanitizeImportedModel(preset.model, topology, weightSettings);
+      if (!model) {
+        throw new Error("预设中的模型拓扑或权重尺寸不匹配。");
+      }
+
+      state.hiddenLayers = hiddenLayers;
+      state.outputActivation = outputActivation;
+      state.outputs = outputs;
+      state.weightSettings = weightSettings;
+      state.initialBias = initialBias;
+      state.biasFrozen = biasFrozen;
+      state.model = model;
+      if (state.biasFrozen) {
+        zeroAllBiases();
+      }
+      state.samples = [];
+      clearInvalidSelection();
+      saveAndRender();
+      setPresetStatus("success", "预设导入成功，当前画布已保留，样本已清空。");
+    }
+
+    async function importPresetFile(file) {
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const payload = JSON.parse(text);
+        importPresetObject(payload);
+      } catch (error) {
+        console.error(error);
+        setPresetStatus("error", `导入失败：${error.message || "文件格式无效。"}`);
+      } finally {
+        els.importPresetInput.value = "";
+      }
+    }
+
+    function setPixelFromElement(target) {
+      const cell = target.closest(".pixel");
+      if (!cell) return;
+      const index = Number(cell.dataset.index);
+      if (!Number.isInteger(index)) return;
+      state.pixels[index] = state.brushValue;
+      saveAndRender();
+    }
+
+    function updateHiddenLayerCount(count) {
+      const nextCount = clampInt(count, 0, 5, state.hiddenLayers.length);
+      while (state.hiddenLayers.length < nextCount) {
+        state.hiddenLayers.push({ size: 12, activation: "tanh" });
+      }
+      state.hiddenLayers = state.hiddenLayers.slice(0, nextCount);
+      resetModel();
+      saveAndRender();
+    }
+
+    function updateOutputCount(count) {
+      const nextCount = clampInt(count, 1, 10, state.outputs.length);
+      while (state.outputs.length < nextCount) {
+        const index = state.outputs.length;
+        const defaults = outputDefaultsForActivation(index);
+        state.outputs.push({ name: `输出 ${index + 1}`, threshold: defaults.threshold, target: defaults.target });
+      }
+      state.outputs = state.outputs.slice(0, nextCount);
+      state.samples = state.samples.filter((sample) => sample.targets.length === nextCount);
+      resetModel();
+      saveAndRender();
+    }
+
+    function addLabeledSample(isPositive) {
+      state.outputs = sanitizeOutputs(state.outputs);
+      const targets = state.outputs.map((output) => output.target);
+      targets[0] = state.outputActivation === "sigmoid"
+        ? (isPositive ? 1 : 0)
+        : (isPositive ? state.outputs[0].target : 0);
+      state.samples.push({
+        pixels: state.pixels.slice(),
+        targets,
+        label: isPositive ? "正方形" : "不是正方形",
+        createdAt: Date.now()
+      });
+      state.samples = state.samples.slice(-200);
+      saveAndRender();
+    }
+
+    function renderCollapsiblePanels() {
+      document.querySelectorAll(".collapsible-panel[data-panel-key]").forEach((panel) => {
+        const key = panel.dataset.panelKey;
+        const collapsed = Boolean(state.collapsedPanels[key]);
+        const trigger = panel.querySelector("[data-toggle-panel]");
+        panel.classList.toggle("is-collapsed", collapsed);
+        if (trigger) {
+          trigger.setAttribute("aria-expanded", String(!collapsed));
+        }
+      });
+    }
+
+    function togglePanel(key) {
+      state.collapsedPanels[key] = !state.collapsedPanels[key];
+      saveState();
+      renderCollapsiblePanels();
+    }
+
+    function toggleExpandedMode() {
+      state.expandedMode = !state.expandedMode;
+      if (state.expandedMode && !state.selectedNeuron && state.hiddenLayers.length) {
+        state.selectedNeuron = { layerIndex: 1, neuronIndex: 0 };
+      }
+      saveAndRender();
+    }
+
+    function updateViewportScale(value) {
+      state.viewportScale = clampNumber(value, 0.35, 1.4, 1);
+      saveAndRender();
+    }
+
+    function updateContributionColorMode(mode) {
+      state.contributionColorMode = sanitizeContributionColorMode(mode);
+      saveState();
+      renderNetwork();
+    }
+
+    function updateWeightLabelMode(mode) {
+      state.weightLabelMode = sanitizeWeightLabelMode(mode);
+      saveState();
+      renderNetwork();
+    }
+
+    function updateWeightSettings() {
+      state.weightSettings = sanitizeWeightSettings({
+        min: els.weightMinInput.value,
+        max: els.weightMaxInput.value,
+        precision: els.weightPrecisionInput.value
+      });
+      normalizeModelWeights();
+      saveAndRender();
+    }
+
+    function updateInitialBias() {
+      state.initialBias = clampNumber(els.initialBiasInput.value, -100, 100, 0);
+      saveAndRender();
+    }
+
+    function toggleBiasFrozen() {
+      state.biasFrozen = !state.biasFrozen;
+      if (state.biasFrozen) {
+        zeroAllBiases();
+      }
+      saveAndRender();
+    }
+
+    els.pixelGrid.addEventListener("pointerdown", (event) => {
+      isPainting = true;
+      els.pixelGrid.setPointerCapture(event.pointerId);
+      setPixelFromElement(event.target);
+    });
+
+    els.pixelGrid.addEventListener("pointerover", (event) => {
+      if (isPainting) setPixelFromElement(event.target);
+    });
+
+    els.pixelGrid.addEventListener("pointermove", (event) => {
+      if (!isPainting) return;
+      const target = document.elementFromPoint(event.clientX, event.clientY);
+      if (target) setPixelFromElement(target);
+    });
+
+    els.pixelGrid.addEventListener("pointerup", () => {
+      isPainting = false;
+    });
+
+    els.pixelGrid.addEventListener("pointercancel", () => {
+      isPainting = false;
+    });
+
+    window.addEventListener("pointerup", () => {
+      isPainting = false;
+    });
+
+    els.brushRange.addEventListener("input", () => {
+      state.brushValue = clampNumber(els.brushRange.value, 0, 1, 1);
+      saveAndRender();
+    });
+
+    els.clearCanvasButton.addEventListener("click", () => {
+      state.pixels = Array(INPUT_COUNT).fill(0);
+      saveAndRender();
+    });
+
+    els.invertCanvasButton.addEventListener("click", () => {
+      state.pixels = state.pixels.map((value) => Number((1 - value).toFixed(2)));
+      saveAndRender();
+    });
+
+    els.hiddenCountInput.addEventListener("change", () => updateHiddenLayerCount(els.hiddenCountInput.value));
+    els.outputCountInput.addEventListener("change", () => updateOutputCount(els.outputCountInput.value));
+    els.weightMinInput.addEventListener("change", updateWeightSettings);
+    els.weightMaxInput.addEventListener("change", updateWeightSettings);
+    els.weightPrecisionInput.addEventListener("change", updateWeightSettings);
+    els.initialBiasInput.addEventListener("change", updateInitialBias);
+    els.biasFrozenButton.addEventListener("click", toggleBiasFrozen);
+    els.outputActivationSelect.addEventListener("change", () => handleOutputActivationChange(els.outputActivationSelect.value));
+    els.downloadPresetButton.addEventListener("click", downloadPreset);
+    els.importPresetButton.addEventListener("click", () => els.importPresetInput.click());
+    els.importPresetInput.addEventListener("change", () => importPresetFile(els.importPresetInput.files?.[0]));
+
+    els.layerConfigs.addEventListener("change", (event) => {
+      const target = event.target;
+      const index = Number(target.dataset.layerIndex);
+      const field = target.dataset.layerField;
+      if (!Number.isInteger(index) || !state.hiddenLayers[index]) return;
+      if (field === "size") {
+        state.hiddenLayers[index].size = clampInt(target.value, 1, 100, state.hiddenLayers[index].size);
+        resetModel();
+      }
+      if (field === "activation") {
+        state.hiddenLayers[index].activation = sanitizeHiddenActivation(target.value);
+      }
+      saveAndRender();
+    });
+
+    els.layers.addEventListener("click", (event) => {
+      const neuron = event.target.closest(".neuron[data-selectable]");
+      if (!neuron) return;
+      selectNeuron(Number(neuron.dataset.layer), Number(neuron.dataset.neuron));
+    });
+
+    els.layers.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const neuron = event.target.closest(".neuron[data-selectable]");
+      if (!neuron) return;
+      event.preventDefault();
+      selectNeuron(Number(neuron.dataset.layer), Number(neuron.dataset.neuron));
+    });
+
+    els.outputConfigs.addEventListener("input", (event) => {
+      const target = event.target;
+      const index = Number(target.dataset.outputIndex);
+      const field = target.dataset.outputField;
+      if (!Number.isInteger(index) || !state.outputs[index]) return;
+      if (field === "name") state.outputs[index].name = target.value || `输出 ${index + 1}`;
+      if (field === "threshold") state.outputs[index].threshold = clampNumber(target.value, -100, 100, state.outputs[index].threshold);
+      if (field === "target") state.outputs[index].target = clampNumber(target.value, -100, 100, state.outputs[index].target);
+      saveState();
+      renderNetwork();
+      renderSamples();
+      renderMetrics();
+    });
+
+    els.learningRateInput.addEventListener("change", () => {
+      state.learningRate = clampNumber(els.learningRateInput.value, 0.001, 1, state.learningRate);
+      saveAndRender();
+    });
+
+    els.epochsInput.addEventListener("change", () => {
+      state.epochs = clampInt(els.epochsInput.value, 1, 5000, state.epochs);
+      saveAndRender();
+    });
+
+    els.resetModelButton.addEventListener("click", () => {
+      resetModel();
+      saveAndRender();
+    });
+
+    els.addPositiveSampleButton.addEventListener("click", () => addLabeledSample(true));
+    els.addNegativeSampleButton.addEventListener("click", () => addLabeledSample(false));
+    els.expandedModeButton.addEventListener("click", toggleExpandedMode);
+    els.weightLabelSelectedButton.addEventListener("click", () => updateWeightLabelMode("selected"));
+    els.weightLabelAllButton.addEventListener("click", () => updateWeightLabelMode("all"));
+    els.viewportScaleInput.addEventListener("input", () => updateViewportScale(els.viewportScaleInput.value));
+    els.trainOneButton.addEventListener("click", () => train(1));
+    els.trainManyButton.addEventListener("click", () => train(clampInt(els.epochsInput.value, 1, 5000, state.epochs)));
+
+    els.clearSamplesButton.addEventListener("click", () => {
+      state.samples = [];
+      saveAndRender();
+    });
+
+    els.sampleList.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-sample-action]");
+      if (!button) return;
+      const index = Number(button.dataset.sampleIndex);
+      const sample = state.samples[index];
+      if (!sample) return;
+      if (button.dataset.sampleAction === "load") {
+        state.pixels = sample.pixels.slice();
+      }
+      if (button.dataset.sampleAction === "delete") {
+        state.samples.splice(index, 1);
+      }
+      saveAndRender();
+    });
+
+    els.weightInspector.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-contribution-mode]");
+      if (!button) return;
+      updateContributionColorMode(button.dataset.contributionMode);
+    });
+
+    window.addEventListener("resize", () => {
+      if (shouldUseLineMode()) requestAnimationFrame(drawConnectionLines);
+    });
+
+    document.querySelectorAll("[data-toggle-panel]").forEach((button) => {
+      button.addEventListener("click", () => togglePanel(button.dataset.togglePanel));
+    });
+
+    renderAll();
+  </script>
+</body>
+</html>

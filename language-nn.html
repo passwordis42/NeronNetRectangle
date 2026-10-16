@@ -1,0 +1,2210 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>语言神经网络模拟器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #fbfbfb;
+      --panel: #ffffff;
+      --ink: #16191d;
+      --muted: #65717d;
+      --line: #dde2e7;
+      --line-strong: #b7c0c9;
+      --green: #10a868;
+      --green-soft: #eaf8f0;
+      --red: #f04f4f;
+      --red-soft: #fff0f0;
+      --blue: #2f80ed;
+      --blue-soft: #eef5ff;
+      --amber: #d98600;
+      --radius: 8px;
+      --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+      --sans: "Microsoft YaHei UI", "PingFang SC", "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      min-height: 34px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      padding: 7px 12px;
+      cursor: pointer;
+      transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+    }
+
+    button:hover { border-color: #8d98a5; transform: translateY(-1px); }
+    button:disabled { cursor: not-allowed; opacity: 0.46; transform: none; }
+
+    button.primary {
+      border-color: var(--green);
+      background: var(--green);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    button.danger {
+      border-color: #ffd0d0;
+      background: #fff7f7;
+      color: #c73535;
+    }
+
+    input,
+    select {
+      min-height: 32px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      color: var(--ink);
+      padding: 5px 8px;
+    }
+
+    input[type="number"] { font-family: var(--mono); }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    th {
+      background: #f7f8f9;
+      color: #4f5b66;
+      font-weight: 700;
+    }
+
+    .app-header {
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 0 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.96);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .app-header h1 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: 0;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .header-controls label {
+      min-width: 132px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 360px minmax(680px, 1fr) 380px;
+      min-height: calc(100vh - 64px);
+    }
+
+    .left,
+    .right {
+      padding: 14px;
+      overflow: auto;
+      max-height: calc(100vh - 64px);
+    }
+
+    .left { border-right: 1px solid var(--line); }
+    .right { border-left: 1px solid var(--line); }
+
+    .center {
+      min-width: 0;
+      overflow: auto;
+      position: relative;
+      background:
+        linear-gradient(90deg, rgba(0, 0, 0, 0.022) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(0, 0, 0, 0.022) 1px, transparent 1px),
+        #fff;
+      background-size: 28px 28px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 12px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .panel-head h2,
+    .panel-head h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.1;
+    }
+
+    .panel-head h3 { font-size: 15px; }
+
+    .panel-body {
+      padding: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .small-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .vocab-table td:first-child,
+    .vocab-table th:first-child { width: 38px; }
+
+    .word-input { min-width: 54px; text-align: center; }
+
+    .vector-cell input,
+    .matrix-input {
+      width: 64px;
+      min-height: 28px;
+      padding: 3px 5px;
+      text-align: center;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .input-vector {
+      display: grid;
+      grid-template-columns: repeat(9, minmax(34px, 1fr));
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .chip {
+      min-height: 32px;
+      display: grid;
+      place-items: center;
+      border-right: 1px solid var(--line);
+      background: #fff;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .chip:last-child { border-right: 0; }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 9px 10px;
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+      background: #fafbfc;
+    }
+
+    .status.ok {
+      border-color: #bfe8d2;
+      background: var(--green-soft);
+      color: #087642;
+    }
+
+    .status.warn {
+      border-color: #ffdca8;
+      background: #fff8ea;
+      color: #8a5600;
+    }
+
+    .status.error {
+      border-color: #ffc8c8;
+      background: var(--red-soft);
+      color: #b72d2d;
+    }
+
+    .toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--ink);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 8px 10px;
+      background: #fff;
+    }
+
+    .toggle input {
+      width: 18px;
+      min-height: 18px;
+    }
+
+    .layer-config {
+      display: grid;
+      grid-template-columns: 46px 1fr 1.3fr;
+      align-items: end;
+      gap: 8px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfd;
+    }
+
+    .layer-config b {
+      align-self: center;
+      font-size: 13px;
+    }
+
+    .network-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 22px 26px 6px;
+      min-width: 680px;
+    }
+
+    .network-head h2 {
+      margin: 0 0 5px;
+      font-size: 18px;
+    }
+
+    .metric-strip {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .metric {
+      min-width: 100px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 10px;
+    }
+
+    .metric b {
+      display: block;
+      font-family: var(--mono);
+      font-size: 16px;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .metric-formula {
+      display: block;
+      margin-top: 5px;
+      border-top: 1px solid var(--line);
+      padding-top: 5px;
+      color: #1f5ca8;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .network-wrap {
+      min-width: 680px;
+      min-height: 860px;
+      padding: 16px 14px 30px;
+    }
+
+    .network-canvas {
+      position: relative;
+      min-height: 760px;
+      border: 0;
+    }
+
+    .connections {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .layers {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(112px, 1fr);
+      align-items: start;
+      gap: 14px;
+      min-height: 620px;
+      padding: 4px 4px;
+    }
+
+    .network-canvas.has-visual-formulas .layers {
+      padding-top: 112px;
+    }
+
+    .layer {
+      display: grid;
+      grid-template-rows: 50px 1fr;
+      min-width: 112px;
+      height: 620px;
+    }
+
+    .network-canvas.has-forward-formulas .layer {
+      grid-template-rows: 92px 1fr;
+    }
+
+    .layer-title {
+      text-align: center;
+    }
+
+    .layer-title b {
+      display: block;
+      font-size: 16px;
+    }
+
+    .layer-title span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .layer-formula {
+      display: block;
+      margin: 4px auto 0;
+      max-width: 128px;
+      border: 1px solid #bdd5fb;
+      border-radius: 6px;
+      background: rgba(238, 245, 255, 0.94);
+      color: #1f5ca8;
+      padding: 4px 5px;
+      font-family: var(--mono);
+      font-size: 10px;
+      line-height: 1.25;
+    }
+
+    .node-stack {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      align-items: center;
+      min-height: 545px;
+    }
+
+    .node-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .node-label {
+      min-width: 34px;
+      text-align: right;
+      color: var(--ink);
+      font-size: 12px;
+    }
+
+    .score-layer .node-label,
+    .probability-layer .node-label {
+      text-align: left;
+      min-width: 42px;
+    }
+
+    .node {
+      width: 58px;
+      height: 58px;
+      border: 1.5px solid #23272c;
+      border-radius: 50%;
+      background: #fff;
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      cursor: pointer;
+      position: relative;
+      transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    }
+
+    .node-content {
+      display: grid;
+      place-items: center;
+      gap: 2px;
+      line-height: 1.05;
+    }
+
+    .node-grad,
+    .node-prob {
+      color: var(--blue);
+      font-size: 10px;
+      font-family: var(--mono);
+    }
+
+    .node-grad {
+      color: var(--amber);
+    }
+
+    .weight-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      fill: var(--ink);
+      stroke: #fff;
+      stroke-width: 4px;
+      paint-order: stroke;
+      text-anchor: middle;
+      pointer-events: none;
+    }
+
+    .gradient-label {
+      font-size: 9px;
+      fill: var(--amber);
+    }
+
+    .node:hover {
+      transform: translateY(-1px);
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.1);
+    }
+
+    .node.selected {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.16);
+    }
+
+    .node.input-node {
+      width: 48px;
+      height: 48px;
+    }
+
+    .node.hidden-node {
+      width: 66px;
+      height: 66px;
+      border-color: var(--blue);
+      font-size: 12px;
+    }
+
+    .node.probability-node {
+      border-color: var(--blue);
+      background: var(--blue-soft);
+      color: #124f9f;
+    }
+
+    .legend {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 340px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      padding: 12px 18px;
+      font-size: 12px;
+    }
+
+    .visual-formulas {
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      top: 0;
+      z-index: 4;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .visual-formula-card {
+      width: 145px;
+      max-width: 145px;
+      border: 1px solid #f0c36b;
+      border-radius: var(--radius);
+      background: rgba(255, 250, 235, 0.95);
+      color: #704700;
+      padding: 6px 8px;
+      font-size: 9.5px;
+      line-height: 1.35;
+      box-shadow: 0 8px 20px rgba(114, 78, 0, 0.08);
+    }
+
+    .network-canvas.has-visual-formulas .legend {
+      display: none;
+    }
+
+    .visual-formula-card code {
+      font-family: var(--mono);
+      color: #1f2937;
+    }
+
+    .visual-formula-name {
+      font-weight: 700;
+      color: #5a3900;
+    }
+
+    .visual-formula-code {
+      margin-top: 2px;
+      font-family: var(--mono);
+      color: #1f2937;
+      word-break: break-word;
+    }
+
+    .visual-formula-desc {
+      margin-top: 3px;
+      color: #8a5a00;
+    }
+
+    .legend-line {
+      display: inline-block;
+      width: 46px;
+      height: 0;
+      border-top: 2px solid var(--green);
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+
+    .legend-line.red { border-color: var(--red); }
+    .legend-line.strong { border-width: 4px; border-color: #111; }
+    .legend-line.mid { border-width: 2px; border-color: #444; }
+    .legend-line.light { border-width: 1px; border-color: #999; }
+
+    .table-scroll {
+      overflow: auto;
+      max-width: 100%;
+    }
+
+    .pos { color: #008a4f; font-family: var(--mono); }
+    .neg { color: #e13d3d; font-family: var(--mono); }
+    .zero { color: #5f6871; font-family: var(--mono); }
+
+    .matrix-section {
+      display: grid;
+      gap: 9px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .matrix-section:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .kv-table th:first-child,
+    .kv-table td:first-child {
+      text-align: left;
+      width: 118px;
+      color: #4f5b66;
+      font-weight: 700;
+    }
+
+    .selected-inspector {
+      display: grid;
+      gap: 8px;
+    }
+
+    .log {
+      display: grid;
+      gap: 5px;
+      max-height: 100px;
+      overflow: auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .log-line {
+      border-bottom: 1px solid #eef1f4;
+      padding-bottom: 5px;
+    }
+
+    .formula-box {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fbfcfd;
+      padding: 10px;
+      color: #303943;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .formula-box code {
+      font-family: var(--mono);
+      color: #111827;
+      background: #eef3f8;
+      border-radius: 4px;
+      padding: 1px 4px;
+    }
+
+    @media (max-width: 1220px) {
+      .layout {
+        grid-template-columns: 340px minmax(560px, 1fr);
+      }
+
+      .right {
+        grid-column: 1 / -1;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .app-header {
+        height: auto;
+        align-items: stretch;
+        flex-direction: column;
+        padding: 14px;
+      }
+
+      .header-controls {
+        align-items: stretch;
+      }
+
+      .header-controls label {
+        min-width: 140px;
+        flex: 1;
+      }
+
+      .layout {
+        display: block;
+      }
+
+      .left,
+      .right {
+        max-height: none;
+        border: 0;
+      }
+
+      .center {
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .network-head,
+      .network-wrap {
+        min-width: 680px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>语言神经网络模拟器</h1>
+    <div class="header-controls">
+      <label>
+        隐藏层激活函数
+        <select id="globalActivationSelect"></select>
+      </label>
+      <label>
+        输出层损失函数
+        <select id="lossSelect"></select>
+      </label>
+      <button id="resetButton" type="button">重置</button>
+      <button id="exportButton" type="button">保存</button>
+      <button id="importButton" type="button">加载</button>
+      <input id="importInput" type="file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+
+  <main class="layout">
+    <aside class="left">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>词表</h2>
+          <span class="hint">3 维词向量</span>
+        </div>
+        <div class="panel-body">
+          <div class="table-scroll">
+            <table class="vocab-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>词语</th>
+                  <th>E[:,1]</th>
+                  <th>E[:,2]</th>
+                  <th>E[:,3]</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="vocabBody"></tbody>
+            </table>
+          </div>
+          <button id="addWordButton" type="button">+ 添加词语</button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>输入窗口（3词）</h2>
+          <span class="hint">拼接成 9 维</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid-3" id="inputSelectors"></div>
+          <div>
+            <div class="small-title">输入向量 x</div>
+            <div class="input-vector" id="inputVector"></div>
+          </div>
+          <label>
+            目标词
+            <select id="targetSelect"></select>
+          </label>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>网络结构</h2>
+          <span class="hint">输入 9，输出等于词表大小</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid-2">
+            <label>
+              隐藏层层数
+              <input id="hiddenCountInput" type="number" min="1" max="5" step="1">
+            </label>
+            <label>
+              输出层维度
+              <input id="outputSizeInput" type="number" disabled>
+            </label>
+          </div>
+          <label class="toggle">
+            <span>权重共享：输出层使用词表向量 E</span>
+            <input id="shareOutputInput" type="checkbox">
+          </label>
+          <div id="layerConfigs"></div>
+          <div id="validationStatus" class="status ok"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>训练控制</h2>
+          <span class="hint">当前样本在线训练</span>
+        </div>
+        <div class="panel-body">
+          <div class="grid-2">
+            <label>
+              学习率
+              <input id="learningRateInput" type="number" min="0.0001" max="2" step="0.001">
+            </label>
+            <label>
+              训练步数
+              <input id="stepsInput" type="number" min="1" max="50000" step="1">
+            </label>
+          </div>
+          <div class="button-row">
+            <button id="trainManyButton" class="primary" type="button">开始训练</button>
+            <button id="trainOneButton" type="button">单步训练</button>
+          </div>
+          <div id="trainStatus" class="status"></div>
+          <div class="log" id="trainLog"></div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="center">
+      <div class="network-head">
+        <div>
+          <h2>网络结构</h2>
+          <span class="hint" id="networkHint">圆圈表示神经元，线条表示权重方向和强度</span>
+        </div>
+        <div class="metric-strip">
+          <label class="toggle">
+            <span>显示连线权重</span>
+            <input id="showWeightsInput" type="checkbox">
+          </label>
+          <label class="toggle">
+            <span>显示前向传播公式</span>
+            <input id="showForwardFormulasInput" type="checkbox">
+          </label>
+          <label class="toggle">
+            <span>显示反向传播偏导</span>
+            <input id="showGradientsInput" type="checkbox">
+          </label>
+          <label class="toggle">
+            <span>只看选中偏导</span>
+            <input id="gradientSelectedOnlyInput" type="checkbox">
+          </label>
+          <div class="metric">
+            <b id="lossMetric">0.000000</b>
+            <span>当前损失</span>
+          </div>
+          <div class="metric">
+            <b id="stepMetric">0</b>
+            <span>训练步数</span>
+          </div>
+          <div class="metric">
+            <b id="paramMetric">0</b>
+            <span>参数数量</span>
+          </div>
+        </div>
+      </div>
+      <div class="network-wrap">
+        <div class="network-canvas" id="networkCanvas">
+          <svg id="connectionSvg" class="connections" aria-hidden="true"></svg>
+          <div id="layers" class="layers"></div>
+          <div id="visualFormulaOverlay" class="visual-formulas"></div>
+          <div class="legend">
+            <div>
+              <p><span class="legend-line"></span>正权重</p>
+              <p><span class="legend-line red"></span>负权重</p>
+            </div>
+            <div>
+              <p><span class="legend-line strong"></span>|w| &gt; 0.3</p>
+              <p><span class="legend-line mid"></span>0.1 - 0.3</p>
+              <p><span class="legend-line light"></span>&lt; 0.1</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="right">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>完整参数</h2>
+          <span class="hint">所有权重和数值</span>
+        </div>
+        <div class="panel-body" id="parameterPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>向量与激活值（当前前向传播）</h3>
+        </div>
+        <div class="panel-body" id="activationPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>反向传播偏导</h3>
+          <span class="hint">∂L / ∂参数</span>
+        </div>
+        <div class="panel-body" id="gradientPanel"></div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>选中节点</h3>
+        </div>
+        <div class="panel-body selected-inspector" id="selectedPanel"></div>
+      </section>
+    </aside>
+  </main>
+
+  <script>
+    const VECTOR_DIM = 3;
+    const WINDOW_SIZE = 3;
+    const INPUT_DIM = VECTOR_DIM * WINDOW_SIZE;
+    const ACTIVATIONS = ["tanh", "sigmoid", "ReLU", "linear", "step"];
+    const LOSSES = [
+      { id: "MSE", label: "均方误差" },
+      { id: "MAE", label: "平均绝对误差" },
+      { id: "CrossEntropy", label: "交叉熵" }
+    ];
+
+    const defaultW1 = [
+      [0.213, -0.107, 0.426, -0.32, 0.213, 0.107, 0.533, 0.107, -0.213],
+      [-0.095, 0.048, -0.19, 0.143, -0.095, -0.048, -0.238, -0.048, 0.095],
+      [0.169, -0.085, 0.338, -0.254, 0.169, 0.085, 0.423, 0.085, -0.169]
+    ];
+
+    const els = {
+      globalActivationSelect: document.getElementById("globalActivationSelect"),
+      lossSelect: document.getElementById("lossSelect"),
+      resetButton: document.getElementById("resetButton"),
+      exportButton: document.getElementById("exportButton"),
+      importButton: document.getElementById("importButton"),
+      importInput: document.getElementById("importInput"),
+      vocabBody: document.getElementById("vocabBody"),
+      addWordButton: document.getElementById("addWordButton"),
+      inputSelectors: document.getElementById("inputSelectors"),
+      inputVector: document.getElementById("inputVector"),
+      targetSelect: document.getElementById("targetSelect"),
+      hiddenCountInput: document.getElementById("hiddenCountInput"),
+      outputSizeInput: document.getElementById("outputSizeInput"),
+      shareOutputInput: document.getElementById("shareOutputInput"),
+      layerConfigs: document.getElementById("layerConfigs"),
+      validationStatus: document.getElementById("validationStatus"),
+      learningRateInput: document.getElementById("learningRateInput"),
+      stepsInput: document.getElementById("stepsInput"),
+      trainManyButton: document.getElementById("trainManyButton"),
+      trainOneButton: document.getElementById("trainOneButton"),
+      trainStatus: document.getElementById("trainStatus"),
+      trainLog: document.getElementById("trainLog"),
+      lossMetric: document.getElementById("lossMetric"),
+      stepMetric: document.getElementById("stepMetric"),
+      paramMetric: document.getElementById("paramMetric"),
+      showWeightsInput: document.getElementById("showWeightsInput"),
+      showForwardFormulasInput: document.getElementById("showForwardFormulasInput"),
+      showGradientsInput: document.getElementById("showGradientsInput"),
+      gradientSelectedOnlyInput: document.getElementById("gradientSelectedOnlyInput"),
+      networkHint: document.getElementById("networkHint"),
+      networkCanvas: document.getElementById("networkCanvas"),
+      connectionSvg: document.getElementById("connectionSvg"),
+      layers: document.getElementById("layers"),
+      visualFormulaOverlay: document.getElementById("visualFormulaOverlay"),
+      parameterPanel: document.getElementById("parameterPanel"),
+      activationPanel: document.getElementById("activationPanel"),
+      gradientPanel: document.getElementById("gradientPanel"),
+      selectedPanel: document.getElementById("selectedPanel")
+    };
+
+    let state = createDefaultState();
+    let latest = null;
+    let selectedNode = null;
+
+    function createDefaultState() {
+      return {
+        vocab: [
+          { word: "猫", vector: [0.2, -0.1, 0.4] },
+          { word: "会", vector: [-0.3, 0.2, 0.1] },
+          { word: "抓", vector: [0.5, 0.1, -0.2] },
+          { word: "老", vector: [-0.1, 0.3, 0.2] },
+          { word: "鼠", vector: [0.4, -0.2, 0.3] }
+        ],
+        inputWords: ["猫", "会", "抓"],
+        targetWord: "老",
+        hiddenLayers: [{ size: 3, activation: "tanh" }],
+        weights: [cloneMatrix(defaultW1)],
+        outputWeights: null,
+        shareOutput: true,
+        showWeights: false,
+        showForwardFormulas: false,
+        showGradients: false,
+        gradientsSelectedOnly: false,
+        lossType: "MSE",
+        learningRate: 0.05,
+        steps: 1000,
+        trainedSteps: 0,
+        log: []
+      };
+    }
+
+    function cloneMatrix(matrix) {
+      return matrix.map((row) => row.slice());
+    }
+
+    function fmt(value, digits = 6) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0";
+      if (Math.abs(numeric) < 0.0000005) return "0.000000";
+      return numeric.toFixed(digits);
+    }
+
+    function short(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0";
+      if (Math.abs(numeric) < 0.0005) return "0.000";
+      return numeric.toFixed(3);
+    }
+
+    function numericClass(value) {
+      if (value > 0.0000001) return "pos";
+      if (value < -0.0000001) return "neg";
+      return "zero";
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function clampInt(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, Math.round(numeric)));
+    }
+
+    function clampNumber(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, numeric));
+    }
+
+    function vectorForWord(word) {
+      return state.vocab.find((item) => item.word === word)?.vector || state.vocab[0].vector;
+    }
+
+    function wordIndex(word) {
+      const index = state.vocab.findIndex((item) => item.word === word);
+      return index >= 0 ? index : 0;
+    }
+
+    function inputVector() {
+      return state.inputWords.flatMap((word) => vectorForWord(word));
+    }
+
+    function targetVector() {
+      return state.vocab.map((item) => item.word === state.targetWord ? 1 : 0);
+    }
+
+    function topology() {
+      return [INPUT_DIM, ...state.hiddenLayers.map((layer) => layer.size), state.vocab.length];
+    }
+
+    function lastHiddenSize() {
+      return state.hiddenLayers[state.hiddenLayers.length - 1]?.size || 0;
+    }
+
+    function validateModel() {
+      if (!state.vocab.length) return { ok: false, text: "词表不能为空。" };
+      if (state.inputWords.some((word) => !state.vocab.some((item) => item.word === word))) {
+        return { ok: false, text: "输入窗口里有词不在词表中。" };
+      }
+      if (!state.vocab.some((item) => item.word === state.targetWord)) {
+        return { ok: false, text: "目标词不在词表中。" };
+      }
+      if (state.shareOutput && lastHiddenSize() !== VECTOR_DIM) {
+        return { ok: false, text: "权重共享开启时，最后隐藏层神经元数量必须等于词向量维度 3。" };
+      }
+      return { ok: true, text: `结构有效：${topology().join(" → ")}${state.shareOutput ? "，输出层共享词表向量 E。" : "，输出层使用独立权重。"}` };
+    }
+
+    function syncWeightShapes() {
+      const sizes = [INPUT_DIM, ...state.hiddenLayers.map((layer) => layer.size)];
+      const nextWeights = [];
+      for (let layerIndex = 0; layerIndex < state.hiddenLayers.length; layerIndex += 1) {
+        const rows = sizes[layerIndex + 1];
+        const cols = sizes[layerIndex];
+        const existing = state.weights[layerIndex];
+        nextWeights.push(resizeMatrix(existing, rows, cols, layerIndex === 0 ? defaultW1 : null));
+      }
+      state.weights = nextWeights;
+      if (!state.shareOutput) {
+        state.outputWeights = resizeMatrix(state.outputWeights, state.vocab.length, lastHiddenSize(), null);
+      } else {
+        state.outputWeights = null;
+      }
+    }
+
+    function resizeMatrix(existing, rows, cols, fallback) {
+      return Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: cols }, (_, col) => {
+          if (existing?.[row]?.[col] !== undefined) return Number(existing[row][col]) || 0;
+          if (fallback?.[row]?.[col] !== undefined) return Number(fallback[row][col]) || 0;
+          return seededWeight(row, col, rows, cols);
+        })
+      );
+    }
+
+    function seededWeight(row, col, rows, cols) {
+      const seed = Math.sin((row + 1) * 19.17 + (col + 1) * 7.31 + rows * 0.11 + cols * 0.07) * 10000;
+      return Number(((seed - Math.floor(seed)) * 0.4 - 0.2).toFixed(3));
+    }
+
+    function activate(value, type) {
+      if (type === "tanh") return Math.tanh(value);
+      if (type === "sigmoid") return 1 / (1 + Math.exp(-Math.max(-60, Math.min(60, value))));
+      if (type === "ReLU") return Math.max(0, value);
+      if (type === "step") return value >= 0 ? 1 : 0;
+      return value;
+    }
+
+    function activationDerivative(output, preActivation, type) {
+      if (type === "tanh") return 1 - output * output;
+      if (type === "sigmoid") return output * (1 - output);
+      if (type === "ReLU") return preActivation > 0 ? 1 : 0;
+      if (type === "step") return 1;
+      return 1;
+    }
+
+    function softmax(values) {
+      const max = Math.max(...values);
+      const exps = values.map((value) => Math.exp(value - max));
+      const total = exps.reduce((sum, value) => sum + value, 0) || 1;
+      return exps.map((value) => value / total);
+    }
+
+    function forward() {
+      syncWeightShapes();
+      const x = inputVector();
+      const activations = [x];
+      const preActivations = [];
+      let current = x.slice();
+
+      state.weights.forEach((matrix, layerIndex) => {
+        const z = matrix.map((row) => row.reduce((sum, weight, inputIndex) => sum + weight * current[inputIndex], 0));
+        const activation = state.hiddenLayers[layerIndex].activation;
+        const next = z.map((value) => activate(value, activation));
+        preActivations.push(z);
+        activations.push(next);
+        current = next;
+      });
+
+      let scores;
+      if (state.shareOutput) {
+        scores = state.vocab.map((item) => item.vector.reduce((sum, value, index) => sum + value * current[index], 0));
+      } else {
+        syncWeightShapes();
+        scores = state.outputWeights.map((row) => row.reduce((sum, weight, index) => sum + weight * current[index], 0));
+      }
+
+      const target = targetVector();
+      const probabilities = softmax(scores);
+      const loss = computeLoss(scores, target, state.lossType, probabilities);
+      return { x, activations, preActivations, scores, probabilities, target, loss };
+    }
+
+    function computeLoss(scores, target, type, probabilities = softmax(scores)) {
+      const count = Math.max(1, target.length);
+      if (type === "MAE") {
+        return scores.reduce((sum, value, index) => sum + Math.abs(value - target[index]), 0) / count;
+      }
+      if (type === "CrossEntropy") {
+        return -target.reduce((sum, value, index) => sum + value * Math.log(Math.max(1e-12, probabilities[index])), 0);
+      }
+      return scores.reduce((sum, value, index) => {
+        const error = value - target[index];
+        return sum + error * error;
+      }, 0) / count;
+    }
+
+    function outputDelta(result) {
+      const count = Math.max(1, result.target.length);
+      if (state.lossType === "MAE") {
+        return result.scores.map((value, index) => Math.sign(value - result.target[index]) / count);
+      }
+      if (state.lossType === "CrossEntropy") {
+        return result.probabilities.map((value, index) => value - result.target[index]);
+      }
+      return result.scores.map((value, index) => 2 * (value - result.target[index]) / count);
+    }
+
+    function computeGradients(result = forward()) {
+      const deltaScores = outputDelta(result);
+      const gradWeights = state.weights.map((matrix) => matrix.map((row) => row.map(() => 0)));
+      const gradEmbeddings = state.vocab.map((item) => item.vector.map(() => 0));
+      const gradOutputEmbeddings = state.vocab.map((item) => item.vector.map(() => 0));
+      const gradOutputWeights = state.shareOutput ? null : state.outputWeights.map((row) => row.map(() => 0));
+      const lastActivation = result.activations[result.activations.length - 1];
+      let gradActivation = Array(lastActivation.length).fill(0);
+      const hiddenDeltas = Array(state.hiddenLayers.length);
+
+      if (state.shareOutput) {
+        state.vocab.forEach((item, vocabIndex) => {
+          for (let dim = 0; dim < VECTOR_DIM; dim += 1) {
+            gradActivation[dim] += deltaScores[vocabIndex] * item.vector[dim];
+            gradOutputEmbeddings[vocabIndex][dim] += deltaScores[vocabIndex] * lastActivation[dim];
+            gradEmbeddings[vocabIndex][dim] += deltaScores[vocabIndex] * lastActivation[dim];
+          }
+        });
+      } else {
+        state.outputWeights.forEach((row, vocabIndex) => {
+          row.forEach((weight, hiddenIndex) => {
+            gradOutputWeights[vocabIndex][hiddenIndex] += deltaScores[vocabIndex] * lastActivation[hiddenIndex];
+            gradActivation[hiddenIndex] += deltaScores[vocabIndex] * weight;
+          });
+        });
+      }
+
+      for (let layerIndex = state.hiddenLayers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+        const activationType = state.hiddenLayers[layerIndex].activation;
+        const outputs = result.activations[layerIndex + 1];
+        const pre = result.preActivations[layerIndex];
+        const prev = result.activations[layerIndex];
+        const delta = outputs.map((value, index) => gradActivation[index] * activationDerivative(value, pre[index], activationType));
+        const prevGrad = Array(prev.length).fill(0);
+        hiddenDeltas[layerIndex] = delta.slice();
+
+        state.weights[layerIndex].forEach((row, neuronIndex) => {
+          row.forEach((weight, inputIndex) => {
+            gradWeights[layerIndex][neuronIndex][inputIndex] += delta[neuronIndex] * prev[inputIndex];
+            prevGrad[inputIndex] += delta[neuronIndex] * weight;
+          });
+        });
+
+        gradActivation = prevGrad;
+      }
+
+      state.inputWords.forEach((word, position) => {
+        const vocabIndex = wordIndex(word);
+        for (let dim = 0; dim < VECTOR_DIM; dim += 1) {
+          gradEmbeddings[vocabIndex][dim] += gradActivation[position * VECTOR_DIM + dim];
+        }
+      });
+
+      return {
+        result,
+        deltaScores,
+        hiddenDeltas,
+        inputGradient: gradActivation,
+        gradWeights,
+        gradEmbeddings,
+        gradOutputEmbeddings,
+        gradOutputWeights
+      };
+    }
+
+    function trainOne() {
+      const validation = validateModel();
+      if (!validation.ok) return false;
+      syncWeightShapes();
+      const gradients = computeGradients(forward());
+      const lr = state.learningRate;
+      state.weights.forEach((matrix, layerIndex) => {
+        matrix.forEach((row, neuronIndex) => {
+          row.forEach((weight, inputIndex) => {
+            row[inputIndex] = weight - lr * gradients.gradWeights[layerIndex][neuronIndex][inputIndex];
+          });
+        });
+      });
+
+      if (!state.shareOutput) {
+        state.outputWeights.forEach((row, vocabIndex) => {
+          row.forEach((weight, hiddenIndex) => {
+            row[hiddenIndex] = weight - lr * gradients.gradOutputWeights[vocabIndex][hiddenIndex];
+          });
+        });
+      }
+
+      state.vocab.forEach((item, vocabIndex) => {
+        item.vector = item.vector.map((value, dim) => value - lr * gradients.gradEmbeddings[vocabIndex][dim]);
+      });
+
+      state.trainedSteps += 1;
+      return true;
+    }
+
+    function parameterCount() {
+      const hidden = state.weights.reduce((sum, matrix) => sum + matrix.length * (matrix[0]?.length || 0), 0);
+      const embeddings = state.vocab.length * VECTOR_DIM;
+      const output = state.shareOutput ? 0 : state.vocab.length * lastHiddenSize();
+      return hidden + embeddings + output;
+    }
+
+    function render() {
+      syncWeightShapes();
+      latest = forward();
+      renderHeaderControls();
+      renderVocab();
+      renderInputControls();
+      renderNetworkConfig();
+      renderTraining();
+      renderNetwork();
+      renderParameters();
+      renderActivations();
+      renderGradientPanel();
+      renderSelected();
+      requestAnimationFrame(drawConnections);
+    }
+
+    function renderHeaderControls() {
+      els.globalActivationSelect.innerHTML = ACTIVATIONS.map((name) =>
+        `<option value="${name}"${state.hiddenLayers.every((layer) => layer.activation === name) ? " selected" : ""}>${name}</option>`
+      ).join("");
+      els.lossSelect.innerHTML = LOSSES.map((loss) =>
+        `<option value="${loss.id}"${state.lossType === loss.id ? " selected" : ""}>${loss.label}</option>`
+      ).join("");
+      els.lossMetric.textContent = fmt(latest.loss);
+      els.lossMetric.parentElement.querySelector(".metric-formula")?.remove();
+      if (state.showForwardFormulas) {
+        els.lossMetric.parentElement.insertAdjacentHTML("beforeend", `<span class="metric-formula">${escapeHtml(plainLossFormula())}</span>`);
+      }
+      els.stepMetric.textContent = String(state.trainedSteps);
+      els.paramMetric.textContent = String(parameterCount());
+      els.showWeightsInput.checked = Boolean(state.showWeights);
+      els.showForwardFormulasInput.checked = Boolean(state.showForwardFormulas);
+      els.showGradientsInput.checked = Boolean(state.showGradients);
+      els.gradientSelectedOnlyInput.checked = Boolean(state.gradientsSelectedOnly);
+      els.gradientSelectedOnlyInput.disabled = !state.showGradients;
+    }
+
+    function renderVocab() {
+      els.vocabBody.innerHTML = state.vocab.map((item, index) => `
+        <tr>
+          <td>${index + 1}</td>
+          <td><input class="word-input" data-vocab-index="${index}" data-field="word" value="${escapeHtml(item.word)}"></td>
+          ${item.vector.map((value, dim) => `
+            <td class="vector-cell"><input type="number" step="0.001" data-vocab-index="${index}" data-dim="${dim}" value="${roundForInput(value)}"></td>
+          `).join("")}
+          <td><button class="danger" type="button" data-delete-word="${index}"${state.vocab.length <= 1 ? " disabled" : ""}>删</button></td>
+        </tr>
+      `).join("");
+    }
+
+    function roundForInput(value) {
+      return Number(value.toFixed(6));
+    }
+
+    function renderInputControls() {
+      els.inputSelectors.innerHTML = state.inputWords.map((word, position) => `
+        <label>
+          位置${position + 1}
+          <select data-input-position="${position}">
+            ${state.vocab.map((item) => `<option value="${escapeHtml(item.word)}"${word === item.word ? " selected" : ""}>${escapeHtml(item.word)}</option>`).join("")}
+          </select>
+        </label>
+      `).join("");
+      els.inputVector.innerHTML = latest.x.map((value) => `<span class="chip ${numericClass(value)}">${short(value)}</span>`).join("");
+      els.targetSelect.innerHTML = state.vocab.map((item) =>
+        `<option value="${escapeHtml(item.word)}"${state.targetWord === item.word ? " selected" : ""}>${escapeHtml(item.word)}</option>`
+      ).join("");
+    }
+
+    function renderNetworkConfig() {
+      els.hiddenCountInput.value = state.hiddenLayers.length;
+      els.outputSizeInput.value = state.vocab.length;
+      els.shareOutputInput.checked = state.shareOutput;
+      els.layerConfigs.innerHTML = state.hiddenLayers.map((layer, index) => `
+        <div class="layer-config">
+          <b>H${index + 1}</b>
+          <label>
+            神经元
+            <input type="number" min="1" max="20" step="1" data-layer-index="${index}" data-layer-field="size" value="${layer.size}">
+          </label>
+          <label>
+            激活函数
+            <select data-layer-index="${index}" data-layer-field="activation">
+              ${ACTIVATIONS.map((name) => `<option value="${name}"${layer.activation === name ? " selected" : ""}>${name}</option>`).join("")}
+            </select>
+          </label>
+        </div>
+      `).join("");
+      const validation = validateModel();
+      els.validationStatus.className = `status ${validation.ok ? "ok" : "error"}`;
+      els.validationStatus.textContent = validation.text;
+      els.networkHint.textContent = validation.ok
+        ? "圆圈表示神经元，线条颜色表示权重正负，粗细表示权重强度。"
+        : validation.text;
+    }
+
+    function renderTraining() {
+      els.learningRateInput.value = state.learningRate;
+      els.stepsInput.value = state.steps;
+      const validation = validateModel();
+      els.trainOneButton.disabled = !validation.ok;
+      els.trainManyButton.disabled = !validation.ok;
+      els.trainStatus.className = `status ${validation.ok ? "ok" : "error"}`;
+      els.trainStatus.textContent = validation.ok
+        ? `状态：就绪。当前损失（${state.lossType}）=${fmt(latest.loss)}。`
+        : `状态：无法训练。${validation.text}`;
+      els.trainLog.innerHTML = state.log.map((line) => `<div class="log-line">${escapeHtml(line)}</div>`).join("");
+    }
+
+    function activeGradients() {
+      return state.showGradients && validateModel().ok ? computeGradients(latest) : null;
+    }
+
+    function layerDisplayData(gradients = null) {
+      const inputLabels = state.inputWords.flatMap((word) => [1, 2, 3].map((dim) => `${word}${dim}`));
+      const inputExtras = state.inputWords.flatMap((word) =>
+        [0, 1, 2].map((dim) => gradients ? gradients.gradEmbeddings[wordIndex(word)]?.[dim] ?? 0 : null)
+      );
+      const layers = [{
+        key: "input",
+        title: "输入层",
+        subtitle: "9",
+        formula: `x = [E(${state.inputWords.map((word) => escapeFormulaWord(word)).join("); E(")})]`,
+        labels: inputLabels,
+        values: latest.x,
+        extras: inputExtras,
+        extraPrefix: "∂E=",
+        type: "input"
+      }];
+      state.hiddenLayers.forEach((layer, index) => {
+        layers.push({
+          key: `hidden-${index}`,
+          title: index === 0 && state.hiddenLayers.length === 1 ? "隐藏层" : `隐藏层 ${index + 1}`,
+          subtitle: `${layer.size} · ${layer.activation}`,
+          formula: index === 0 ? `z=W${index + 1}·x; h=${layer.activation}(z)` : `z=W${index + 1}·h${index}; h=${layer.activation}(z)`,
+          labels: Array.from({ length: layer.size }, (_, i) => `h${index + 1}.${i + 1}`),
+          values: latest.activations[index + 1],
+          extras: gradients ? gradients.hiddenDeltas[index] : null,
+          extraPrefix: "δ=",
+          type: "hidden"
+        });
+      });
+      layers.push({
+        key: "score",
+        title: "输出得分",
+        subtitle: String(state.vocab.length),
+        formula: state.shareOutput ? "y_k = h · E_k" : "y = Wout · h",
+        labels: state.vocab.map((item, index) => `${index + 1} ${item.word}`),
+        values: latest.scores,
+        extras: gradients ? gradients.deltaScores : null,
+        extraPrefix: "∂y=",
+        type: "score"
+      });
+      layers.push({
+        key: "probability",
+        title: "Softmax概率",
+        subtitle: String(state.vocab.length),
+        formula: "p_k = exp(y_k) / Σ exp(y_j)",
+        labels: state.vocab.map((item, index) => `${index + 1} ${item.word}`),
+        values: latest.probabilities,
+        extras: null,
+        type: "probability"
+      });
+      return layers;
+    }
+
+    function renderNetwork() {
+      const gradients = activeGradients();
+      const layers = layerDisplayData(gradients);
+      const selectedOnly = Boolean(gradients && state.gradientsSelectedOnly);
+      els.networkCanvas.classList.toggle("has-visual-formulas", Boolean(gradients));
+      els.networkCanvas.classList.toggle("has-forward-formulas", Boolean(state.showForwardFormulas));
+      els.layers.style.gridTemplateColumns = `repeat(${layers.length}, minmax(130px, 1fr))`;
+      els.layers.innerHTML = layers.map((layer, layerIndex) => `
+        <div class="layer ${layer.type}-layer" data-layer-column="${layerIndex}">
+          <div class="layer-title">
+            <b>${layer.title}</b>
+            <span>${layer.subtitle}</span>
+            ${state.showForwardFormulas && layer.formula ? `<div class="layer-formula">${escapeHtml(layer.formula)}</div>` : ""}
+          </div>
+          <div class="node-stack">
+            ${layer.values.map((value, nodeIndex) => {
+              const selected = selectedNode && selectedNode.layerIndex === layerIndex && selectedNode.nodeIndex === nodeIndex;
+              const label = layer.labels[nodeIndex];
+              const leftLabel = layer.type === "input" || layer.type === "hidden" ? `<span class="node-label">${escapeHtml(label)}</span>` : "";
+              const rightLabel = layer.type === "score" || layer.type === "probability" ? `<span class="node-label">${escapeHtml(label)}</span>` : "";
+              const extra = layer.extras?.[nodeIndex];
+              const showNodeGradient = gradients
+                && Number.isFinite(extra)
+                && (!selectedOnly || (selectedNode && selectedNode.layerIndex === layerIndex && selectedNode.nodeIndex === nodeIndex));
+              return `
+                <div class="node-row">
+                  ${leftLabel}
+                  <button class="node ${layer.type}-node${selected ? " selected" : ""}" type="button" data-node-layer="${layerIndex}" data-node-index="${nodeIndex}" title="${escapeHtml(label)} = ${fmt(value)}">
+                    <span class="node-content">
+                      <span>${short(value)}</span>
+                      ${showNodeGradient ? `<span class="node-grad">${layer.extraPrefix}${short(extra)}</span>` : ""}
+                    </span>
+                  </button>
+                  ${rightLabel}
+                </div>
+              `;
+            }).join("")}
+          </div>
+        </div>
+      `).join("");
+      renderVisualFormulas(gradients);
+    }
+
+    function renderVisualFormulas(gradients) {
+      if (!gradients) {
+        els.visualFormulaOverlay.innerHTML = "";
+        return;
+      }
+      const selectionHint = state.gradientsSelectedOnly && !selectedNode
+        ? `<div class="visual-formula-card"><div class="visual-formula-name">选中模式</div><div class="visual-formula-code">点击一个圆圈</div><div class="visual-formula-desc">只显示这个神经元和相关权重的偏导。</div></div>`
+        : "";
+      els.visualFormulaOverlay.innerHTML = `
+        ${selectionHint}
+        <div class="visual-formula-card"><div class="visual-formula-name">损失对得分</div><div class="visual-formula-code">${plainLossFormula()}</div><div class="visual-formula-desc">${plainLossDerivative()}，表示每个输出词得分该往哪个方向改。</div></div>
+        <div class="visual-formula-card"><div class="visual-formula-name">隐藏层误差信号</div><div class="visual-formula-code">δ = ∂L/∂z = (∂L/∂a) · f'(z)</div><div class="visual-formula-desc">贴在隐藏层圆圈里，表示这个神经元对损失的责任。</div></div>
+        <div class="visual-formula-card"><div class="visual-formula-name">权重偏导</div><div class="visual-formula-code">∂L/∂W[j,i] = δ[j] · a_prev[i]</div><div class="visual-formula-desc">贴在可训练连线上，训练时用它更新权重。</div></div>
+        <div class="visual-formula-card"><div class="visual-formula-name">共享词向量</div><div class="visual-formula-code">y_k = h · E_k</div><div class="visual-formula-desc">E 同时是输入词向量和输出权重，偏导会合并两边贡献。</div></div>
+      `;
+    }
+
+    function connectionWeight(layerIndex, fromIndex, toIndex) {
+      if (layerIndex < state.weights.length) {
+        return state.weights[layerIndex][toIndex]?.[fromIndex] || 0;
+      }
+      if (layerIndex === state.weights.length + 1) {
+        return fromIndex === toIndex ? latest.probabilities[toIndex] || 0 : 0;
+      }
+      if (state.shareOutput) {
+        return state.vocab[toIndex]?.vector[fromIndex] || 0;
+      }
+      return state.outputWeights[toIndex]?.[fromIndex] || 0;
+    }
+
+    function connectionGradient(layerIndex, fromIndex, toIndex, gradients) {
+      if (!gradients) return null;
+      if (layerIndex < state.weights.length) {
+        return gradients.gradWeights[layerIndex]?.[toIndex]?.[fromIndex] ?? null;
+      }
+      if (layerIndex === state.weights.length) {
+        return state.shareOutput
+          ? gradients.gradOutputEmbeddings[toIndex]?.[fromIndex] ?? null
+          : gradients.gradOutputWeights?.[toIndex]?.[fromIndex] ?? null;
+      }
+      return null;
+    }
+
+    function drawConnections() {
+      const svg = els.connectionSvg;
+      const canvasRect = els.networkCanvas.getBoundingClientRect();
+      const width = Math.max(els.networkCanvas.scrollWidth, els.networkCanvas.clientWidth);
+      const height = Math.max(els.networkCanvas.scrollHeight, els.networkCanvas.clientHeight);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.innerHTML = "";
+      const gradients = activeGradients();
+      const layers = layerDisplayData(gradients);
+      const selectedGradientOnly = Boolean(gradients && state.gradientsSelectedOnly);
+
+      for (let layerIndex = 0; layerIndex < layers.length - 1; layerIndex += 1) {
+        const fromCount = layers[layerIndex].values.length;
+        const toCount = layers[layerIndex + 1].values.length;
+        const isSoftmaxLink = layers[layerIndex].type === "score" && layers[layerIndex + 1].type === "probability";
+        for (let toIndex = 0; toIndex < toCount; toIndex += 1) {
+          const to = nodeAnchor(layerIndex + 1, toIndex, canvasRect, "left");
+          if (!to) continue;
+          for (let fromIndex = 0; fromIndex < fromCount; fromIndex += 1) {
+            if (isSoftmaxLink && fromIndex !== toIndex) continue;
+            const from = nodeAnchor(layerIndex, fromIndex, canvasRect, "right");
+            if (!from) continue;
+            const weight = connectionWeight(layerIndex, fromIndex, toIndex);
+            const gradient = connectionGradient(layerIndex, fromIndex, toIndex, gradients);
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            const related = isRelatedConnection(layerIndex, fromIndex, toIndex);
+            line.setAttribute("x1", from.x);
+            line.setAttribute("y1", from.y);
+            line.setAttribute("x2", to.x);
+            line.setAttribute("y2", to.y);
+            line.setAttribute("stroke", isSoftmaxLink ? "rgba(47,128,237,0.6)" : weight >= 0 ? "rgba(16,168,104,0.72)" : "rgba(240,79,79,0.7)");
+            line.setAttribute("stroke-width", String(isSoftmaxLink ? (related ? 2.2 : 1.2) : (related ? 1.6 : 0.45) + Math.min(1, Math.abs(weight) * 2.6) * 2.4));
+            line.setAttribute("opacity", selectedNode ? (related ? "0.95" : "0.12") : "0.72");
+            if (isSoftmaxLink) line.setAttribute("stroke-dasharray", "5 5");
+            svg.appendChild(line);
+            const shouldShowGradientLabel = state.showGradients
+              && Number.isFinite(gradient)
+              && (!selectedGradientOnly || (selectedNode && related));
+            const shouldShowWeightLabel = state.showWeights && (!selectedNode || related);
+            const shouldShowLabel = shouldShowGradientLabel || shouldShowWeightLabel;
+            if (shouldShowLabel) {
+              const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+              label.textContent = shouldShowGradientLabel ? `∂=${short(gradient)}` : short(weight);
+              label.setAttribute("class", `weight-label${shouldShowGradientLabel ? " gradient-label" : ""}`);
+              label.setAttribute("x", String((from.x + to.x) / 2));
+              label.setAttribute("y", String((from.y + to.y) / 2 - 4));
+              label.setAttribute("fill", shouldShowGradientLabel ? "#a15c00" : weight >= 0 ? "#07854e" : "#d83d3d");
+              label.setAttribute("opacity", selectedNode ? "1" : "0.86");
+              svg.appendChild(label);
+            }
+          }
+        }
+      }
+    }
+
+    function nodeAnchor(layerIndex, nodeIndex, canvasRect, side) {
+      const node = els.layers.querySelector(`[data-node-layer="${layerIndex}"][data-node-index="${nodeIndex}"]`);
+      if (!node) return null;
+      const rect = node.getBoundingClientRect();
+      const x = side === "right" ? rect.right - canvasRect.left : rect.left - canvasRect.left;
+      const y = rect.top - canvasRect.top + rect.height / 2;
+      return { x, y };
+    }
+
+    function isRelatedConnection(modelLayerIndex, fromIndex, toIndex) {
+      if (!selectedNode) return false;
+      return (selectedNode.layerIndex === modelLayerIndex && selectedNode.nodeIndex === fromIndex)
+        || (selectedNode.layerIndex === modelLayerIndex + 1 && selectedNode.nodeIndex === toIndex);
+    }
+
+    function renderParameters() {
+      const sections = [];
+      sections.push(`
+        <div class="matrix-section">
+          <div class="small-title">词向量矩阵 E（${state.vocab.length}×3） <span class="hint">输出层权重共享</span></div>
+          ${embeddingTable(false)}
+        </div>
+      `);
+      state.weights.forEach((matrix, index) => {
+        const from = index === 0 ? "输入层" : `隐藏层 ${index}`;
+        const to = `隐藏层 ${index + 1}`;
+        sections.push(`
+          <div class="matrix-section">
+            <div class="small-title">${from} → ${to} 权重 W${index + 1}（${matrix.length}×${matrix[0]?.length || 0}）</div>
+            ${editableMatrixTable(matrix, index)}
+          </div>
+        `);
+      });
+      sections.push(`
+        <div class="matrix-section">
+          <div class="small-title">${state.shareOutput ? "隐藏层 → 输出层 权重 E^T（共享）" : "隐藏层 → 输出层 权重 Wout"}（${state.vocab.length}×${lastHiddenSize()}）</div>
+          ${outputMatrixTable()}
+        </div>
+      `);
+      els.parameterPanel.innerHTML = sections.join("");
+    }
+
+    function embeddingTable(compact) {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>词语</th><th>E[:,1]</th><th>E[:,2]</th><th>E[:,3]</th></tr>
+            </thead>
+            <tbody>
+              ${state.vocab.map((item, index) => `
+                <tr>
+                  <td>${escapeHtml(item.word)}</td>
+                  ${item.vector.map((value, dim) => compact
+                    ? `<td class="${numericClass(value)}">${short(value)}</td>`
+                    : `<td><input class="matrix-input" type="number" step="0.001" data-param="embedding" data-vocab-index="${index}" data-dim="${dim}" value="${roundForInput(value)}"></td>`
+                  ).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function editableMatrixTable(matrix, matrixIndex) {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>神经元</th>
+                ${matrix[0].map((_, inputIndex) => `<th>${matrixIndex === 0 ? inputLabel(inputIndex) : `h${matrixIndex}.${inputIndex + 1}`}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${matrix.map((row, rowIndex) => `
+                <tr>
+                  <th>h${matrixIndex + 1}.${rowIndex + 1}</th>
+                  ${row.map((value, colIndex) => `
+                    <td><input class="matrix-input" type="number" step="0.001" data-param="weight" data-matrix-index="${matrixIndex}" data-row="${rowIndex}" data-col="${colIndex}" value="${roundForInput(value)}"></td>
+                  `).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function inputLabel(index) {
+      const position = Math.floor(index / VECTOR_DIM);
+      const dim = index % VECTOR_DIM + 1;
+      return `${state.inputWords[position]}${dim}`;
+    }
+
+    function outputMatrixTable() {
+      const matrix = state.shareOutput
+        ? state.vocab.map((item) => item.vector.slice(0, lastHiddenSize()))
+        : state.outputWeights;
+      if (!matrix || !matrix.length || !matrix[0]?.length) {
+        return `<div class="status warn">当前输出矩阵无法显示：最后隐藏层维度为 0。</div>`;
+      }
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>输出词</th>
+                ${matrix[0].map((_, index) => `<th>h${state.hiddenLayers.length}.${index + 1}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${matrix.map((row, rowIndex) => `
+                <tr>
+                  <th>${escapeHtml(state.vocab[rowIndex].word)}</th>
+                  ${row.map((value, colIndex) => state.shareOutput
+                    ? `<td class="${numericClass(value)}">${short(value)}</td>`
+                    : `<td><input class="matrix-input" type="number" step="0.001" data-param="outputWeight" data-row="${rowIndex}" data-col="${colIndex}" value="${roundForInput(value)}"></td>`
+                  ).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderActivations() {
+      const rows = [
+        ["输入向量 x (9)", `[${latest.x.map((value) => short(value)).join(", ")}]`],
+        ...state.hiddenLayers.flatMap((layer, index) => [
+          [`隐藏层 ${index + 1} 预激活 z`, `[${latest.preActivations[index].map((value) => fmt(value)).join(", ")}]`],
+          [`隐藏层 ${index + 1} 激活 h`, `[${latest.activations[index + 1].map((value) => fmt(value)).join(", ")}]`]
+        ]),
+        ["输出层得分 y", `[${latest.scores.map((value) => fmt(value)).join(", ")}]`],
+        ["Softmax 概率 p", `[${latest.probabilities.map((value) => fmt(value)).join(", ")}]`],
+        ["目标向量 t", `[${latest.target.join(", ")}]`],
+        [`损失 (${state.lossType})`, fmt(latest.loss)]
+      ];
+      els.activationPanel.innerHTML = `
+        <div class="table-scroll">
+          <table class="kv-table">
+            <tbody>
+              ${rows.map(([name, value]) => `<tr><td>${escapeHtml(name)}</td><td>${escapeHtml(value)}</td></tr>`).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderGradientPanel() {
+      if (!state.showGradients) {
+        els.gradientPanel.innerHTML = `<div class="status">打开顶部“显示反向传播偏导”后，这里会显示当前损失 L 对每个可训练参数的偏导值。</div>`;
+        return;
+      }
+
+      const validation = validateModel();
+      if (!validation.ok) {
+        els.gradientPanel.innerHTML = `<div class="status error">${escapeHtml(validation.text)}</div>`;
+        return;
+      }
+
+      const gradients = computeGradients(latest);
+      const sections = [
+        `<div class="formula-box">
+          <div><code>p_k = exp(y_k) / Σ_j exp(y_j)</code>，这是输出得分经过 softmax 后的概率。</div>
+          <div>${lossFormulaText()}</div>
+          <div><code>z_j^l = Σ_i W^l[j,i] a_i^{l-1}</code>，<code>a_j^l = f_l(z_j^l)</code></div>
+          <div><code>δ_j^l = ∂L/∂z_j^l = (∂L/∂a_j^l) · f'_l(z_j^l)</code></div>
+          <div><code>∂L/∂W^l[j,i] = δ_j^l · a_i^{l-1}</code></div>
+          <div><code>y_k = h · E_k</code>（权重共享时），所以 <code>∂L/∂E[k,d]</code> 会把“输出权重贡献”和“输入词向量贡献”相加。</div>
+        </div>`,
+        `<div class="matrix-section">
+          <div class="small-title">输出误差信号 ∂L/∂y</div>
+          ${vectorTable(state.vocab.map((item) => item.word), gradients.deltaScores, "∂L/∂y")}
+        </div>`,
+        ...gradients.hiddenDeltas.map((delta, index) => `
+          <div class="matrix-section">
+            <div class="small-title">隐藏层 ${index + 1}：δ = ∂L/∂z</div>
+            ${vectorTable(delta.map((_, nodeIndex) => `h${index + 1}.${nodeIndex + 1}`), delta, "δ")}
+          </div>
+        `),
+        `<div class="matrix-section">
+          <div class="small-title">词向量矩阵 E 的总偏导 ∂L/∂E（${state.vocab.length}×3）</div>
+          ${gradientMatrixTable(
+            gradients.gradEmbeddings,
+            state.vocab.map((item) => item.word),
+            ["E[:,1]", "E[:,2]", "E[:,3]"]
+          )}
+        </div>`,
+        ...gradients.gradWeights.map((matrix, index) => `
+          <div class="matrix-section">
+            <div class="small-title">权重 W${index + 1} 的偏导 ∂L/∂W${index + 1}（${matrix.length}×${matrix[0]?.length || 0}）</div>
+            ${gradientMatrixTable(
+              matrix,
+              matrix.map((_, rowIndex) => `h${index + 1}.${rowIndex + 1}`),
+              matrix[0].map((_, colIndex) => index === 0 ? inputLabel(colIndex) : `h${index}.${colIndex + 1}`)
+            )}
+          </div>
+        `)
+      ];
+
+      if (!state.shareOutput && gradients.gradOutputWeights) {
+        sections.push(`
+          <div class="matrix-section">
+            <div class="small-title">独立输出权重的偏导 ∂L/∂Wout</div>
+            ${gradientMatrixTable(
+              gradients.gradOutputWeights,
+              state.vocab.map((item) => item.word),
+              gradients.gradOutputWeights[0].map((_, index) => `h${state.hiddenLayers.length}.${index + 1}`)
+            )}
+          </div>
+        `);
+      }
+
+      els.gradientPanel.innerHTML = sections.join("");
+    }
+
+    function lossFormulaText() {
+      if (state.lossType === "CrossEntropy") {
+        return `<code>L = -Σ_k t_k log(p_k)</code>，因此 <code>∂L/∂y_k = p_k - t_k</code>。`;
+      }
+      if (state.lossType === "MAE") {
+        return `<code>L = (1/K)Σ_k |y_k - t_k|</code>，因此 <code>∂L/∂y_k = sign(y_k - t_k)/K</code>。`;
+      }
+      return `<code>L = (1/K)Σ_k (y_k - t_k)^2</code>，因此 <code>∂L/∂y_k = 2(y_k - t_k)/K</code>。`;
+    }
+
+    function plainLossFormula() {
+      if (state.lossType === "CrossEntropy") return "L = -Σ t_k log(p_k)";
+      if (state.lossType === "MAE") return "L = (1/K)Σ |y_k - t_k|";
+      return "L = (1/K)Σ (y_k - t_k)^2";
+    }
+
+    function plainLossDerivative() {
+      if (state.lossType === "CrossEntropy") return "∂L/∂y_k = p_k - t_k";
+      if (state.lossType === "MAE") return "∂L/∂y_k = sign(y_k - t_k)/K";
+      return "∂L/∂y_k = 2(y_k - t_k)/K";
+    }
+
+    function escapeFormulaWord(word) {
+      return String(word).replaceAll(")", "\\)");
+    }
+
+    function vectorTable(labels, values, valueHeader) {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>节点</th><th>${escapeHtml(valueHeader)}</th></tr></thead>
+            <tbody>
+              ${values.map((value, index) => `
+                <tr>
+                  <th>${escapeHtml(labels[index])}</th>
+                  <td class="${numericClass(value)}">${fmt(value)}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function gradientMatrixTable(matrix, rowHeaders, colHeaders) {
+      return `
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>参数</th>
+                ${colHeaders.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}
+              </tr>
+            </thead>
+            <tbody>
+              ${matrix.map((row, rowIndex) => `
+                <tr>
+                  <th>${escapeHtml(rowHeaders[rowIndex])}</th>
+                  ${row.map((value) => `<td class="${numericClass(value)}">${fmt(value)}</td>`).join("")}
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderSelected() {
+      if (!selectedNode) {
+        els.selectedPanel.innerHTML = `<div class="status">点击任意神经元圆圈后，这里会显示它的数值和相关连接权重。</div>`;
+        return;
+      }
+      const layers = layerDisplayData();
+      const layer = layers[selectedNode.layerIndex];
+      if (!layer || selectedNode.nodeIndex >= layer.values.length) {
+        selectedNode = null;
+        renderSelected();
+        return;
+      }
+      const incoming = selectedNode.layerIndex > 0
+        ? Array.from({ length: layers[selectedNode.layerIndex - 1].values.length }, (_, index) => connectionWeight(selectedNode.layerIndex - 1, index, selectedNode.nodeIndex))
+        : [];
+      const outgoing = selectedNode.layerIndex < layers.length - 1
+        ? Array.from({ length: layers[selectedNode.layerIndex + 1].values.length }, (_, index) => connectionWeight(selectedNode.layerIndex, selectedNode.nodeIndex, index))
+        : [];
+      const probabilityText = layer.type === "probability" ? "，这是经过 softmax 后的输出概率" : "";
+      els.selectedPanel.innerHTML = `
+        <div class="status ok">${escapeHtml(layer.title)}：${escapeHtml(layer.labels[selectedNode.nodeIndex])} 得分/值 = ${fmt(layer.values[selectedNode.nodeIndex])}${probabilityText}</div>
+        <div class="small-title">输入权重</div>
+        <div class="hint">${incoming.length ? incoming.map((value) => short(value)).join(", ") : "输入层没有输入权重。"}</div>
+        <div class="small-title">输出权重</div>
+        <div class="hint">${outgoing.length ? outgoing.map((value) => short(value)).join(", ") : "输出层没有输出权重。"}</div>
+      `;
+    }
+
+    function addLog(message) {
+      state.log.unshift(message);
+      state.log = state.log.slice(0, 8);
+    }
+
+    function setHiddenCount(count) {
+      const current = state.hiddenLayers.length;
+      if (count > current) {
+        for (let i = current; i < count; i += 1) {
+          state.hiddenLayers.push({ size: VECTOR_DIM, activation: state.hiddenLayers[current - 1]?.activation || "tanh" });
+        }
+      } else {
+        state.hiddenLayers = state.hiddenLayers.slice(0, count);
+      }
+      syncWeightShapes();
+    }
+
+    function wireEvents() {
+      els.globalActivationSelect.addEventListener("change", () => {
+        state.hiddenLayers.forEach((layer) => { layer.activation = els.globalActivationSelect.value; });
+        render();
+      });
+      els.lossSelect.addEventListener("change", () => {
+        state.lossType = els.lossSelect.value;
+        render();
+      });
+      els.showWeightsInput.addEventListener("change", () => {
+        state.showWeights = els.showWeightsInput.checked;
+        render();
+      });
+      els.showForwardFormulasInput.addEventListener("change", () => {
+        state.showForwardFormulas = els.showForwardFormulasInput.checked;
+        render();
+      });
+      els.showGradientsInput.addEventListener("change", () => {
+        state.showGradients = els.showGradientsInput.checked;
+        render();
+      });
+      els.gradientSelectedOnlyInput.addEventListener("change", () => {
+        state.gradientsSelectedOnly = els.gradientSelectedOnlyInput.checked;
+        render();
+      });
+      els.resetButton.addEventListener("click", () => {
+        state = createDefaultState();
+        selectedNode = null;
+        render();
+      });
+      els.exportButton.addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "language-nn-simulator.json";
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+      els.importButton.addEventListener("click", () => els.importInput.click());
+      els.importInput.addEventListener("change", async () => {
+        const file = els.importInput.files?.[0];
+        if (!file) return;
+        try {
+          const imported = JSON.parse(await file.text());
+          state = sanitizeImportedState(imported);
+          selectedNode = null;
+          addLog("已加载保存的模拟器参数。");
+          render();
+        } catch (error) {
+          alert(`加载失败：${error.message}`);
+        } finally {
+          els.importInput.value = "";
+        }
+      });
+      els.addWordButton.addEventListener("click", () => {
+        let base = "新词";
+        let suffix = state.vocab.length + 1;
+        while (state.vocab.some((item) => item.word === `${base}${suffix}`)) suffix += 1;
+        const word = `${base}${suffix}`;
+        state.vocab.push({ word, vector: [0, 0, 0] });
+        state.targetWord = state.targetWord || word;
+        syncWeightShapes();
+        render();
+      });
+      els.vocabBody.addEventListener("input", (event) => {
+        const target = event.target;
+        const index = Number(target.dataset.vocabIndex);
+        if (!Number.isInteger(index) || !state.vocab[index]) return;
+        if (target.dataset.field === "word") {
+          const previous = state.vocab[index].word;
+          const next = target.value.trim() || previous;
+          state.vocab[index].word = next;
+          state.inputWords = state.inputWords.map((word) => word === previous ? next : word);
+          if (state.targetWord === previous) state.targetWord = next;
+        } else if (target.dataset.dim !== undefined) {
+          state.vocab[index].vector[Number(target.dataset.dim)] = clampNumber(target.value, -100, 100, 0);
+        }
+        render();
+      });
+      els.vocabBody.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-delete-word]");
+        if (!button) return;
+        const index = Number(button.dataset.deleteWord);
+        const removed = state.vocab[index]?.word;
+        state.vocab.splice(index, 1);
+        state.inputWords = state.inputWords.map((word) => word === removed ? state.vocab[0].word : word);
+        if (state.targetWord === removed) state.targetWord = state.vocab[0].word;
+        syncWeightShapes();
+        render();
+      });
+      els.inputSelectors.addEventListener("change", (event) => {
+        const select = event.target.closest("[data-input-position]");
+        if (!select) return;
+        state.inputWords[Number(select.dataset.inputPosition)] = select.value;
+        render();
+      });
+      els.targetSelect.addEventListener("change", () => {
+        state.targetWord = els.targetSelect.value;
+        render();
+      });
+      els.hiddenCountInput.addEventListener("change", () => {
+        setHiddenCount(clampInt(els.hiddenCountInput.value, 1, 5, 1));
+        render();
+      });
+      els.shareOutputInput.addEventListener("change", () => {
+        state.shareOutput = els.shareOutputInput.checked;
+        syncWeightShapes();
+        render();
+      });
+      els.layerConfigs.addEventListener("input", (event) => {
+        const target = event.target;
+        const index = Number(target.dataset.layerIndex);
+        if (!Number.isInteger(index) || !state.hiddenLayers[index]) return;
+        if (target.dataset.layerField === "size") {
+          state.hiddenLayers[index].size = clampInt(target.value, 1, 20, VECTOR_DIM);
+        } else if (target.dataset.layerField === "activation") {
+          state.hiddenLayers[index].activation = target.value;
+        }
+        syncWeightShapes();
+        render();
+      });
+      els.learningRateInput.addEventListener("input", () => {
+        state.learningRate = clampNumber(els.learningRateInput.value, 0.0001, 2, 0.05);
+      });
+      els.stepsInput.addEventListener("input", () => {
+        state.steps = clampInt(els.stepsInput.value, 1, 50000, 1000);
+      });
+      els.trainOneButton.addEventListener("click", () => {
+        const before = latest.loss;
+        if (trainOne()) {
+          latest = forward();
+          addLog(`单步训练：${fmt(before)} → ${fmt(latest.loss)}`);
+          render();
+        }
+      });
+      els.trainManyButton.addEventListener("click", () => {
+        const before = latest.loss;
+        const steps = clampInt(els.stepsInput.value, 1, 50000, state.steps);
+        for (let i = 0; i < steps; i += 1) {
+          if (!trainOne()) break;
+        }
+        latest = forward();
+        addLog(`批量训练 ${steps} 步：${fmt(before)} → ${fmt(latest.loss)}`);
+        render();
+      });
+      els.parameterPanel.addEventListener("input", (event) => {
+        const target = event.target;
+        if (!target.matches("[data-param]")) return;
+        const value = clampNumber(target.value, -100, 100, 0);
+        if (target.dataset.param === "embedding") {
+          state.vocab[Number(target.dataset.vocabIndex)].vector[Number(target.dataset.dim)] = value;
+        } else if (target.dataset.param === "weight") {
+          state.weights[Number(target.dataset.matrixIndex)][Number(target.dataset.row)][Number(target.dataset.col)] = value;
+        } else if (target.dataset.param === "outputWeight" && state.outputWeights) {
+          state.outputWeights[Number(target.dataset.row)][Number(target.dataset.col)] = value;
+        }
+        render();
+      });
+      els.layers.addEventListener("click", (event) => {
+        const node = event.target.closest("[data-node-layer]");
+        if (!node) return;
+        selectedNode = {
+          layerIndex: Number(node.dataset.nodeLayer),
+          nodeIndex: Number(node.dataset.nodeIndex)
+        };
+        render();
+      });
+      window.addEventListener("resize", () => requestAnimationFrame(drawConnections));
+    }
+
+    function sanitizeImportedState(imported) {
+      const base = createDefaultState();
+      const next = { ...base, ...imported };
+      next.vocab = Array.isArray(imported.vocab) && imported.vocab.length
+        ? imported.vocab.map((item, index) => ({
+          word: String(item.word || `词${index + 1}`).slice(0, 12),
+          vector: Array.from({ length: VECTOR_DIM }, (_, dim) => clampNumber(item.vector?.[dim], -100, 100, 0))
+        }))
+        : base.vocab;
+      next.inputWords = Array.from({ length: WINDOW_SIZE }, (_, index) => {
+        const word = imported.inputWords?.[index];
+        return next.vocab.some((item) => item.word === word) ? word : next.vocab[Math.min(index, next.vocab.length - 1)].word;
+      });
+      next.targetWord = next.vocab.some((item) => item.word === imported.targetWord) ? imported.targetWord : next.vocab[0].word;
+      next.hiddenLayers = Array.isArray(imported.hiddenLayers) && imported.hiddenLayers.length
+        ? imported.hiddenLayers.slice(0, 5).map((layer) => ({
+          size: clampInt(layer.size, 1, 20, VECTOR_DIM),
+          activation: ACTIVATIONS.includes(layer.activation) ? layer.activation : "tanh"
+        }))
+        : base.hiddenLayers;
+      next.weights = Array.isArray(imported.weights) ? imported.weights : base.weights;
+      next.outputWeights = Array.isArray(imported.outputWeights) ? imported.outputWeights : null;
+      next.shareOutput = imported.shareOutput !== false;
+      next.showWeights = Boolean(imported.showWeights);
+      next.showForwardFormulas = Boolean(imported.showForwardFormulas);
+      next.showGradients = Boolean(imported.showGradients);
+      next.gradientsSelectedOnly = Boolean(imported.gradientsSelectedOnly);
+      next.lossType = LOSSES.some((loss) => loss.id === imported.lossType) ? imported.lossType : "MSE";
+      next.learningRate = clampNumber(imported.learningRate, 0.0001, 2, 0.05);
+      next.steps = clampInt(imported.steps, 1, 50000, 1000);
+      next.trainedSteps = clampInt(imported.trainedSteps, 0, 100000000, 0);
+      next.log = Array.isArray(imported.log) ? imported.log.map(String).slice(0, 8) : [];
+      state = next;
+      syncWeightShapes();
+      return state;
+    }
+
+    wireEvents();
+    render();
+  </script>
+</body>
+</html>

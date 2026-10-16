@@ -1,0 +1,16 @@
+# Local training checkpoints and Python caches
+__pycache__/
+*.py[cod]
+llm/.*-checkpoint.npz
+
+# Generated website and local backups
+_site/
+backup/
+*.log
+.DS_Store
+Thumbs.db
+
+# Local credentials and environment overrides
+.env
+.env.*
+!.env.example

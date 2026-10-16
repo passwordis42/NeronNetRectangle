@@ -1,0 +1,45 @@
+name: Verify and publish teaching page
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Bundle verified models
+        run: python llm/scripts/bundle_composition.py
+      - name: Verify page calculations and legacy models
+        run: |
+          node llm/tests/partial-features.test.cjs
+          node llm/tests/composition.test.cjs
+          node llm/tests/all-features.test.cjs
+      - name: Build standalone website
+        run: python llm/scripts/build_site.py
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

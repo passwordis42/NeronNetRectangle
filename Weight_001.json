@@ -1,0 +1,65 @@
+{
+  "version": 1,
+  "exportedAt": "2026-04-22T02:15:50.106Z",
+  "preset": {
+    "name": "神经网络预设-2026-04-22T02-15-50",
+    "hiddenLayers": [],
+    "outputs": [
+      {
+        "name": "正方形",
+        "threshold": 1,
+        "target": 1
+      }
+    ],
+    "outputActivation": "linear",
+    "weightSettings": {
+      "min": -1,
+      "max": 1,
+      "precision": 3
+    },
+    "initialBias": 0,
+    "biasFrozen": true,
+    "model": {
+      "topology": [
+        25,
+        1
+      ],
+      "layers": [
+        {
+          "weights": [
+            [
+              0.47,
+              -0.998,
+              -0.597,
+              0.72,
+              0.51,
+              -0.435,
+              0.834,
+              -0.287,
+              -0.626,
+              0.733,
+              -0.64,
+              0.581,
+              -0.906,
+              0.126,
+              0.82,
+              -0.65,
+              0.759,
+              0.39,
+              -0.763,
+              0.735,
+              -0.923,
+              -0.558,
+              0.476,
+              0.624,
+              0.188
+            ]
+          ],
+          "biases": [
+            0
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,2319 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Transformer 可视化模拟器</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f8fb;
+      --paper: #ffffff;
+      --panel: #fbfdff;
+      --ink: #101827;
+      --muted: #5d6b7a;
+      --line: #dce4ec;
+      --line-strong: #b8c5d2;
+      --teal: #0f9f94;
+      --teal-soft: #e8f8f6;
+      --blue: #286ed6;
+      --blue-soft: #edf5ff;
+      --amber: #d98600;
+      --amber-soft: #fff7e5;
+      --coral: #d95057;
+      --coral-soft: #fff1f2;
+      --purple: #7b52b9;
+      --purple-soft: #f4effc;
+      --shadow: 0 14px 34px rgba(20, 35, 54, 0.08);
+      --radius: 8px;
+      --mono: "Cascadia Mono", "Consolas", "SFMono-Regular", monospace;
+      --sans: "Microsoft YaHei UI", "PingFang SC", "Segoe UI", Arial, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+      letter-spacing: 0;
+    }
+
+    button {
+      min-height: 32px;
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      background: var(--paper);
+      color: var(--ink);
+      padding: 6px 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, opacity 120ms ease;
+      white-space: nowrap;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: #8494a6;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.46;
+      transform: none;
+    }
+
+    button.primary {
+      border-color: var(--teal);
+      background: linear-gradient(180deg, #10aaa1, #087f78);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    button.blue {
+      border-color: var(--blue);
+      background: linear-gradient(180deg, #2f7fe9, #1d62bd);
+      color: #fff;
+      font-weight: 800;
+    }
+
+    button.danger {
+      border-color: #f5c6ca;
+      background: #fff7f7;
+      color: #b8313a;
+    }
+
+    button.ghost {
+      background: transparent;
+      border-color: rgba(255, 255, 255, 0.22);
+      color: #eff6ff;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      min-height: 31px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 5px 8px;
+      outline: none;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 62px;
+      line-height: 1.45;
+    }
+
+    input:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 3px rgba(15, 159, 148, 0.13);
+    }
+
+    input[type="number"] {
+      font-family: var(--mono);
+      text-align: center;
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+
+    label {
+      display: grid;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      background: var(--paper);
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      text-align: center;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+
+    th {
+      background: #f5f8fa;
+      color: #425060;
+      font-weight: 800;
+    }
+
+    code {
+      font-family: var(--mono);
+      color: #0d5266;
+      font-size: 12px;
+    }
+
+    .icon {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      flex: 0 0 auto;
+    }
+
+    .topbar {
+      height: 58px;
+      display: grid;
+      grid-template-columns: minmax(230px, 1fr) auto minmax(320px, 1fr);
+      align-items: center;
+      gap: 18px;
+      padding: 0 18px;
+      background: #ffffff;
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      box-shadow: 0 1px 0 rgba(20, 35, 54, 0.03);
+    }
+
+    .brand {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .menu-mark {
+      width: 26px;
+      display: grid;
+      gap: 5px;
+    }
+
+    .menu-mark span {
+      height: 2px;
+      background: #183047;
+      border-radius: 2px;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+      font-weight: 900;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .top-title {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .segmented {
+      display: inline-flex;
+      align-items: center;
+      gap: 0;
+      border: 1px solid var(--line-strong);
+      border-radius: 8px;
+      background: #f6f9fb;
+      padding: 3px;
+    }
+
+    .segmented button {
+      min-width: 112px;
+      border: 0;
+      background: transparent;
+      color: #3f4e5f;
+      font-weight: 800;
+      box-shadow: none;
+    }
+
+    .segmented button:hover {
+      transform: none;
+      background: #eef4f8;
+    }
+
+    .segmented button.active {
+      color: #fff;
+      background: var(--teal);
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 322px minmax(760px, 1fr) 336px;
+      min-height: calc(100vh - 58px);
+    }
+
+    .sidebar,
+    .inspector {
+      max-height: calc(100vh - 58px);
+      overflow: auto;
+      padding: 10px 8px 98px;
+      background: #f8fafc;
+    }
+
+    .sidebar { border-right: 1px solid var(--line); }
+    .inspector { border-left: 1px solid var(--line); }
+
+    .workspace {
+      min-width: 0;
+      max-height: calc(100vh - 58px);
+      overflow: auto;
+      display: grid;
+      grid-template-rows: auto auto minmax(420px, 1fr);
+      background:
+        linear-gradient(90deg, rgba(18, 34, 52, 0.03) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(18, 34, 52, 0.03) 1px, transparent 1px),
+        #fff;
+      background-size: 28px 28px;
+      padding-bottom: 88px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      overflow: hidden;
+      margin-bottom: 8px;
+      box-shadow: 0 1px 0 rgba(20, 35, 54, 0.02);
+    }
+
+    .panel-head {
+      min-height: 39px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, #fff, #f8fafc);
+    }
+
+    .panel-head h2,
+    .panel-head h3 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.15;
+    }
+
+    .panel-head h3 { font-size: 14px; }
+
+    .panel-body {
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .status {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 8px;
+      color: var(--muted);
+      background: #f9fbfc;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status.ok {
+      border-color: #bce6df;
+      background: var(--teal-soft);
+      color: #09645e;
+    }
+
+    .status.warn {
+      border-color: #f4dcaa;
+      background: var(--amber-soft);
+      color: #7f5000;
+    }
+
+    .token-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .token-chip {
+      min-width: 36px;
+      min-height: 31px;
+      border: 1px solid var(--line-strong);
+      border-radius: 6px;
+      background: var(--paper);
+      color: var(--ink);
+      padding: 5px 9px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+    }
+
+    .token-chip:hover {
+      transform: translateY(-1px);
+      border-color: var(--teal);
+    }
+
+    .token-chip.selected {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #fff;
+      box-shadow: 0 6px 14px rgba(15, 159, 148, 0.19);
+    }
+
+    .table-scroll {
+      max-width: 100%;
+      overflow: auto;
+      border-radius: 6px;
+    }
+
+    .table-scroll table {
+      min-width: max-content;
+    }
+
+    .small-input {
+      width: 58px;
+      min-width: 58px;
+      min-height: 27px;
+      padding: 3px 5px;
+      font-size: 12px;
+    }
+
+    .matrix-tools {
+      display: grid;
+      gap: 8px;
+    }
+
+    .matrix-tabs {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .matrix-tabs button {
+      min-width: 0;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .matrix-tabs button.active[data-matrix-tab="q"] {
+      background: var(--teal);
+      border-color: var(--teal);
+      color: #fff;
+    }
+
+    .matrix-tabs button.active[data-matrix-tab="k"] {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #fff;
+    }
+
+    .matrix-tabs button.active[data-matrix-tab="v"] {
+      background: var(--amber);
+      border-color: var(--amber);
+      color: #fff;
+    }
+
+    .workspace-head {
+      min-width: 760px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 13px 18px 10px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(12px);
+    }
+
+    .workspace-title {
+      min-width: 0;
+    }
+
+    .workspace-title h2 {
+      margin: 0 0 5px;
+      font-size: 17px;
+      line-height: 1.15;
+    }
+
+    .metrics {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .metric {
+      min-width: 88px;
+      display: grid;
+      gap: 2px;
+      padding: 6px 8px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      text-align: right;
+    }
+
+    .metric b {
+      font-family: var(--mono);
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 11px;
+    }
+
+    .step-rail {
+      min-width: 760px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(130px, 1fr));
+      gap: 10px;
+      padding: 14px 18px 6px;
+    }
+
+    .stage {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      color: #435160;
+      font-size: 12px;
+      font-weight: 800;
+      border: 1px solid transparent;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.72);
+      position: relative;
+    }
+
+    .stage::after {
+      content: "";
+      position: absolute;
+      left: calc(100% + 4px);
+      top: 50%;
+      width: 14px;
+      height: 2px;
+      background: #93a1b0;
+    }
+
+    .stage:last-child::after { display: none; }
+
+    .stage.active {
+      color: #063e3b;
+      border-color: #b9e5df;
+      background: var(--teal-soft);
+    }
+
+    .stage-num {
+      width: 23px;
+      height: 23px;
+      display: inline-grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: #fff;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .stage.active .stage-num {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: #fff;
+    }
+
+    .canvas {
+      min-width: 760px;
+      padding: 10px 18px 20px;
+    }
+
+    .teaching-view,
+    .animation-view {
+      display: grid;
+      gap: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .section-title h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .token-lane {
+      display: grid;
+      grid-template-columns: repeat(var(--token-count), minmax(56px, 1fr));
+      gap: 7px;
+      min-width: 720px;
+    }
+
+    .lane-token {
+      min-height: 50px;
+      display: grid;
+      gap: 3px;
+      align-content: center;
+      justify-items: center;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.94);
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease, box-shadow 120ms ease;
+    }
+
+    .lane-token:hover {
+      transform: translateY(-1px);
+      border-color: var(--teal);
+    }
+
+    .lane-token.selected {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(15, 159, 148, 0.18);
+    }
+
+    .lane-index {
+      font-family: var(--mono);
+      color: inherit;
+      opacity: 0.72;
+      font-size: 11px;
+    }
+
+    .pipeline-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 0.82fr) minmax(280px, 1fr) minmax(420px, 1.45fr) minmax(210px, 0.78fr);
+      gap: 10px;
+      align-items: start;
+    }
+
+    .stage-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 1px 0 rgba(20, 35, 54, 0.02);
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .stage-card.emphasized {
+      border-color: rgba(15, 159, 148, 0.46);
+      box-shadow: 0 0 0 3px rgba(15, 159, 148, 0.08);
+    }
+
+    .stage-card-head {
+      min-height: 42px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 10px;
+      border-bottom: 1px solid var(--line);
+      background: #f8fafc;
+    }
+
+    .stage-card-head h3 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .stage-card-body {
+      padding: 10px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .vector-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .vector-row {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      color: #314151;
+    }
+
+    .vector-row.selected .vector-label {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+
+    .vector-label {
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      font-weight: 800;
+    }
+
+    .vector-values {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(54px, 1fr));
+      gap: 5px;
+      font-family: var(--mono);
+      font-size: 12px;
+    }
+
+    .value-cell {
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      background: #fff;
+    }
+
+    .value-cell.q { color: #087a72; background: var(--teal-soft); border-color: #c3eae4; }
+    .value-cell.k { color: #1f5ba8; background: var(--blue-soft); border-color: #c6daf8; }
+    .value-cell.v { color: #986000; background: var(--amber-soft); border-color: #f3d7a2; }
+    .value-cell.out { color: #5c358d; background: var(--purple-soft); border-color: #d8c8ee; }
+
+    .qkv-row {
+      display: grid;
+      grid-template-columns: 40px repeat(3, minmax(78px, 1fr));
+      align-items: center;
+      gap: 6px;
+      min-height: 37px;
+    }
+
+    .qkv-row.selected .qkv-token {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+
+    .qkv-token {
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      font-weight: 800;
+      background: #fff;
+    }
+
+    .qkv-vector {
+      min-height: 31px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      padding: 0 5px;
+    }
+
+    .qkv-vector.q { color: #087a72; border-color: #bde7e2; background: var(--teal-soft); }
+    .qkv-vector.k { color: #1f5ba8; border-color: #c6daf8; background: var(--blue-soft); }
+    .qkv-vector.v { color: #986000; border-color: #f3d7a2; background: var(--amber-soft); }
+
+    .attention-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .matrix-heatmap {
+      display: grid;
+      grid-template-columns: 38px repeat(var(--token-count), minmax(34px, 1fr));
+      gap: 2px;
+      font-family: var(--mono);
+      font-size: 10px;
+      min-width: 520px;
+    }
+
+    .matrix-cell,
+    .matrix-head,
+    .matrix-row-head {
+      min-height: 27px;
+      border: 1px solid rgba(210, 220, 230, 0.8);
+      border-radius: 4px;
+      display: grid;
+      place-items: center;
+      padding: 2px;
+    }
+
+    .matrix-head,
+    .matrix-row-head {
+      background: #f6f9fb;
+      color: #435160;
+      font-weight: 800;
+    }
+
+    .matrix-row-head.selected,
+    .matrix-cell.selected-row {
+      border-color: rgba(15, 159, 148, 0.55);
+      box-shadow: inset 0 0 0 1px rgba(15, 159, 148, 0.18);
+    }
+
+    .matrix-cell.selected-cell {
+      outline: 2px solid var(--coral);
+      outline-offset: -2px;
+      font-weight: 900;
+    }
+
+    .matrix-cell {
+      cursor: pointer;
+      transition: transform 120ms ease, border-color 120ms ease;
+    }
+
+    .matrix-cell:hover {
+      transform: scale(1.05);
+      border-color: var(--coral);
+      z-index: 3;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 9px 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .legend-items {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .legend-swatch {
+      width: 13px;
+      height: 13px;
+      border-radius: 3px;
+      display: inline-block;
+    }
+
+    .legend-swatch.q { background: var(--teal); }
+    .legend-swatch.k { background: var(--blue); }
+    .legend-swatch.v { background: var(--amber); }
+    .legend-swatch.score { background: linear-gradient(90deg, #7196d9, #fff, #de4f5d); width: 64px; }
+    .legend-swatch.softmax { background: linear-gradient(90deg, #f4f7fa, #f8c4c8, #d95057); width: 64px; }
+
+    .animation-view[hidden],
+    .teaching-view[hidden] {
+      display: none;
+    }
+
+    .animation-canvas {
+      min-height: 560px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(90deg, rgba(18, 34, 52, 0.03) 1px, transparent 1px),
+        linear-gradient(0deg, rgba(18, 34, 52, 0.03) 1px, transparent 1px),
+        #fff;
+      position: relative;
+      overflow: hidden;
+      padding: 18px;
+    }
+
+    .animation-layer {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 130px 1fr;
+      align-items: center;
+      gap: 14px;
+      min-height: 74px;
+      border-bottom: 1px dashed rgba(184, 197, 210, 0.68);
+    }
+
+    .animation-layer:last-of-type {
+      border-bottom: 0;
+    }
+
+    .animation-layer-title {
+      display: grid;
+      gap: 4px;
+    }
+
+    .animation-layer-title b {
+      font-size: 15px;
+    }
+
+    .animation-layer-title span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .animation-nodes {
+      display: grid;
+      grid-template-columns: repeat(var(--token-count), minmax(48px, 1fr));
+      gap: 7px;
+      align-items: center;
+    }
+
+    .flow-node {
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.92);
+      font-weight: 800;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .flow-node::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: var(--heat, 0);
+      background: var(--heat-color, rgba(217, 80, 87, 0.4));
+    }
+
+    .flow-node span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .flow-node.selected {
+      border-color: var(--teal);
+      background: var(--teal);
+      color: #fff;
+      box-shadow: 0 8px 18px rgba(15, 159, 148, 0.2);
+    }
+
+    .flow-node.q { color: #087a72; border-color: #bfe8e3; background: var(--teal-soft); }
+    .flow-node.k { color: #1f5ba8; border-color: #c7dcf8; background: var(--blue-soft); }
+    .flow-node.v { color: #986000; border-color: #f3d7a2; background: var(--amber-soft); }
+    .flow-node.output { color: #57348b; border-color: #d7c8eb; background: var(--purple-soft); }
+
+    .flow-line {
+      position: absolute;
+      left: 150px;
+      right: 22px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(15, 159, 148, 0.72), transparent);
+      opacity: 0.38;
+      z-index: 1;
+    }
+
+    .flow-line.one { top: 102px; }
+    .flow-line.two { top: 178px; background: linear-gradient(90deg, transparent, rgba(40, 110, 214, 0.72), transparent); }
+    .flow-line.three { top: 254px; background: linear-gradient(90deg, transparent, rgba(217, 134, 0, 0.72), transparent); }
+    .flow-line.four { top: 330px; background: linear-gradient(90deg, transparent, rgba(217, 80, 87, 0.72), transparent); }
+    .flow-line.five { top: 406px; background: linear-gradient(90deg, transparent, rgba(123, 82, 185, 0.72), transparent); }
+
+    .packet {
+      position: absolute;
+      top: -4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--teal);
+      box-shadow: 0 0 0 4px rgba(15, 159, 148, 0.12);
+      animation: packetMove 2200ms linear infinite;
+    }
+
+    .flow-line.two .packet { background: var(--blue); box-shadow: 0 0 0 4px rgba(40, 110, 214, 0.12); animation-delay: 180ms; }
+    .flow-line.three .packet { background: var(--amber); box-shadow: 0 0 0 4px rgba(217, 134, 0, 0.14); animation-delay: 360ms; }
+    .flow-line.four .packet { background: var(--coral); box-shadow: 0 0 0 4px rgba(217, 80, 87, 0.13); animation-delay: 540ms; }
+    .flow-line.five .packet { background: var(--purple); box-shadow: 0 0 0 4px rgba(123, 82, 185, 0.12); animation-delay: 720ms; }
+
+    @keyframes packetMove {
+      from { left: 0; opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 1; }
+      to { left: calc(100% - 10px); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+
+    .attention-strip {
+      display: grid;
+      grid-template-columns: repeat(var(--token-count), minmax(34px, 1fr));
+      gap: 4px;
+    }
+
+    .strip-cell {
+      min-height: 32px;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      display: grid;
+      place-items: center;
+      font-family: var(--mono);
+      font-size: 11px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .strip-cell::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: rgba(217, 80, 87, var(--weight, 0));
+    }
+
+    .strip-cell span {
+      position: relative;
+      z-index: 1;
+    }
+
+    .inspector-token {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .selected-word {
+      font-size: 28px;
+      color: var(--teal);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .index-pill {
+      min-width: 42px;
+      min-height: 30px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+      font-family: var(--mono);
+      font-weight: 800;
+    }
+
+    .formula-box {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fbfdff;
+      padding: 10px;
+      color: #303d4d;
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .vector-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .inspector-vector {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px;
+      background: #fff;
+      display: grid;
+      gap: 6px;
+    }
+
+    .inspector-vector b {
+      font-size: 13px;
+    }
+
+    .mono-line {
+      font-family: var(--mono);
+      color: #17202a;
+      background: #f5f8fa;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 6px 7px;
+      overflow-wrap: anywhere;
+    }
+
+    .attention-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    .attention-item {
+      display: grid;
+      grid-template-columns: 42px 1fr 54px;
+      gap: 8px;
+      align-items: center;
+      font-size: 12px;
+    }
+
+    .bar {
+      height: 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      overflow: hidden;
+      background: #f1f5f8;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: calc(var(--value) * 100%);
+      min-width: 2px;
+      background: linear-gradient(90deg, #f5b6bc, var(--coral));
+      border-radius: 999px;
+    }
+
+    .bottom-controls {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 35;
+      display: grid;
+      grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+      align-items: center;
+      gap: 14px;
+      padding: 10px 18px;
+      border-top: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 -12px 26px rgba(20, 35, 54, 0.08);
+    }
+
+    .control-buttons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .timeline {
+      min-width: 420px;
+      display: grid;
+      grid-template-columns: repeat(7, minmax(74px, 1fr));
+      align-items: start;
+      gap: 6px;
+    }
+
+    .timeline-step {
+      display: grid;
+      justify-items: center;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .timeline-dot {
+      width: 24px;
+      height: 24px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line-strong);
+      border-radius: 999px;
+      background: #fff;
+      color: #435160;
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .timeline-step.active {
+      color: #09645e;
+      font-weight: 900;
+    }
+
+    .timeline-step.active .timeline-dot {
+      background: var(--teal);
+      color: #fff;
+      border-color: var(--teal);
+    }
+
+    .right-controls {
+      display: grid;
+      grid-template-columns: 92px minmax(180px, 1fr) auto;
+      gap: 8px;
+      justify-self: end;
+      align-items: center;
+    }
+
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 1260px) {
+      .app {
+        grid-template-columns: 310px minmax(720px, 1fr);
+      }
+
+      .inspector {
+        grid-column: 1 / -1;
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        max-height: none;
+        padding-bottom: 100px;
+      }
+
+      .bottom-controls {
+        grid-template-columns: 1fr;
+      }
+
+      .timeline {
+        min-width: 0;
+      }
+
+      .right-controls {
+        justify-self: stretch;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .topbar {
+        height: auto;
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+        padding: 10px 12px;
+      }
+
+      .top-title {
+        justify-content: flex-start;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .brand h1 {
+        font-size: 23px;
+      }
+
+      .app {
+        display: block;
+      }
+
+      .sidebar,
+      .workspace,
+      .inspector {
+        max-height: none;
+        border: 0;
+      }
+
+      .sidebar,
+      .inspector {
+        padding-bottom: 16px;
+      }
+
+      .workspace {
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 18px;
+      }
+
+      .pipeline-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .attention-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bottom-controls {
+        position: static;
+      }
+
+      .timeline {
+        grid-template-columns: repeat(4, minmax(64px, 1fr));
+      }
+
+      .right-controls {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="menu-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+      <div class="hint">单页本地模拟</div>
+    </div>
+    <div class="top-title">
+      <h1>Transformer 可视化模拟器</h1>
+    </div>
+    <div class="top-actions">
+      <div class="segmented" role="group" aria-label="切换展示版本">
+        <button id="modeTeachingButton" type="button" data-mode="teaching">单头教学版</button>
+        <button id="modeAnimationButton" type="button" data-mode="animation">动画演示版</button>
+      </div>
+      <button id="saveButton" type="button" title="保存当前参数">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h12l2 2v14H5V4Zm2 2v12h10V7.2L15.8 6H15v4H8V6H7Zm3 0v2h3V6h-3Zm-1 8h6v2H9v-2Z" fill="currentColor"></path></svg>
+        保存
+      </button>
+      <button id="loadButton" type="button" title="加载保存的 JSON">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 7 8h3v6h4V8h3l-5-5ZM5 18h14v2H5v-2Z" fill="currentColor"></path></svg>
+        加载
+      </button>
+      <input id="loadInput" class="visually-hidden" type="file" accept="application/json,.json">
+    </div>
+  </header>
+
+  <main class="app">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>输入句子与分词</h2>
+          <span class="hint">13 个 token</span>
+        </div>
+        <div class="panel-body">
+          <label>
+            示例句子
+            <textarea id="sentenceInput" spellcheck="false"></textarea>
+          </label>
+          <div>
+            <div class="section-title">
+              <h3>分词 Token</h3>
+              <span class="hint">点击选择检查对象</span>
+            </div>
+            <div id="tokenGrid" class="token-grid"></div>
+          </div>
+          <div id="modelStatus" class="status ok"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>3维词向量</h2>
+          <span class="hint">Embedding E</span>
+        </div>
+        <div class="panel-body">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>Token</th><th>x</th><th>y</th><th>z</th></tr>
+              </thead>
+              <tbody id="embeddingBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>位置编码</h2>
+          <span class="hint">Position 3维</span>
+        </div>
+        <div class="panel-body">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>pos</th><th>p1</th><th>p2</th><th>p3</th></tr>
+              </thead>
+              <tbody id="positionBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h2>线性变换权重</h2>
+          <span class="hint">Wq / Wk / Wv</span>
+        </div>
+        <div class="panel-body matrix-tools">
+          <div class="matrix-tabs" role="group" aria-label="选择权重矩阵">
+            <button id="matrixQButton" type="button" data-matrix-tab="q">Wq</button>
+            <button id="matrixKButton" type="button" data-matrix-tab="k">Wk</button>
+            <button id="matrixVButton" type="button" data-matrix-tab="v">Wv</button>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr><th>输入维</th><th>到1</th><th>到2</th><th>到3</th></tr>
+              </thead>
+              <tbody id="weightBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </aside>
+
+    <section class="workspace">
+      <div class="workspace-head">
+        <div class="workspace-title">
+          <h2 id="workspaceTitle">单头自注意力流水线</h2>
+          <span id="workspaceHint" class="hint"></span>
+        </div>
+        <div class="metrics">
+          <div class="metric"><b id="tokenCountMetric">13</b><span>token</span></div>
+          <div class="metric"><b>3</b><span>d_model</span></div>
+          <div class="metric"><b id="selectedMetric">猫</b><span>当前选中</span></div>
+        </div>
+      </div>
+
+      <div id="stepRail" class="step-rail"></div>
+
+      <div class="canvas">
+        <section id="teachingView" class="teaching-view">
+          <div class="stage-card">
+            <div class="stage-card-head">
+              <h3>Token 序列</h3>
+              <span class="hint">输入被映射到词向量，并加上位置编码</span>
+            </div>
+            <div class="stage-card-body">
+              <div id="laneTokens" class="token-lane"></div>
+            </div>
+          </div>
+
+          <div class="pipeline-grid">
+            <section id="inputCard" class="stage-card">
+              <div class="stage-card-head">
+                <h3>1. 输入向量 X</h3>
+                <span class="hint">E + P</span>
+              </div>
+              <div class="stage-card-body">
+                <div id="inputVectorList" class="vector-list"></div>
+              </div>
+            </section>
+
+            <section id="qkvCard" class="stage-card">
+              <div class="stage-card-head">
+                <h3>2. Q / K / V</h3>
+                <span class="hint">XWq, XWk, XWv</span>
+              </div>
+              <div class="stage-card-body">
+                <div id="qkvRows" class="vector-list"></div>
+              </div>
+            </section>
+
+            <section id="attentionCard" class="stage-card">
+              <div class="stage-card-head">
+                <h3>3-4. 注意力矩阵</h3>
+                <span class="hint">score / softmax</span>
+              </div>
+              <div class="stage-card-body">
+                <div class="attention-grid">
+                  <div>
+                    <div class="section-title">
+                      <h3>Q·K / √3</h3>
+                      <span class="hint">未归一化分数</span>
+                    </div>
+                    <div class="table-scroll">
+                      <div id="scoreMatrix" class="matrix-heatmap"></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="section-title">
+                      <h3>softmax</h3>
+                      <span class="hint">每行和为 1</span>
+                    </div>
+                    <div class="table-scroll">
+                      <div id="softmaxMatrix" class="matrix-heatmap"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section id="outputCard" class="stage-card">
+              <div class="stage-card-head">
+                <h3>5. 输出向量</h3>
+                <span class="hint">Σ softmax × V</span>
+              </div>
+              <div class="stage-card-body">
+                <div id="outputVectorList" class="vector-list"></div>
+              </div>
+            </section>
+          </div>
+
+          <div class="legend">
+            <div class="legend-items">
+              <span class="legend-item"><span class="legend-swatch q"></span>Q 查询向量</span>
+              <span class="legend-item"><span class="legend-swatch k"></span>K 键向量</span>
+              <span class="legend-item"><span class="legend-swatch v"></span>V 值向量</span>
+              <span class="legend-item"><span class="legend-swatch score"></span>注意力分数</span>
+              <span class="legend-item"><span class="legend-swatch softmax"></span>softmax 权重</span>
+            </div>
+            <span id="legendHint">选中 token 的整行会被高亮。</span>
+          </div>
+        </section>
+
+        <section id="animationView" class="animation-view" hidden>
+          <div class="animation-canvas">
+            <div class="flow-line one"><span class="packet"></span></div>
+            <div class="flow-line two"><span class="packet"></span></div>
+            <div class="flow-line three"><span class="packet"></span></div>
+            <div class="flow-line four"><span class="packet"></span></div>
+            <div class="flow-line five"><span class="packet"></span></div>
+            <div id="animationLayers"></div>
+          </div>
+          <div class="stage-card">
+            <div class="stage-card-head">
+              <h3>当前 token 的注意力分布</h3>
+              <span id="animationHint" class="hint"></span>
+            </div>
+            <div class="stage-card-body">
+              <div id="animationAttentionStrip" class="attention-strip"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <aside class="inspector">
+      <section class="panel">
+        <div class="panel-head">
+          <h2>检查器</h2>
+          <span class="hint">当前选中</span>
+        </div>
+        <div class="panel-body">
+          <div class="inspector-token">
+            <div>
+              <div id="selectedWord" class="selected-word">猫</div>
+              <span id="selectedSub" class="hint">位置索引 5</span>
+            </div>
+            <div id="selectedIndex" class="index-pill">5</div>
+          </div>
+          <div class="vector-stack" id="inspectorVectors"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>公式与计算</h3>
+          <span class="hint">单头注意力</span>
+        </div>
+        <div class="panel-body">
+          <div id="formulaBox" class="formula-box"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>注意力权重</h3>
+          <span class="hint">当前行</span>
+        </div>
+        <div class="panel-body">
+          <div id="attentionList" class="attention-list"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>输出贡献</h3>
+          <span class="hint">Σ aᵢⱼVⱼ</span>
+        </div>
+        <div class="panel-body">
+          <div id="contributionBox" class="formula-box"></div>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <footer class="bottom-controls">
+    <div class="control-buttons">
+      <button id="prevButton" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6 9 12l6 6V6Z" fill="currentColor"></path></svg>
+        上一步
+      </button>
+      <button id="nextButton" class="primary" type="button">
+        下一步
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6V6Z" fill="currentColor"></path></svg>
+      </button>
+      <button id="playButton" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z" fill="currentColor"></path></svg>
+        自动播放
+      </button>
+    </div>
+    <div id="timeline" class="timeline"></div>
+    <div class="right-controls">
+      <label>
+        速度
+        <select id="speedSelect">
+          <option value="1600">0.75x</option>
+          <option value="1100" selected>1x</option>
+          <option value="700">1.5x</option>
+        </select>
+      </label>
+      <label>
+        跳转到步骤
+        <select id="stepSelect"></select>
+      </label>
+      <button id="resetButton" type="button">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.7 6.3A8 8 0 1 0 20 12h-2a6 6 0 1 1-1.76-4.24L13 11h8V3l-3.3 3.3Z" fill="currentColor"></path></svg>
+        重置
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    const VECTOR_DIM = 3;
+    const DEFAULT_SENTENCE = "我养的这只猫已经五岁了它会抓老师。";
+    const DEFAULT_TOKENS = ["我", "养", "的", "这", "只", "猫", "已经", "五岁", "了", "它", "会", "抓", "老师"];
+    const STEP_LABELS = [
+      "输入与嵌入",
+      "Q/K/V 计算",
+      "注意力分数",
+      "softmax 归一化",
+      "加权求和",
+      "输出向量",
+      "动画总览"
+    ];
+    const STORAGE_VERSION = 1;
+
+    const DEFAULT_EMBEDDINGS = [
+      [0.21, 0.35, -0.12],
+      [-0.31, 0.48, 0.09],
+      [0.14, -0.23, 0.37],
+      [-0.27, -0.15, 0.26],
+      [0.34, -0.41, -0.05],
+      [0.52, 0.18, -0.33],
+      [-0.45, 0.22, 0.41],
+      [-0.33, -0.50, 0.11],
+      [0.19, 0.27, 0.21],
+      [-0.22, 0.31, -0.28],
+      [0.36, -0.18, 0.24],
+      [-0.38, -0.22, -0.14],
+      [0.47, -0.35, 0.32]
+    ];
+
+    const DEFAULT_WQ = [
+      [0.28, -0.18, 0.11],
+      [0.13, 0.25, -0.08],
+      [-0.16, 0.09, 0.30]
+    ];
+
+    const DEFAULT_WK = [
+      [-0.12, 0.22, 0.08],
+      [0.24, 0.04, -0.11],
+      [0.06, -0.17, 0.21]
+    ];
+
+    const DEFAULT_WV = [
+      [0.31, -0.10, 0.14],
+      [-0.08, 0.28, 0.09],
+      [0.17, 0.04, 0.26]
+    ];
+
+    const els = {
+      modeTeachingButton: document.getElementById("modeTeachingButton"),
+      modeAnimationButton: document.getElementById("modeAnimationButton"),
+      saveButton: document.getElementById("saveButton"),
+      loadButton: document.getElementById("loadButton"),
+      loadInput: document.getElementById("loadInput"),
+      sentenceInput: document.getElementById("sentenceInput"),
+      tokenGrid: document.getElementById("tokenGrid"),
+      modelStatus: document.getElementById("modelStatus"),
+      embeddingBody: document.getElementById("embeddingBody"),
+      positionBody: document.getElementById("positionBody"),
+      matrixQButton: document.getElementById("matrixQButton"),
+      matrixKButton: document.getElementById("matrixKButton"),
+      matrixVButton: document.getElementById("matrixVButton"),
+      weightBody: document.getElementById("weightBody"),
+      workspaceTitle: document.getElementById("workspaceTitle"),
+      workspaceHint: document.getElementById("workspaceHint"),
+      tokenCountMetric: document.getElementById("tokenCountMetric"),
+      selectedMetric: document.getElementById("selectedMetric"),
+      stepRail: document.getElementById("stepRail"),
+      teachingView: document.getElementById("teachingView"),
+      animationView: document.getElementById("animationView"),
+      laneTokens: document.getElementById("laneTokens"),
+      inputCard: document.getElementById("inputCard"),
+      qkvCard: document.getElementById("qkvCard"),
+      attentionCard: document.getElementById("attentionCard"),
+      outputCard: document.getElementById("outputCard"),
+      inputVectorList: document.getElementById("inputVectorList"),
+      qkvRows: document.getElementById("qkvRows"),
+      scoreMatrix: document.getElementById("scoreMatrix"),
+      softmaxMatrix: document.getElementById("softmaxMatrix"),
+      outputVectorList: document.getElementById("outputVectorList"),
+      legendHint: document.getElementById("legendHint"),
+      animationLayers: document.getElementById("animationLayers"),
+      animationAttentionStrip: document.getElementById("animationAttentionStrip"),
+      animationHint: document.getElementById("animationHint"),
+      selectedWord: document.getElementById("selectedWord"),
+      selectedSub: document.getElementById("selectedSub"),
+      selectedIndex: document.getElementById("selectedIndex"),
+      inspectorVectors: document.getElementById("inspectorVectors"),
+      formulaBox: document.getElementById("formulaBox"),
+      attentionList: document.getElementById("attentionList"),
+      contributionBox: document.getElementById("contributionBox"),
+      prevButton: document.getElementById("prevButton"),
+      nextButton: document.getElementById("nextButton"),
+      playButton: document.getElementById("playButton"),
+      timeline: document.getElementById("timeline"),
+      speedSelect: document.getElementById("speedSelect"),
+      stepSelect: document.getElementById("stepSelect"),
+      resetButton: document.getElementById("resetButton")
+    };
+
+    let state = createDefaultState();
+    let latest = computeAll(state);
+    let activeWeightMatrix = "q";
+    let playTimer = null;
+
+    function createDefaultState() {
+      return {
+        version: STORAGE_VERSION,
+        mode: "teaching",
+        step: 0,
+        sentence: DEFAULT_SENTENCE,
+        tokens: DEFAULT_TOKENS.slice(),
+        embeddings: DEFAULT_EMBEDDINGS.map((row) => row.slice()),
+        positionalEncoding: createDefaultPositionEncoding(DEFAULT_TOKENS.length),
+        Wq: DEFAULT_WQ.map((row) => row.slice()),
+        Wk: DEFAULT_WK.map((row) => row.slice()),
+        Wv: DEFAULT_WV.map((row) => row.slice()),
+        selectedTokenIndex: DEFAULT_TOKENS.indexOf("猫")
+      };
+    }
+
+    function createDefaultPositionEncoding(count) {
+      return Array.from({ length: count }, (_, position) => [
+        Math.sin(position),
+        Math.cos(position),
+        Math.sin(position / 10)
+      ]);
+    }
+
+    function computeAll(currentState) {
+      const inputs = currentState.embeddings.map((row, index) =>
+        row.map((value, dim) => value + currentState.positionalEncoding[index][dim])
+      );
+      const queries = inputs.map((vector) => vectorTimesMatrix(vector, currentState.Wq));
+      const keys = inputs.map((vector) => vectorTimesMatrix(vector, currentState.Wk));
+      const values = inputs.map((vector) => vectorTimesMatrix(vector, currentState.Wv));
+      const attentionScores = queries.map((query) =>
+        keys.map((key) => dot(query, key) / Math.sqrt(VECTOR_DIM))
+      );
+      const attentionWeights = attentionScores.map((row) => softmax(row));
+      const outputs = attentionWeights.map((weights) =>
+        Array.from({ length: VECTOR_DIM }, (_, dim) =>
+          weights.reduce((sum, weight, valueIndex) => sum + weight * values[valueIndex][dim], 0)
+        )
+      );
+      return {
+        inputs,
+        queries,
+        keys,
+        values,
+        attentionScores,
+        attentionWeights,
+        outputs
+      };
+    }
+
+    function vectorTimesMatrix(vector, matrix) {
+      return Array.from({ length: VECTOR_DIM }, (_, col) =>
+        vector.reduce((sum, value, row) => sum + value * matrix[row][col], 0)
+      );
+    }
+
+    function dot(a, b) {
+      return a.reduce((sum, value, index) => sum + value * b[index], 0);
+    }
+
+    function softmax(values) {
+      const max = Math.max(...values);
+      const exps = values.map((value) => Math.exp(value - max));
+      const total = exps.reduce((sum, value) => sum + value, 0) || 1;
+      return exps.map((value) => value / total);
+    }
+
+    function render() {
+      latest = computeAll(state);
+      document.documentElement.style.setProperty("--token-count", state.tokens.length);
+      syncQaState();
+      renderMode();
+      renderSidebar();
+      renderWorkspace();
+      renderInspector();
+      renderBottomControls();
+      window.__transformerVisualizer = { state, latest, computeAll, softmax };
+    }
+
+    function renderDerivedViews() {
+      latest = computeAll(state);
+      syncQaState();
+      renderWorkspace();
+      renderInspector();
+      renderBottomControls();
+      window.__transformerVisualizer = { state, latest, computeAll, softmax };
+    }
+
+    function syncQaState() {
+      const selected = state.selectedTokenIndex;
+      document.body.dataset.visualizerState = JSON.stringify({
+        mode: state.mode,
+        step: state.step,
+        tokenCount: state.tokens.length,
+        selectedToken: state.tokens[selected],
+        selectedIndex: selected,
+        selectedEmbedding: state.embeddings[selected],
+        softmaxSum: latest.attentionWeights[selected].reduce((sum, value) => sum + value, 0),
+        selectedOutput: latest.outputs[selected]
+      });
+    }
+
+    function renderMode() {
+      const isTeaching = state.mode === "teaching";
+      els.modeTeachingButton.classList.toggle("active", isTeaching);
+      els.modeAnimationButton.classList.toggle("active", !isTeaching);
+      els.modeTeachingButton.setAttribute("aria-pressed", String(isTeaching));
+      els.modeAnimationButton.setAttribute("aria-pressed", String(!isTeaching));
+      els.teachingView.hidden = !isTeaching;
+      els.animationView.hidden = isTeaching;
+      els.workspaceTitle.textContent = isTeaching ? "单头自注意力流水线" : "动画演示总览";
+      els.workspaceHint.textContent = isTeaching
+        ? "逐步查看 X、Q/K/V、注意力分数、softmax 权重和输出向量。"
+        : "同一套计算结果以流动路径展示，当前 token 的注意力会映射到每个目标 token。";
+    }
+
+    function renderSidebar() {
+      els.sentenceInput.value = state.sentence;
+      els.tokenGrid.innerHTML = state.tokens.map((token, index) => `
+        <button class="token-chip${index === state.selectedTokenIndex ? " selected" : ""}" type="button" data-select-token="${index}" aria-pressed="${index === state.selectedTokenIndex}">
+          ${escapeHtml(token)}
+        </button>
+      `).join("");
+      els.modelStatus.textContent = `结构有效：${state.tokens.length} 个 token，d_model = d_q = d_k = d_v = 3；当前选中“${state.tokens[state.selectedTokenIndex]}”。`;
+      els.embeddingBody.innerHTML = state.tokens.map((token, tokenIndex) => `
+        <tr class="${tokenIndex === state.selectedTokenIndex ? "selected" : ""}">
+          <th>${escapeHtml(token)}</th>
+          ${state.embeddings[tokenIndex].map((value, dim) => `
+            <td><input class="small-input" type="number" step="0.01" data-embedding-token="${tokenIndex}" data-dim="${dim}" value="${forInput(value)}"></td>
+          `).join("")}
+        </tr>
+      `).join("");
+      els.positionBody.innerHTML = state.tokens.map((token, tokenIndex) => `
+        <tr>
+          <th>${tokenIndex}</th>
+          ${state.positionalEncoding[tokenIndex].map((value, dim) => `
+            <td><input class="small-input" type="number" step="0.001" data-position-token="${tokenIndex}" data-dim="${dim}" value="${forInput(value)}"></td>
+          `).join("")}
+        </tr>
+      `).join("");
+      renderWeightEditor();
+    }
+
+    function renderWeightEditor() {
+      const matrix = weightMatrixByKey(activeWeightMatrix);
+      [els.matrixQButton, els.matrixKButton, els.matrixVButton].forEach((button) => {
+        const active = button.dataset.matrixTab === activeWeightMatrix;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
+      els.weightBody.innerHTML = matrix.map((row, rowIndex) => `
+        <tr>
+          <th>${["x", "y", "z"][rowIndex]}</th>
+          ${row.map((value, colIndex) => `
+            <td><input class="small-input" type="number" step="0.01" data-weight-matrix="${activeWeightMatrix}" data-row="${rowIndex}" data-col="${colIndex}" value="${forInput(value)}"></td>
+          `).join("")}
+        </tr>
+      `).join("");
+    }
+
+    function renderWorkspace() {
+      els.tokenCountMetric.textContent = String(state.tokens.length);
+      els.selectedMetric.textContent = state.tokens[state.selectedTokenIndex];
+      renderStepRail();
+      renderTeachingView();
+      renderAnimationView();
+    }
+
+    function renderStepRail() {
+      const groups = [
+        { label: "1. 令牌与输入", steps: [0] },
+        { label: "2. 线性变换（Q/K/V）", steps: [1] },
+        { label: "3. 注意力计算", steps: [2, 3] },
+        { label: "4. 加权求和与输出", steps: [4, 5, 6] }
+      ];
+      els.stepRail.innerHTML = groups.map((group, index) => `
+        <div class="stage${group.steps.includes(state.step) ? " active" : ""}">
+          <span class="stage-num">${index + 1}</span>
+          <span>${group.label}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderTeachingView() {
+      els.inputCard.classList.toggle("emphasized", state.step === 0);
+      els.qkvCard.classList.toggle("emphasized", state.step === 1);
+      els.attentionCard.classList.toggle("emphasized", state.step === 2 || state.step === 3);
+      els.outputCard.classList.toggle("emphasized", state.step === 4 || state.step === 5);
+      els.laneTokens.innerHTML = state.tokens.map((token, index) => `
+        <button class="lane-token${index === state.selectedTokenIndex ? " selected" : ""}" type="button" data-select-token="${index}">
+          <span>${escapeHtml(token)}</span>
+          <span class="lane-index">${index}</span>
+        </button>
+      `).join("");
+      els.inputVectorList.innerHTML = state.tokens.map((token, index) =>
+        vectorRow(token, index, latest.inputs[index], "value-cell", `E + P = ${vectorText(latest.inputs[index])}`)
+      ).join("");
+      els.qkvRows.innerHTML = state.tokens.map((token, index) => `
+        <div class="qkv-row${index === state.selectedTokenIndex ? " selected" : ""}">
+          <button class="qkv-token" type="button" data-select-token="${index}">${escapeHtml(token)}</button>
+          <div class="qkv-vector q" title="${vectorText(latest.queries[index])}">${vectorText(latest.queries[index])}</div>
+          <div class="qkv-vector k" title="${vectorText(latest.keys[index])}">${vectorText(latest.keys[index])}</div>
+          <div class="qkv-vector v" title="${vectorText(latest.values[index])}">${vectorText(latest.values[index])}</div>
+        </div>
+      `).join("");
+      renderMatrix(els.scoreMatrix, latest.attentionScores, "score");
+      renderMatrix(els.softmaxMatrix, latest.attentionWeights, "softmax");
+      els.outputVectorList.innerHTML = state.tokens.map((token, index) =>
+        vectorRow(token, index, latest.outputs[index], "value-cell out", `output = ${vectorText(latest.outputs[index])}`)
+      ).join("");
+      els.legendHint.textContent = `当前查看“${state.tokens[state.selectedTokenIndex]}”这一行：它会对所有 token 分配 softmax 权重。`;
+    }
+
+    function vectorRow(token, index, vector, cellClass, title) {
+      return `
+        <div class="vector-row${index === state.selectedTokenIndex ? " selected" : ""}" title="${escapeHtml(title)}">
+          <button class="vector-label" type="button" data-select-token="${index}">${escapeHtml(token)}</button>
+          <div class="vector-values">
+            ${vector.map((value) => `<span class="${cellClass}">${fmt(value)}</span>`).join("")}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderMatrix(container, matrix, type) {
+      const values = matrix.flat();
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const selected = state.selectedTokenIndex;
+      let html = `<div class="matrix-head"></div>`;
+      html += state.tokens.map((token, index) => `<div class="matrix-head" title="${escapeHtml(token)}">${index}</div>`).join("");
+      matrix.forEach((row, rowIndex) => {
+        html += `<button class="matrix-row-head${rowIndex === selected ? " selected" : ""}" type="button" data-select-token="${rowIndex}" title="${escapeHtml(state.tokens[rowIndex])}">${escapeHtml(state.tokens[rowIndex])}</button>`;
+        row.forEach((value, colIndex) => {
+          const style = type === "score" ? scoreCellStyle(value, min, max) : softmaxCellStyle(value);
+          const selectedRow = rowIndex === selected;
+          const selectedCell = selectedRow && colIndex === maxIndex(latest.attentionWeights[selected]);
+          html += `
+            <button class="matrix-cell${selectedRow ? " selected-row" : ""}${selectedCell ? " selected-cell" : ""}" type="button" data-select-token="${rowIndex}" data-focus-col="${colIndex}" style="${style}" title="${escapeHtml(state.tokens[rowIndex])} → ${escapeHtml(state.tokens[colIndex])}: ${fmt(value)}">
+              ${type === "softmax" ? fmtProb(value) : fmt(value)}
+            </button>
+          `;
+        });
+      });
+      container.innerHTML = html;
+    }
+
+    function renderAnimationView() {
+      const selected = state.selectedTokenIndex;
+      const selectedWeights = latest.attentionWeights[selected];
+      const layerData = [
+        { title: "输入 Token", subtitle: "词与位置", kind: "token", values: state.tokens },
+        { title: "Q 查询", subtitle: "当前 token 发问", kind: "q", values: latest.queries.map((vector) => fmt(vector[0])) },
+        { title: "K 键", subtitle: "所有 token 被匹配", kind: "k", values: latest.keys.map((vector) => fmt(vector[0])) },
+        { title: "V 值", subtitle: "提供内容信息", kind: "v", values: latest.values.map((vector) => fmt(vector[0])) },
+        { title: "softmax 权重", subtitle: "注意力分配", kind: "attention", values: selectedWeights.map(fmtProb) },
+        { title: "输出向量", subtitle: "加权求和后", kind: "output", values: latest.outputs.map((vector) => fmt(vector[0])) }
+      ];
+      els.animationLayers.innerHTML = layerData.map((layer) => `
+        <div class="animation-layer">
+          <div class="animation-layer-title">
+            <b>${layer.title}</b>
+            <span>${layer.subtitle}</span>
+          </div>
+          <div class="animation-nodes">
+            ${layer.values.map((value, index) => {
+              const heat = layer.kind === "attention" ? Math.max(0.08, selectedWeights[index] * 4.2) : 0;
+              const selectedClass = index === selected ? " selected" : "";
+              const kindClass = ["q", "k", "v", "output"].includes(layer.kind) ? ` ${layer.kind}` : "";
+              return `<button class="flow-node${selectedClass}${kindClass}" type="button" data-select-token="${index}" style="--heat:${heat};"><span>${escapeHtml(String(value))}</span></button>`;
+            }).join("")}
+          </div>
+        </div>
+      `).join("");
+      els.animationHint.textContent = `当前从“${state.tokens[selected]}”出发，颜色越深表示它越关注对应 token。`;
+      els.animationAttentionStrip.innerHTML = selectedWeights.map((weight, index) => `
+        <button class="strip-cell" type="button" data-select-token="${index}" style="--weight:${Math.min(0.92, weight * 4.5)};" title="${escapeHtml(state.tokens[selected])} → ${escapeHtml(state.tokens[index])}: ${fmtProb(weight)}">
+          <span>${escapeHtml(state.tokens[index])}<br>${fmtProb(weight)}</span>
+        </button>
+      `).join("");
+    }
+
+    function renderInspector() {
+      const index = state.selectedTokenIndex;
+      const token = state.tokens[index];
+      const topIndex = maxIndex(latest.attentionWeights[index]);
+      els.selectedWord.textContent = token;
+      els.selectedSub.textContent = `位置索引 ${index}，最高关注 “${state.tokens[topIndex]}”`;
+      els.selectedIndex.textContent = String(index);
+      els.inspectorVectors.innerHTML = [
+        ["输入向量（词向量 + 位置编码）", latest.inputs[index], ""],
+        ["Q 查询向量", latest.queries[index], "q"],
+        ["K 键向量", latest.keys[index], "k"],
+        ["V 值向量", latest.values[index], "v"],
+        ["输出向量", latest.outputs[index], "out"]
+      ].map(([label, vector, tone]) => `
+        <div class="inspector-vector">
+          <b>${label}</b>
+          <div class="mono-line ${tone}">[ ${vector.map(fmt).join(", ")} ]</div>
+        </div>
+      `).join("");
+      els.formulaBox.innerHTML = `
+        <div><code>x_i = embedding_i + position_i</code></div>
+        <div><code>Q_i = x_i Wq</code>，<code>K_j = x_j Wk</code>，<code>V_j = x_j Wv</code></div>
+        <div><code>score_i,j = Q_i · K_j / √3</code>，当前 <b>${escapeHtml(token)}</b> → <b>${escapeHtml(state.tokens[topIndex])}</b> 的分数为 <code>${fmt(latest.attentionScores[index][topIndex])}</code>。</div>
+        <div><code>a_i = softmax(score_i)</code> 后，最大权重是 <code>${fmtProb(latest.attentionWeights[index][topIndex])}</code>。</div>
+      `;
+      renderAttentionList(index);
+      renderContribution(index);
+    }
+
+    function renderAttentionList(index) {
+      const row = latest.attentionWeights[index];
+      els.attentionList.innerHTML = row.map((weight, tokenIndex) => `
+        <div class="attention-item">
+          <b>${escapeHtml(state.tokens[tokenIndex])}</b>
+          <span class="bar"><span class="bar-fill" style="--value:${weight};"></span></span>
+          <span class="mono">${fmtProb(weight)}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderContribution(index) {
+      const weights = latest.attentionWeights[index];
+      const top = weights
+        .map((weight, tokenIndex) => ({ weight, tokenIndex }))
+        .sort((a, b) => b.weight - a.weight)
+        .slice(0, 4);
+      const lines = top.map((item) => {
+        const value = latest.values[item.tokenIndex];
+        const contribution = value.map((dimValue) => item.weight * dimValue);
+        return `<div><b>${escapeHtml(state.tokens[item.tokenIndex])}</b>：${fmtProb(item.weight)} × [${value.map(fmt).join(", ")}] = [${contribution.map(fmt).join(", ")}]</div>`;
+      }).join("");
+      els.contributionBox.innerHTML = `
+        <div><code>out_i = Σ_j a_i,j · V_j</code></div>
+        <div>当前 “${escapeHtml(state.tokens[index])}” 的输出：</div>
+        <div><code>[ ${latest.outputs[index].map(fmt).join(", ")} ]</code></div>
+        <div>${lines}</div>
+      `;
+    }
+
+    function renderBottomControls() {
+      els.prevButton.disabled = state.step <= 0;
+      els.nextButton.disabled = state.step >= STEP_LABELS.length - 1;
+      els.playButton.classList.toggle("blue", Boolean(playTimer));
+      els.playButton.innerHTML = playTimer
+        ? `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" fill="currentColor"></path></svg>暂停`
+        : `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z" fill="currentColor"></path></svg>自动播放`;
+      els.timeline.innerHTML = STEP_LABELS.map((label, index) => `
+        <button class="timeline-step${index === state.step ? " active" : ""}" type="button" data-step="${index}">
+          <span class="timeline-dot">${index + 1}</span>
+          <span>${escapeHtml(label)}</span>
+        </button>
+      `).join("");
+      els.stepSelect.innerHTML = STEP_LABELS.map((label, index) => `
+        <option value="${index}"${index === state.step ? " selected" : ""}>${index + 1} ${label}</option>
+      `).join("");
+    }
+
+    function setMode(mode) {
+      state.mode = mode === "animation" ? "animation" : "teaching";
+      if (state.mode === "animation" && state.step < 1) state.step = 6;
+      render();
+    }
+
+    function setStep(step) {
+      state.step = clampInt(step, 0, STEP_LABELS.length - 1, state.step);
+      if (state.step === 6) state.mode = "animation";
+      render();
+    }
+
+    function selectToken(index) {
+      state.selectedTokenIndex = clampInt(index, 0, state.tokens.length - 1, state.selectedTokenIndex);
+      render();
+    }
+
+    function weightMatrixByKey(key) {
+      if (key === "k") return state.Wk;
+      if (key === "v") return state.Wv;
+      return state.Wq;
+    }
+
+    function scoreCellStyle(value, min, max) {
+      const range = max - min || 1;
+      const normalized = (value - min) / range;
+      const distance = Math.abs(normalized - 0.5) * 2;
+      if (normalized >= 0.5) {
+        return `background: rgba(217, 80, 87, ${0.08 + distance * 0.52}); color:${distance > 0.62 ? "#fff" : "#17202a"};`;
+      }
+      return `background: rgba(40, 110, 214, ${0.08 + distance * 0.42}); color:${distance > 0.72 ? "#fff" : "#17202a"};`;
+    }
+
+    function softmaxCellStyle(value) {
+      const alpha = Math.min(0.76, 0.05 + value * 4.8);
+      return `background: rgba(217, 80, 87, ${alpha}); color:${alpha > 0.5 ? "#fff" : "#17202a"};`;
+    }
+
+    function maxIndex(values) {
+      return values.reduce((best, value, index) => value > values[best] ? index : best, 0);
+    }
+
+    function fmt(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0.000";
+      return numeric.toFixed(3);
+    }
+
+    function fmtProb(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0.000";
+      return numeric.toFixed(3);
+    }
+
+    function forInput(value) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return "0";
+      return numeric.toFixed(3).replace(/\.?0+$/, "");
+    }
+
+    function vectorText(vector) {
+      return `[ ${vector.map(fmt).join(", ")} ]`;
+    }
+
+    function clampInt(value, min, max, fallback) {
+      const numeric = Number.parseInt(value, 10);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, numeric));
+    }
+
+    function clampNumber(value, min, max, fallback) {
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return fallback;
+      return Math.max(min, Math.min(max, numeric));
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function sanitizeState(imported) {
+      const base = createDefaultState();
+      const tokens = Array.isArray(imported.tokens) && imported.tokens.length
+        ? imported.tokens.map((token) => String(token).slice(0, 8))
+        : base.tokens;
+      const count = tokens.length;
+      const vectors = sanitizeMatrix(imported.embeddings, count, VECTOR_DIM, base.embeddings);
+      const positions = sanitizeMatrix(imported.positionalEncoding, count, VECTOR_DIM, createDefaultPositionEncoding(count));
+      return {
+        version: STORAGE_VERSION,
+        mode: imported.mode === "animation" ? "animation" : "teaching",
+        step: clampInt(imported.step, 0, STEP_LABELS.length - 1, base.step),
+        sentence: String(imported.sentence || base.sentence).slice(0, 120),
+        tokens,
+        embeddings: vectors,
+        positionalEncoding: positions,
+        Wq: sanitizeMatrix(imported.Wq, VECTOR_DIM, VECTOR_DIM, base.Wq),
+        Wk: sanitizeMatrix(imported.Wk, VECTOR_DIM, VECTOR_DIM, base.Wk),
+        Wv: sanitizeMatrix(imported.Wv, VECTOR_DIM, VECTOR_DIM, base.Wv),
+        selectedTokenIndex: clampInt(imported.selectedTokenIndex, 0, count - 1, Math.min(base.selectedTokenIndex, count - 1))
+      };
+    }
+
+    function sanitizeMatrix(matrix, rows, cols, fallback) {
+      return Array.from({ length: rows }, (_, row) =>
+        Array.from({ length: cols }, (_, col) =>
+          clampNumber(matrix?.[row]?.[col], -100, 100, fallback?.[row]?.[col] ?? 0)
+        )
+      );
+    }
+
+    function downloadState() {
+      const payload = JSON.stringify(state, null, 2);
+      const blob = new Blob([payload], { type: "application/json" });
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().slice(0, 19).replaceAll(":", "-");
+      link.href = URL.createObjectURL(blob);
+      link.download = `transformer-visualizer-${stamp}.json`;
+      document.body.dataset.lastSave = link.download;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 0);
+    }
+
+    async function importState(file) {
+      if (!file) return;
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      state = sanitizeState(parsed);
+      stopPlayback();
+      render();
+    }
+
+    function startPlayback() {
+      stopPlayback();
+      playTimer = window.setInterval(() => {
+        if (state.step >= STEP_LABELS.length - 1) {
+          state.step = 0;
+          state.mode = "teaching";
+        } else {
+          state.step += 1;
+          if (state.step === STEP_LABELS.length - 1) state.mode = "animation";
+        }
+        render();
+      }, Number(els.speedSelect.value) || 1100);
+      render();
+    }
+
+    function stopPlayback() {
+      if (playTimer) {
+        window.clearInterval(playTimer);
+        playTimer = null;
+      }
+    }
+
+    function wireEvents() {
+      els.modeTeachingButton.addEventListener("click", () => setMode("teaching"));
+      els.modeAnimationButton.addEventListener("click", () => setMode("animation"));
+      els.saveButton.addEventListener("click", downloadState);
+      els.loadButton.addEventListener("click", () => els.loadInput.click());
+      els.loadInput.addEventListener("change", async () => {
+        try {
+          await importState(els.loadInput.files?.[0]);
+        } catch (error) {
+          window.alert(`加载失败：${error.message || "JSON 格式无效"}`);
+        } finally {
+          els.loadInput.value = "";
+        }
+      });
+      els.sentenceInput.addEventListener("input", () => {
+        state.sentence = els.sentenceInput.value;
+      });
+      document.body.addEventListener("click", (event) => {
+        const tokenButton = event.target.closest("[data-select-token]");
+        if (tokenButton) selectToken(tokenButton.dataset.selectToken);
+        const stepButton = event.target.closest("[data-step]");
+        if (stepButton) setStep(stepButton.dataset.step);
+        const matrixButton = event.target.closest("[data-matrix-tab]");
+        if (matrixButton) {
+          activeWeightMatrix = matrixButton.dataset.matrixTab;
+          renderWeightEditor();
+        }
+      });
+      els.embeddingBody.addEventListener("input", (event) => {
+        const target = event.target.closest("[data-embedding-token]");
+        if (!target) return;
+        const tokenIndex = Number(target.dataset.embeddingToken);
+        const dim = Number(target.dataset.dim);
+        state.embeddings[tokenIndex][dim] = clampNumber(target.value, -100, 100, 0);
+        renderDerivedViews();
+      });
+      els.positionBody.addEventListener("input", (event) => {
+        const target = event.target.closest("[data-position-token]");
+        if (!target) return;
+        const tokenIndex = Number(target.dataset.positionToken);
+        const dim = Number(target.dataset.dim);
+        state.positionalEncoding[tokenIndex][dim] = clampNumber(target.value, -100, 100, 0);
+        renderDerivedViews();
+      });
+      els.weightBody.addEventListener("input", (event) => {
+        const target = event.target.closest("[data-weight-matrix]");
+        if (!target) return;
+        const matrix = weightMatrixByKey(target.dataset.weightMatrix);
+        matrix[Number(target.dataset.row)][Number(target.dataset.col)] = clampNumber(target.value, -100, 100, 0);
+        renderDerivedViews();
+      });
+      els.prevButton.addEventListener("click", () => setStep(state.step - 1));
+      els.nextButton.addEventListener("click", () => setStep(state.step + 1));
+      els.playButton.addEventListener("click", () => playTimer ? stopPlayback() || render() : startPlayback());
+      els.speedSelect.addEventListener("change", () => {
+        if (playTimer) startPlayback();
+      });
+      els.stepSelect.addEventListener("change", () => setStep(els.stepSelect.value));
+      els.resetButton.addEventListener("click", () => {
+        state = createDefaultState();
+        activeWeightMatrix = "q";
+        stopPlayback();
+        render();
+      });
+      window.addEventListener("beforeunload", stopPlayback);
+    }
+
+    wireEvents();
+    render();
+  </script>
+</body>
+</html>
