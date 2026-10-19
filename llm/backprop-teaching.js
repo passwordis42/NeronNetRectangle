@@ -5,7 +5,7 @@ const SquareBackpropTeaching = (() => {
   function create(options) {
     const {host,tabs,entries}=options, core=SquareBackpropCore;
     let entry=null,manifest=null,artifact=null,enabled=false,step=0,parameter=506,precision=false;
-    let phase='after',source='auto',metric='weight',networkSource='sample',section='backward',zoom=1;
+    let phase='after',source='auto',metric='weight',networkSource='sample',section='backward',zoom=1,layout='compact',zoomMode='manual';
     let result=null,currentModel=null,busy=false,error='',notice='',requestId=0,worker=null,workerURL=null;
     let observed=Array(25).fill(0),sampleIndex=0,fullTable=false,expandedAdam=false,sampleDetails=false;
     const chunks=new Map(),pending=new Map();
@@ -17,7 +17,7 @@ const SquareBackpropTeaching = (() => {
     const actualSource=()=>source==='auto'?(config().lossWeights[0]===0?'concept':'classification'):source;
     const sourceName=()=>({classification:'单样本 · 分类损失',concept:'单样本 · 特征监督',boundary:'检测边界约束梯度',composition:'四边贡献约束梯度',total:'本次更新 · 总梯度'}[actualSource()]);
     const grid=(pixels,label)=>`<div class="trace-pixels" role="img" aria-label="${label}">${pixels.map(x=>`<i class="${x?'is-on':''}"></i>`).join('')}</div>`;
-    function save(){try{localStorage.setItem(key(),JSON.stringify({step,parameter,precision,source,metric,networkSource,section,sampleIndex,phase,zoom}));}catch(_){}}
+    function save(){try{localStorage.setItem(key(),JSON.stringify({step,parameter,precision,source,metric,networkSource,section,sampleIndex,phase,zoom,layout,zoomMode}));}catch(_){}}
     function notify(){options.onChange();}
     function switchEntry(next){
       ++requestId;enabled=false;busy=false;result=null;currentModel=null;error='';entry=next;manifest=next?.manifest;artifact=next?.artifact;
@@ -25,7 +25,9 @@ const SquareBackpropTeaching = (() => {
       let saved={};try{saved=JSON.parse(localStorage.getItem(key())||(version()==='v1'?localStorage.getItem('nn-square-backprop-view-v1'):null)||'{}');}catch(_){}
       step=integer(saved.step,0,manifest.steps,0);parameter=integer(saved.parameter,0,1350,506);precision=Boolean(saved.precision);
       sampleIndex=integer(saved.sampleIndex,0,10000,null);phase=['before','after'].includes(saved.phase)?saved.phase:step===manifest.steps?'published':'after';
-      zoom=[.75,1,1.25,1.5,2].includes(saved.zoom)?saved.zoom:1;
+      zoom=Number.isFinite(saved.zoom)?Math.max(.1,Math.min(3,saved.zoom)):1;
+      layout=['compact','vertical','expanded'].includes(saved.layout)?saved.layout:'compact';
+      zoomMode=saved.zoomMode==='fit'?'fit':'manual';
       source=['auto','classification','concept','boundary','composition','total'].includes(saved.source)?saved.source:'auto';
       metric=['weight','gradient','delta'].includes(saved.metric)?saved.metric:'weight';
       networkSource=saved.networkSource==='observation'?'observation':'sample';
@@ -136,12 +138,25 @@ const SquareBackpropTeaching = (() => {
     host.addEventListener('keydown',e=>{if(e.target.id==='trace-step'&&e.key==='Enter')seek(Number(e.target.value));});
     host.addEventListener('input',e=>{if(e.target.id==='trace-filter')host.querySelector('#trace-parameter-rows').innerHTML=rows(e.target.value);});
     return {
-      get active(){return enabled&&Boolean(entry);},get model(){return currentModel;},get loading(){return busy;},get parameter(){return parameter;},get metric(){return metric;},get zoom(){return zoom;},format:num,
+      get active(){return enabled&&Boolean(entry);},get model(){return currentModel;},get loading(){return busy;},get parameter(){return parameter;},get metric(){return metric;},get zoom(){return zoom;},get layout(){return layout;},get zoomMode(){return zoomMode;},format:num,
       get networkModel(){return result&&networkSource==='sample'?core.model(result.before):currentModel;},get networkPixels(){return networkSource==='sample'&&result?.details?result.details.sample.pixels:observed;},
       get context(){return {step,source:actualSource(),sourceName:sourceName(),metric,networkSource,sampleIndex,hasGradient:Boolean(step&&result),phase:networkSource==='sample'?'before':phase};},
       parameterInfo,metricValue,
-      setView(kind,value){if(kind==='metric'&&['weight','gradient','delta'].includes(value))metric=value;if(kind==='source'&&['auto','classification','concept','boundary','composition','total'].includes(value))source=value;if(kind==='network'&&['sample','observation'].includes(value))networkSource=value;if(kind==='zoom'&&[.75,1,1.25,1.5,2].includes(Number(value)))zoom=Number(value);save();notify();},
-      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']].map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>缩放 <select data-replay-view="zoom">${[.75,1,1.25,1.5,2].map(v=>`<option value="${v}" ${zoom===v?'selected':''}>${v*100}%</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span></div>`;},
+      setView(kind,value){
+        if(kind==='zoom'||kind==='fit'){
+          if(kind==='zoom'&&!Number.isFinite(Number(value)))return;
+          zoomMode=kind==='fit'?'fit':'manual';
+          if(kind==='zoom')zoom=Math.max(.1,Math.min(3,Number(value)));
+          save();options.onViewportChange?.();return;
+        }
+        if(kind==='metric'&&['weight','gradient','delta'].includes(value))metric=value;
+        if(kind==='source'&&['auto','classification','concept','boundary','composition','total'].includes(value))source=value;
+        if(kind==='network'&&['sample','observation'].includes(value))networkSource=value;
+        if(kind==='layout'&&['compact','vertical','expanded'].includes(value))layout=value;
+        save();notify();
+      },
+      updateFitZoom(value){zoom=Math.max(.1,Math.min(3,value));},
+      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']].map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>布局 <select data-replay-view="layout">${[['compact','横向紧凑'],['vertical','纵向三层'],['expanded','逐个展开']].map(([v,t])=>`<option value="${v}" ${layout===v?'selected':''}>${t}</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span></div>`;},
       sync(state){const next=entries.find(e=>e.manifest.presetId===state.teachingPreset)||null;if(next!==entry)switchEntry(next);observed=state.pixels.slice();render();},
       selectNeuron(layer,index){if(enabled&&[1,2].includes(layer))selectParameter(layer===2?1350:index*25+6,false);},
       selectConnection(layer,neuron,input){if(enabled)selectParameter(layer===1?neuron*25+input:1300+input);},selectParameter

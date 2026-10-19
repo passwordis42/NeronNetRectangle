@@ -1147,9 +1147,22 @@ body.is-replay [data-trace-fullscreen] { margin-left:auto; }
 .trace-network-toolbar label { display:flex; align-items:center; gap:5px; font-size:11px; min-width:0; }
 .trace-network-toolbar select { width:auto; padding:4px; min-height:29px; font-size:11px; }
 .trace-network-toolbar > span { width:100%; font-size:11px; color:#5a6d60; }
-body.is-replay .network-scroll { min-height:0; overflow:auto; }
-body.is-replay .network-canvas { padding:12px 14px; min-height:100%; }
+.replay-network-frame { position:relative; min-width:0; min-height:0; overflow:hidden; }
+.replay-network-surface { position:relative; overflow:hidden; }
+body.is-replay .network-scroll { position:absolute; inset:0; min-height:0; overflow:auto; overscroll-behavior:contain; cursor:grab; }
+body.is-replay .network-scroll.is-panning { cursor:grabbing; user-select:none; }
+body.is-replay .network-canvas { position:absolute; padding:22px 18px 22px; min-width:0; min-height:0; }
 body.is-replay .layers { display:flex; gap:42px; align-items:center; justify-content:center; min-height:0; }
+body.is-replay [data-replay-layout="vertical"] .layers { flex-direction:column; gap:55px; }
+body.is-replay [data-replay-layout="expanded"] .layers { gap:150px; align-items:flex-start; }
+body.is-replay [data-replay-layout="expanded"] .neuron { width:56px; }
+body.is-replay [data-replay-layout="expanded"] .neuron-grid { grid-template-columns:56px; }
+.replay-zoom-controls { position:absolute; bottom:8px; right:8px; z-index:4; display:flex; align-items:center; gap:3px; padding:4px; border:1px solid #cdd9d1; border-radius:8px; background:rgba(255,255,255,.97); box-shadow:0 2px 10px #1a382018; }
+.replay-zoom-controls button,.replay-zoom-controls select { min-height:32px; padding:4px 7px; font-size:11px; border:1px solid transparent; border-radius:5px; background:#f4f6f1; color:#285a46; }
+.replay-zoom-controls select { width:68px; }
+.replay-zoom-controls button:hover,.replay-zoom-controls button[aria-pressed="true"] { background:#e0efe6; border-color:#a5cbb6; }
+.replay-zoom-controls button:disabled { opacity:.4; cursor:default; }
+.replay-zoom-controls button:focus-visible,.replay-zoom-controls select:focus-visible { outline:2px solid #287254; outline-offset:1px; }
 body.is-replay .layer { min-width:0; }
 body.is-replay .layer::after { display:none; }
 body.is-replay .layer-title { min-height:30px; gap:1px; }
@@ -1190,7 +1203,8 @@ body.is-replay .calculation-line b { font-size:11px; }
   .trace-stages { grid-template-columns:repeat(6,minmax(0,1fr)); }
   .trace-sticky { position:static; }
   .replay-right { display:flex; flex-direction:column; }
-  body.is-replay .network-scroll { height:280px; flex-shrink:0; }
+  .replay-network-frame { height:320px; flex-shrink:0; }
+  body.is-replay .network-scroll { height:auto; bottom:48px; }
   body.is-replay .replay-detail-columns { grid-template-columns:minmax(0,1fr); }
   body.is-replay #weightInspector { overflow:visible; }
   .trace-network-toolbar label { flex-wrap:wrap; }
@@ -2646,7 +2660,7 @@ const SquareBackpropTeaching = (() => {
   function create(options) {
     const {host,tabs,entries}=options, core=SquareBackpropCore;
     let entry=null,manifest=null,artifact=null,enabled=false,step=0,parameter=506,precision=false;
-    let phase='after',source='auto',metric='weight',networkSource='sample',section='backward',zoom=1;
+    let phase='after',source='auto',metric='weight',networkSource='sample',section='backward',zoom=1,layout='compact',zoomMode='manual';
     let result=null,currentModel=null,busy=false,error='',notice='',requestId=0,worker=null,workerURL=null;
     let observed=Array(25).fill(0),sampleIndex=0,fullTable=false,expandedAdam=false,sampleDetails=false;
     const chunks=new Map(),pending=new Map();
@@ -2658,7 +2672,7 @@ const SquareBackpropTeaching = (() => {
     const actualSource=()=>source==='auto'?(config().lossWeights[0]===0?'concept':'classification'):source;
     const sourceName=()=>({classification:'单样本 · 分类损失',concept:'单样本 · 特征监督',boundary:'检测边界约束梯度',composition:'四边贡献约束梯度',total:'本次更新 · 总梯度'}[actualSource()]);
     const grid=(pixels,label)=>`<div class="trace-pixels" role="img" aria-label="${label}">${pixels.map(x=>`<i class="${x?'is-on':''}"></i>`).join('')}</div>`;
-    function save(){try{localStorage.setItem(key(),JSON.stringify({step,parameter,precision,source,metric,networkSource,section,sampleIndex,phase,zoom}));}catch(_){}}
+    function save(){try{localStorage.setItem(key(),JSON.stringify({step,parameter,precision,source,metric,networkSource,section,sampleIndex,phase,zoom,layout,zoomMode}));}catch(_){}}
     function notify(){options.onChange();}
     function switchEntry(next){
       ++requestId;enabled=false;busy=false;result=null;currentModel=null;error='';entry=next;manifest=next?.manifest;artifact=next?.artifact;
@@ -2666,7 +2680,9 @@ const SquareBackpropTeaching = (() => {
       let saved={};try{saved=JSON.parse(localStorage.getItem(key())||(version()==='v1'?localStorage.getItem('nn-square-backprop-view-v1'):null)||'{}');}catch(_){}
       step=integer(saved.step,0,manifest.steps,0);parameter=integer(saved.parameter,0,1350,506);precision=Boolean(saved.precision);
       sampleIndex=integer(saved.sampleIndex,0,10000,null);phase=['before','after'].includes(saved.phase)?saved.phase:step===manifest.steps?'published':'after';
-      zoom=[.75,1,1.25,1.5,2].includes(saved.zoom)?saved.zoom:1;
+      zoom=Number.isFinite(saved.zoom)?Math.max(.1,Math.min(3,saved.zoom)):1;
+      layout=['compact','vertical','expanded'].includes(saved.layout)?saved.layout:'compact';
+      zoomMode=saved.zoomMode==='fit'?'fit':'manual';
       source=['auto','classification','concept','boundary','composition','total'].includes(saved.source)?saved.source:'auto';
       metric=['weight','gradient','delta'].includes(saved.metric)?saved.metric:'weight';
       networkSource=saved.networkSource==='observation'?'observation':'sample';
@@ -2777,16 +2793,108 @@ const SquareBackpropTeaching = (() => {
     host.addEventListener('keydown',e=>{if(e.target.id==='trace-step'&&e.key==='Enter')seek(Number(e.target.value));});
     host.addEventListener('input',e=>{if(e.target.id==='trace-filter')host.querySelector('#trace-parameter-rows').innerHTML=rows(e.target.value);});
     return {
-      get active(){return enabled&&Boolean(entry);},get model(){return currentModel;},get loading(){return busy;},get parameter(){return parameter;},get metric(){return metric;},get zoom(){return zoom;},format:num,
+      get active(){return enabled&&Boolean(entry);},get model(){return currentModel;},get loading(){return busy;},get parameter(){return parameter;},get metric(){return metric;},get zoom(){return zoom;},get layout(){return layout;},get zoomMode(){return zoomMode;},format:num,
       get networkModel(){return result&&networkSource==='sample'?core.model(result.before):currentModel;},get networkPixels(){return networkSource==='sample'&&result?.details?result.details.sample.pixels:observed;},
       get context(){return {step,source:actualSource(),sourceName:sourceName(),metric,networkSource,sampleIndex,hasGradient:Boolean(step&&result),phase:networkSource==='sample'?'before':phase};},
       parameterInfo,metricValue,
-      setView(kind,value){if(kind==='metric'&&['weight','gradient','delta'].includes(value))metric=value;if(kind==='source'&&['auto','classification','concept','boundary','composition','total'].includes(value))source=value;if(kind==='network'&&['sample','observation'].includes(value))networkSource=value;if(kind==='zoom'&&[.75,1,1.25,1.5,2].includes(Number(value)))zoom=Number(value);save();notify();},
-      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']].map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>缩放 <select data-replay-view="zoom">${[.75,1,1.25,1.5,2].map(v=>`<option value="${v}" ${zoom===v?'selected':''}>${v*100}%</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span></div>`;},
+      setView(kind,value){
+        if(kind==='zoom'||kind==='fit'){
+          if(kind==='zoom'&&!Number.isFinite(Number(value)))return;
+          zoomMode=kind==='fit'?'fit':'manual';
+          if(kind==='zoom')zoom=Math.max(.1,Math.min(3,Number(value)));
+          save();options.onViewportChange?.();return;
+        }
+        if(kind==='metric'&&['weight','gradient','delta'].includes(value))metric=value;
+        if(kind==='source'&&['auto','classification','concept','boundary','composition','total'].includes(value))source=value;
+        if(kind==='network'&&['sample','observation'].includes(value))networkSource=value;
+        if(kind==='layout'&&['compact','vertical','expanded'].includes(value))layout=value;
+        save();notify();
+      },
+      updateFitZoom(value){zoom=Math.max(.1,Math.min(3,value));},
+      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']].map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>布局 <select data-replay-view="layout">${[['compact','横向紧凑'],['vertical','纵向三层'],['expanded','逐个展开']].map(([v,t])=>`<option value="${v}" ${layout===v?'selected':''}>${t}</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span></div>`;},
       sync(state){const next=entries.find(e=>e.manifest.presetId===state.teachingPreset)||null;if(next!==entry)switchEntry(next);observed=state.pixels.slice();render();},
       selectNeuron(layer,index){if(enabled&&[1,2].includes(layer))selectParameter(layer===2?1350:index*25+6,false);},
       selectConnection(layer,neuron,input){if(enabled)selectParameter(layer===1?neuron*25+input:1300+input);},selectParameter
     };
+  }
+  return {create};
+})();
+
+/* Presentation only: zoom/pan never changes historical parameters or gradients. */
+const SquareReplayViewport = (() => {
+  function create({frame,scroll,canvas,replay,onRedraw}) {
+    const surface=document.createElement('div');
+    surface.className='replay-network-surface';
+    canvas.before(surface);surface.append(canvas);
+    const controls=document.createElement('div');
+    controls.className='replay-zoom-controls';
+    controls.setAttribute('role','group');controls.setAttribute('aria-label','观察框缩放');
+    controls.innerHTML='<button type="button" data-network-zoom="out" aria-label="缩小网络" title="缩小网络">−</button><select data-replay-view="zoom" aria-label="网络缩放比例"></select><button type="button" data-network-zoom="in" aria-label="放大网络" title="放大网络">＋</button><button type="button" data-network-zoom="fit" title="将全部神经元放入观察框">适应窗口</button><button type="button" data-network-zoom="reset" title="恢复 100% 并回到网络起点">重置</button>';
+    frame.append(controls);
+    let anchor=null,drag=null,raf=0,lastLayout=null;
+    const percentages=[.1,.25,.5,.75,1,1.25,1.5,2,3];
+    function capture(clientX,clientY){
+      const rect=scroll.getBoundingClientRect();
+      const x=clientX===undefined?scroll.clientWidth/2:clientX-rect.left;
+      const y=clientY===undefined?scroll.clientHeight/2:clientY-rect.top;
+      return {x,y,worldX:(scroll.scrollLeft+x-canvas.offsetLeft)/replay.zoom,worldY:(scroll.scrollTop+y-canvas.offsetTop)/replay.zoom};
+    }
+    function update(){
+      if(!replay.active||!replay.model||scroll.hidden)return;
+      canvas.dataset.replayLayout=replay.layout;
+      const width=canvas.offsetWidth,height=canvas.offsetHeight;
+      if(!width||!height||!scroll.clientWidth||!scroll.clientHeight)return;
+      if(replay.zoomMode==='fit')replay.updateFitZoom(Math.min((scroll.clientWidth-16)/width,(scroll.clientHeight-16)/height,3));
+      const zoom=replay.zoom,scaledWidth=width*zoom,scaledHeight=height*zoom;
+      surface.style.width=`${Math.max(scroll.clientWidth,scaledWidth)}px`;
+      surface.style.height=`${Math.max(scroll.clientHeight,scaledHeight)}px`;
+      canvas.style.left=`${Math.max(0,(scroll.clientWidth-scaledWidth)/2)}px`;
+      canvas.style.top=`${Math.max(0,(scroll.clientHeight-scaledHeight)/2)}px`;
+      canvas.style.transform=`scale(${zoom})`;
+      if(lastLayout!==replay.layout||replay.zoomMode==='fit'){scroll.scrollLeft=0;scroll.scrollTop=0;}
+      else if(anchor){scroll.scrollLeft=canvas.offsetLeft+anchor.worldX*zoom-anchor.x;scroll.scrollTop=canvas.offsetTop+anchor.worldY*zoom-anchor.y;}
+      anchor=null;lastLayout=replay.layout;
+      const values=[...new Set([...percentages,zoom])].sort((a,b)=>a-b);
+      controls.querySelector('select').innerHTML=values.map(v=>`<option value="${v}" ${v===zoom?'selected':''}>${Math.round(v*100)}%</option>`).join('');
+      controls.querySelector('[data-network-zoom="out"]').disabled=zoom<=.1;
+      controls.querySelector('[data-network-zoom="in"]').disabled=zoom>=3;
+      controls.querySelector('[data-network-zoom="fit"]').setAttribute('aria-pressed',String(replay.zoomMode==='fit'));
+      onRedraw();
+    }
+    function schedule(){cancelAnimationFrame(raf);raf=requestAnimationFrame(update);}
+    function onClick(e){
+      const button=e.target.closest('[data-network-zoom]');if(!button)return;
+      anchor=capture();
+      switch(button.dataset.networkZoom){
+        case'in':replay.setView('zoom',Math.round(replay.zoom*1.25*1000)/1000);break;
+        case'out':replay.setView('zoom',Math.round(replay.zoom/1.25*1000)/1000);break;
+        case'fit':anchor=null;replay.setView('fit');break;
+        case'reset':anchor=null;replay.setView('zoom',1);scroll.scrollLeft=0;scroll.scrollTop=0;break;
+      }
+    }
+    function onChange(e){if(e.target.dataset.replayView==='zoom'){e.stopPropagation();anchor=capture();replay.setView('zoom',e.target.value);}}
+    function onWheel(e){
+      if(!e.ctrlKey&&!e.metaKey)return;
+      e.preventDefault();anchor=capture(e.clientX,e.clientY);
+      const pixels=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?scroll.clientHeight:1);
+      replay.setView('zoom',Math.round(replay.zoom*Math.exp(-Math.max(-200,Math.min(200,pixels))*.005)*1000)/1000);
+    }
+    function onDown(e){
+      if(e.pointerType!=='mouse'||e.button!==0||e.target.closest('.neuron,line,button,select'))return;
+      drag={id:e.pointerId,x:e.clientX,y:e.clientY,left:scroll.scrollLeft,top:scroll.scrollTop};
+      scroll.setPointerCapture(e.pointerId);scroll.classList.add('is-panning');e.preventDefault();
+    }
+    function onMove(e){if(drag&&drag.id===e.pointerId){scroll.scrollLeft=drag.left+drag.x-e.clientX;scroll.scrollTop=drag.top+drag.y-e.clientY;}}
+    function onUp(e){if(drag&&drag.id===e.pointerId){drag=null;scroll.classList.remove('is-panning');if(scroll.hasPointerCapture(e.pointerId))scroll.releasePointerCapture(e.pointerId);}}
+    controls.addEventListener('click',onClick);controls.addEventListener('change',onChange);
+    scroll.addEventListener('wheel',onWheel,{passive:false});
+    scroll.addEventListener('pointerdown',onDown);scroll.addEventListener('pointermove',onMove);scroll.addEventListener('pointerup',onUp);scroll.addEventListener('pointercancel',onUp);scroll.addEventListener('lostpointercapture',onUp);
+    const observer=new ResizeObserver(schedule);observer.observe(scroll);observer.observe(canvas);
+    return {update,schedule,destroy(){
+      observer.disconnect();cancelAnimationFrame(raf);
+      scroll.removeEventListener('wheel',onWheel);scroll.removeEventListener('pointerdown',onDown);scroll.removeEventListener('pointermove',onMove);scroll.removeEventListener('pointerup',onUp);scroll.removeEventListener('pointercancel',onUp);scroll.removeEventListener('lostpointercapture',onUp);
+      controls.remove();surface.replaceWith(canvas);canvas.style.left='';canvas.style.top='';delete canvas.dataset.replayLayout;scroll.classList.remove('is-panning');
+    }};
   }
   return {create};
 })();
@@ -3669,16 +3777,22 @@ const SquareBackpropTeaching = (() => {
         function move(node, into) { const marker = document.createComment("replay restore"); node.before(marker); moves.push({node, marker}); into.append(node); }
         move(host, left); left.append(fold);
         move(document.querySelector(".app > .side:not(.right-side)"), fold);
-        move(els.networkScroll, right); move(els.summaryPanel, right); move(els.detailSidebar, right);
+        const frame = document.createElement("div");
+        frame.className = "replay-network-frame"; right.append(frame);
+        move(els.networkScroll, frame); move(els.summaryPanel, right); move(els.detailSidebar, right);
         workbench.addEventListener("change", event => { if (event.target.dataset.replayView) backpropReplay.setView(event.target.dataset.replayView, event.target.value); });
-        replayLayout = { workbench, moves };
+        const viewport = SquareReplayViewport.create({frame, scroll:els.networkScroll, canvas:els.networkCanvas, replay:backpropReplay, onRedraw:drawConnectionLines});
+        replayLayout = { workbench, moves, viewport, frame };
         inspectorDrawerOpen = false;
       } else if (!active && replayLayout) {
+        replayLayout.viewport.destroy();
         replayLayout.moves.forEach(({node, marker}) => { marker.replaceWith(node); });
         replayLayout.workbench.remove(); replayLayout = null;
       }
       if (active) {
         document.getElementById("replayNetworkToolbar").innerHTML = backpropReplay.renderToolbar();
+        els.networkCanvas.dataset.replayLayout = backpropReplay.layout;
+        replayLayout.frame.inert = !backpropReplay.model;
         els.detailSidebar.inert = false;
       }
     }
@@ -3761,7 +3875,7 @@ const SquareBackpropTeaching = (() => {
 
       els.layers.innerHTML = layerValues.map((layer, layerIndex) => {
         const count = layer.values.length;
-        const cols = backpropReplay?.active ? (count===50?10:count===25?5:1) : state.expandedMode ? 1 : count <= 10 ? Math.min(5, count) : count <= 25 ? 5 : count <= 64 ? 8 : 10;
+        const cols = backpropReplay?.active ? (backpropReplay.layout==='expanded'?1:count===50?10:count===25?5:1) : state.expandedMode ? 1 : count <= 10 ? Math.min(5, count) : count <= 25 ? 5 : count <= 64 ? 8 : 10;
         const nodeSize = backpropReplay?.active ? 29 : state.expandedMode ? 56 : count <= 10 ? 46 : count <= 25 ? 38 : count <= 64 ? 31 : 25;
         const nodeFont = backpropReplay?.active ? 9 : state.expandedMode ? 10 : count <= 25 ? 11 : 9;
         const neurons = layer.values.map((value, neuronIndex) => {
@@ -3793,6 +3907,7 @@ const SquareBackpropTeaching = (() => {
       renderOutputs(latestForward.outputs);
       renderConnectionVisualization();
       renderWeightInspector();
+      replayLayout?.viewport.update();
     }
 
     function renderConnectionVisualization() {
@@ -3807,7 +3922,9 @@ const SquareBackpropTeaching = (() => {
           : `显示 ${count} 条真实连接${isTeaching() ? isTrainedTeaching() ? "（全连接，真实训练的小数权重）" : state.teachingPreset === SquareSingleTeaching.ID ? "（全连接，全部为非零整数权重）" : state.teachingNonzeroOnly ? "（仅非零权重）" : "（全连接，包含零权重）" : ""}`
         : `连接数 ${count}，已切换为层间权重摘要`;
       if (useLines) {
-        els.summaryPanel.innerHTML = isTeaching()
+        els.summaryPanel.innerHTML = backpropReplay?.active
+          ? '<span class="hint">点击神经元或连线查看对应参数。Ctrl + 滚轮缩放，拖动空白处移动；也可使用右下角按钮。绿色为正权重，红色为负权重。</span>'
+          : isTeaching()
           ? `<span class="hint">${state.hiddenLayers.length === 1 ? `相邻两层的每对神经元均有${isTrainedTeaching() ? "训练得到的小数" : "非零整数"}权重连接。绿色为正权重，红色为负权重，粗细表示权重大小。` : state.teachingNonzeroOnly ? "当前只画非零权重连接，可切换为全部连接。" : "相邻两层的每对神经元均有连接。浅灰色表示权重为 0，当前贡献为 0；绿色表示正权重，红色表示负权重。"} 选择神经元可突出它相关的连接；展开路径后可查看权重数字。</span>`
           : state.expandedMode
           ? `<span class="hint">${showAllLabels ? `当前模式为“全部权重”。总神经元 ${neuronCount} 时所有权重数字都会显示，数字较密时可切回“仅选中相关”。` : forcedDetailed ? `当前模式为“仅选中相关”。总神经元 ${neuronCount} 小于 100，仍保持真实连线；点选神经元后只显示它相关的权重数字。` : `当前模式为“仅选中相关”。点选隐藏层或输出层神经元后，只显示它相关路径的权重数字。`}</span>`
@@ -3820,6 +3937,7 @@ const SquareBackpropTeaching = (() => {
     }
 
     function drawConnectionLines() {
+      if (backpropReplay?.active && !backpropReplay.model) return;
       if (isTeaching() && !state.teachingFullNetwork && !backpropReplay?.active) return;
       const svg = els.connectionSvg;
       const canvasRect = els.networkCanvas.getBoundingClientRect();
@@ -3838,8 +3956,9 @@ const SquareBackpropTeaching = (() => {
 
       currentDisplayModel().layers.forEach((layer, layerIndex) => {
         layer.weights.forEach((weights, outputIndex) => {
-          const fromSide = state.expandedMode || backpropReplay?.active ? "right" : "bottom";
-          const toSide = state.expandedMode || backpropReplay?.active ? "left" : "top";
+          const horizontal = backpropReplay?.active ? backpropReplay.layout !== 'vertical' : state.expandedMode;
+          const fromSide = horizontal ? "right" : "bottom";
+          const toSide = horizontal ? "left" : "top";
           const to = anchor(layerIndex + 1, outputIndex, toSide);
           if (!to) return;
           weights.forEach((weight, inputIndex) => {
@@ -3899,7 +4018,14 @@ const SquareBackpropTeaching = (() => {
       const replayParameter = backpropReplay?.active ? backpropReplay.parameterInfo(parameterIndex) : null;
       label.textContent = replayParameter ? `${{weight:"w",gradient:"∂L/∂w",delta:"Δw"}[backpropReplay.metric]} = ${backpropReplay.format(backpropReplay.metricValue(parameterIndex))}` : fmt4(weight);
       label.setAttribute("x", String((from.x + to.x) / 2));
-      label.setAttribute("y", String(backpropReplay?.active ? 14 : (from.y + to.y) / 2 - 4));
+      let labelY = backpropReplay?.active ? 14 : (from.y + to.y) / 2 - 4;
+      if (backpropReplay?.active && backpropReplay.layout === 'expanded') labelY = (from.y + to.y) / 2 - 4;
+      if (backpropReplay?.active && backpropReplay.layout === 'vertical') {
+        const layer = els.layers.children[parameterIndex < 1250 ? 0 : 1];
+        const rect = layer.getBoundingClientRect(), canvasRect = els.networkCanvas.getBoundingClientRect();
+        labelY = (rect.bottom - canvasRect.top) / backpropReplay.zoom + 24;
+      }
+      label.setAttribute("y", String(labelY));
       label.setAttribute("text-anchor", "middle");
       label.setAttribute("font-size", backpropReplay?.active ? "13" : related ? "11" : "9");
       label.setAttribute("font-family", "Consolas, monospace");
@@ -4951,6 +5077,7 @@ const SquareBackpropTeaching = (() => {
       entries: [{ manifest: SquareRandomTrainingTraceManifest, artifact: SquareRandomPartialModelData },
         { manifest: SquareTrainingTraceManifest, artifact: SquareShuffledPartialModelData }],
       onChange: () => renderAll(),
+      onViewportChange: () => replayLayout?.viewport.update(),
       onSelect: (layerIndex, neuronIndex) => {
         state.selectedNeuron = sanitizeSelectedNeuron({ layerIndex, neuronIndex });
         saveAndRender();
