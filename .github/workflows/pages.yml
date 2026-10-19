@@ -24,6 +24,7 @@ jobs:
           node llm/tests/partial-features.test.cjs
           node llm/tests/composition.test.cjs
           node llm/tests/all-features.test.cjs
+          node llm/tests/backprop.test.cjs
       - name: Build standalone website
         run: python llm/scripts/build_site.py
       - uses: actions/upload-pages-artifact@v4

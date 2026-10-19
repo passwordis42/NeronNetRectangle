@@ -12,12 +12,17 @@
 - 点击居中／左上／右下 3×3、左上／右下 4×4、外圈 5×5 的缩略图，查看四条边的真实响应与输出贡献。
 - 使用缺边、内部多点或自由绘画，对比局部特征与整体判断的关系。
 - 支持神经元详情、全部贡献求和、模型对照、预设导入导出和本地状态恢复。
+- 新增 **反向传播回放**：10 个讲解阶段，任意查询 12,000 次真实更新的训练样本、四类损失、分项梯度和 Adam 计算。全部权重与偏置均可查，当前步可导出 JSON / CSV。
 
 正式六位小数模型已穷举 **33,554,432** 种黑白输入，**零误判**。识别范围是整幅画布恰好一个完整、轴对齐的正方形轮廓，内部和外部没有多余像素。
 
 ## 本地打开
 
 直接打开 [`llm/神经网络教学.html`](llm/神经网络教学.html)。无需安装依赖、后端或 API 密钥。原有实验页面和权重文件也保存在仓库中。
+
+反向传播记录按需加载；本地使用时保留 HTML 旁的 `training-trace` 文件夹。也可下载 [完整离线包（约 132 MB）](https://passwordis42.github.io/NeronNetRectangle/downloads/neural-network-offline.zip)，解压整个文件夹后打开 `index.html`，断网也可逐步查询。只复制 HTML 仍可使用原有前向教学。
+
+回放源于固定种子的确定性训练复现，初始状态继承已有模型并初始化新增特征，并非全随机初始化。每个讲解阶段包含 1,200 次实际更新；最终参数保留六位小数后与现有模型完全一致。中间训练状态不会覆盖正式模型和预设存档。
 
 ## 训练与验证
 
@@ -27,15 +32,17 @@
 python -m pip install -r llm/scripts/requirements.txt
 python llm/scripts/train_partial_features.py
 python llm/scripts/shuffle_partial_features.py
+python llm/scripts/record_training_trace.py
 python llm/scripts/bundle_composition.py
 node llm/tests/partial-features.test.cjs
 node llm/tests/composition.test.cjs
 node llm/tests/all-features.test.cjs
+node llm/tests/backprop.test.cjs
 ```
 
 ## 网页发布
 
-GitHub Pages 使用 `.github/workflows/pages.yml`：推送到 `main` 后检查模型和页面，再将当前教学 HTML 作为网站首页发布。Pages 设置的构建来源应为 **GitHub Actions**。
+GitHub Pages 使用 `.github/workflows/pages.yml`：推送到 `main` 后检查模型、全部训练记录和页面，再发布教学首页、按需加载的数据块和离线包。Pages 设置的构建来源应为 **GitHub Actions**。
 
 本地生成发布文件：
 

@@ -193,8 +193,62 @@ def exhaustive(params, batch_size=131072):
     return result, hard_ids
 
 
+def loss_and_gradients(params, x, features, examples, example_x):
+    w, b, v, c = params
+    h, scores = forward(x, params)
+    ds = np.maximum(scores - .4, 0)
+    ds[:128] = np.minimum(scores[:128] - 1.6, 0)
+    class_loss = float(np.mean(ds ** 2))
+    ds *= 2 / len(x)
+    dh = ds[:, None] * v
+    # Local concept supervision; all 1,351 parameters remain trainable.
+    feature_loss = 0.
+    for f in features:
+        i = f["neuronIndex"]
+        present = np.all(x[:, f["on"]] == 1, axis=1) & np.all(x[:, f["off"]] == 0, axis=1)
+        target = np.where(present, .9, -.9)
+        error = h[:, i] - target
+        dh[:, i] += .4 * error / len(x)
+        feature_loss += float(np.mean(error ** 2))
+    dz = dh * (1 - h * h)
+    grads = [x.T @ dz, dz.sum(axis=0), h.T @ ds, np.array([ds.sum()])]
+    # Exact worst-background margin supervision prevents a decorative
+    # label whose detector changes meaning on unseen outside pixels.
+    robust_loss = 0.
+    for f in features:
+        i = f["neuronIndex"]
+        xp, xn = worst_inputs(w[:, i], f)
+        ep = min(float(xp @ w[:, i] + b[i]) - .55, 0.)
+        en = np.maximum(xn @ w[:, i] + b[i] + .55, 0.)
+        robust_loss += ep ** 2 + float(en @ en)
+        grads[0][:, i] += 2 * (ep * xp + en @ xn)
+        grads[1][i] += 2 * (ep + en.sum())
+    contribution_loss = 0.
+    eh, _ = forward(example_x, params)
+    for k, example in enumerate(examples):
+        indices = example["featureIndices"]
+        err = np.minimum(eh[k, indices] * v[indices] - .14, 0)
+        contribution_loss += 4 * float(err @ err)
+        derivative = 8 * err
+        grads[2][indices] += derivative * eh[k, indices]
+        local = derivative * v[indices] * (1 - eh[k, indices] ** 2)
+        grads[0][:, indices] += example_x[k, :, None] * local
+        grads[1][indices] += local
+    return [class_loss, .2 * feature_loss, robust_loss, contribution_loss], grads
+
+
+def adam_update(params, grads, moments, variances, total_steps, learning_rate):
+    for i, (p, g) in enumerate(zip(params, grads)):
+        moments[i] *= .9
+        moments[i] += .1 * g
+        variances[i] *= .999
+        variances[i] += .001 * g * g
+        p -= learning_rate * (moments[i] / (1 - .9 ** total_steps)) / (np.sqrt(variances[i] / (1 - .999 ** total_steps)) + 1e-8)
+        np.clip(p, -10, 10, out=p)
+
+
 def train(args, *, features=FEATURES, examples=EXAMPLES, source=None, initialized_features=3,
-          artifact_path=ARTIFACT, checkpoint_path=CHECKPOINT,
+          artifact_path=ARTIFACT, checkpoint_path=CHECKPOINT, recorder=None, save_checkpoint=True,
           source_description="initialized from original guided model; new local concepts initialized, then all parameters trained"):
     rng = np.random.default_rng(args.seed)
     source = load_source() if source is None else source
@@ -237,64 +291,26 @@ def train(args, *, features=FEATURES, examples=EXAMPLES, source=None, initialize
             if hard_x is not None:
                 parts.append(hard_x[rng.integers(len(hard_x), size=128)])
             x = np.concatenate(parts)
-            w, b, v, c = params
-            h, scores = forward(x, params)
-            ds = np.maximum(scores - .4, 0)
-            ds[:128] = np.minimum(scores[:128] - 1.6, 0)
-            class_loss = float(np.mean(ds ** 2))
-            ds *= 2 / len(x)
-            dh = ds[:, None] * v
-            # Local concept supervision; all 1,351 parameters remain trainable.
-            feature_loss = 0.
-            for f in features:
-                i = f["neuronIndex"]
-                present = np.all(x[:, f["on"]] == 1, axis=1) & np.all(x[:, f["off"]] == 0, axis=1)
-                target = np.where(present, .9, -.9)
-                error = h[:, i] - target
-                dh[:, i] += .4 * error / len(x)
-                feature_loss += float(np.mean(error ** 2))
-            dz = dh * (1 - h * h)
-            grads = [x.T @ dz, dz.sum(axis=0), h.T @ ds, np.array([ds.sum()])]
-            # Exact worst-background margin supervision prevents a decorative
-            # label whose detector changes meaning on unseen outside pixels.
-            robust_loss = 0.
-            for f in features:
-                i = f["neuronIndex"]
-                xp, xn = worst_inputs(w[:, i], f)
-                ep = min(float(xp @ w[:, i] + b[i]) - .55, 0.)
-                en = np.maximum(xn @ w[:, i] + b[i] + .55, 0.)
-                robust_loss += ep ** 2 + float(en @ en)
-                grads[0][:, i] += 2 * (ep * xp + en @ xn)
-                grads[1][i] += 2 * (ep + en.sum())
-            eh, _ = forward(example_x, params)
-            for k, example in enumerate(examples):
-                indices = example["featureIndices"]
-                err = np.minimum(eh[k, indices] * v[indices] - .14, 0)
-                derivative = 8 * err
-                grads[2][indices] += derivative * eh[k, indices]
-                local = derivative * v[indices] * (1 - eh[k, indices] ** 2)
-                grads[0][:, indices] += example_x[k, :, None] * local
-                grads[1][indices] += local
+            losses, grads = loss_and_gradients(params, x, features, examples, example_x)
             total_steps += 1
-            for i, (p, g) in enumerate(zip(params, grads)):
-                moments[i] *= .9
-                moments[i] += .1 * g
-                variances[i] *= .999
-                variances[i] += .001 * g * g
-                p -= args.learning_rate * (moments[i] / (1 - .9 ** total_steps)) / (np.sqrt(variances[i] / (1 - .999 ** total_steps)) + 1e-8)
-                np.clip(p, -10, 10, out=p)
+            if recorder is not None:
+                recorder.before_update(total_steps, x, params, grads, moments, variances, losses)
+            adam_update(params, grads, moments, variances, total_steps, args.learning_rate)
+            if recorder is not None:
+                recorder.after_update(total_steps, params, moments, variances)
             if (step + 1) % 1000 == 0:
-                print(f"round={round_index+1} step={step+1} class={class_loss:.6f} concept={feature_loss:.4f} robust={robust_loss:.5f} elapsed={time.time()-started:.1f}s", flush=True)
+                print(f"round={round_index+1} step={step+1} class={losses[0]:.6f} concept={losses[1]/.2:.4f} robust={losses[2]:.5f} elapsed={time.time()-started:.1f}s", flush=True)
         rounded = arrays(model_of(params))
         fv, cv = verify_features(rounded, features), verify_compositions(rounded, features, examples)
         print("features", fv["passed"], "composition", cv["passed"], flush=True)
         verification, mined = exhaustive(rounded)
         hard_ids = sorted(set(hard_ids + mined))
         history.append(dict(round=round_index+1, classificationErrors=verification["errors"], featuresPassed=fv["passed"], compositionPassed=cv["passed"], hardNegativeCount=len(hard_ids)))
-        np.savez(checkpoint_path, **{f"p{i}": p for i, p in enumerate(params)},
-                 **{f"m{i}": p for i, p in enumerate(moments)}, **{f"v{i}": p for i, p in enumerate(variances)},
-                 steps=total_steps, round=round_index+1, hard=np.array(hard_ids, dtype=np.uint32),
-                 sourceHash=source["modelSha256"], history=json.dumps(history), rng=json.dumps(rng.bit_generator.state))
+        if save_checkpoint:
+            np.savez(checkpoint_path, **{f"p{i}": p for i, p in enumerate(params)},
+                     **{f"m{i}": p for i, p in enumerate(moments)}, **{f"v{i}": p for i, p in enumerate(variances)},
+                     steps=total_steps, round=round_index+1, hard=np.array(hard_ids, dtype=np.uint32),
+                     sourceHash=source["modelSha256"], history=json.dumps(history), rng=json.dumps(rng.bit_generator.state))
         if verification["errors"] == 0 and fv["passed"] and cv["passed"]:
             model = model_of(params)
             artifact = dict(model=model, featureDefinitions=features, compositionExamples=examples,
@@ -307,9 +323,10 @@ def train(args, *, features=FEATURES, examples=EXAMPLES, source=None, initialize
                     structuredNegativeExamples=len(negative_ids), rounds=history, numpyVersion=np.__version__),
                 verification=verification, featureVerification=fv, compositionVerification=cv,
                 modelSha256=hashlib.sha256(json.dumps(model, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest())
-            artifact_path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-            print(f"VERIFIED artifact saved to {artifact_path}", flush=True)
-            return
+            if artifact_path is not None:
+                artifact_path.write_text(json.dumps(artifact, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+                print(f"VERIFIED artifact saved to {artifact_path}", flush=True)
+            return artifact
     raise SystemExit("Acceptance checks not yet satisfied; checkpoint retained. Increase --rounds and use --resume. No artifact was published.")
 
 

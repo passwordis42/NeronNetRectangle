@@ -20,13 +20,24 @@ assert shuffled_features["verification"]["inputCount"] == 1 << 25 and shuffled_f
 assert shuffled_features["featureVerification"]["passed"] and shuffled_features["compositionVerification"]["passed"] and shuffled_features["permutationVerification"]["passed"]
 assert shuffled_features["neuronOrder"]["sourceModelSha256"] == partial_features["modelSha256"]
 source = (ROOT / "composition-teaching.js").read_text(encoding="utf-8")
+trace = json.loads((ROOT / "training-trace/v1/manifest.json").read_text(encoding="utf-8"))
+assert trace["modelSha256"] == shuffled_features["modelSha256"]
+assert trace["verification"]["stepsChecked"] == 12000 and trace["verification"]["finalModelExactMatch"]
+replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace, ensure_ascii=False, separators=(",", ":")) + ';\n'
+                 + (ROOT / "backprop-core.js").read_text(encoding="utf-8") + '\n'
+                 + (ROOT / "backprop-teaching.js").read_text(encoding="utf-8"))
 block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionModelData = '
          + json.dumps(artifact, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquareAllFeaturesModelData = ' + json.dumps(all_features, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquarePartialFeaturesModelData = ' + json.dumps(partial_features, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquareShuffledPartialModelData = ' + json.dumps(shuffled_features, ensure_ascii=False, separators=(",", ":"))
-         + ';\n' + source + '\n</script>\n<!-- END COMPOSITION BUNDLE -->')
+         + ';\n' + source + replay_source + '\n</script>\n<!-- END COMPOSITION BUNDLE -->')
 html = path.read_text(encoding="utf-8-sig")
+css = ('/* BEGIN BACKPROP CSS */\n' + (ROOT / "backprop-teaching.css").read_text(encoding="utf-8") + '\n/* END BACKPROP CSS */')
+if '/* BEGIN BACKPROP CSS */' in html:
+    html = re.sub(r'/\* BEGIN BACKPROP CSS \*/.*?/\* END BACKPROP CSS \*/', lambda _: css, html, flags=re.S)
+else:
+    html = html.replace('  </style>', css + '\n  </style>', 1)
 if "<!-- BEGIN COMPOSITION BUNDLE -->" in html:
     html = re.sub(r"<!-- BEGIN COMPOSITION BUNDLE -->.*?<!-- END COMPOSITION BUNDLE -->", lambda _: block, html, flags=re.S)
 else:
