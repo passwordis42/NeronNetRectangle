@@ -216,6 +216,20 @@ body.is-replay .trace-sample-control { display:grid; grid-template-columns:62px 
 body.is-replay .layers { pointer-events:none; }
 body.is-replay .neuron { pointer-events:auto; }
 
+.trace-source-help { flex-basis:100%; max-height:240px; overflow:auto; padding:6px 8px; border:1px solid #dce3d8; border-radius:6px; background:#f6f8f2; font-size:12px; line-height:1.6; }
+.trace-source-help summary { cursor:pointer; color:#285a46; font-weight:600; }
+.trace-source-help p { margin:6px 0; }
+.trace-source-help dt { font-weight:700; margin-top:8px; }
+.trace-source-help dd { margin:2px 0 8px 12px; }
+.trace-fraction { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:2px 3px; line-height:1.45; font-family:Cambria,"Times New Roman",serif; white-space:nowrap; }
+.trace-fraction > span:first-child { border-bottom:1px solid currentColor; padding:0 4px 2px; }
+.trace-fraction > span:last-child { padding:2px 4px 0; }
+.trace-chain-steps { padding-left:26px; }
+.trace-chain-steps li { padding:8px 6px; border-bottom:1px solid #dce3d8; overflow-wrap:anywhere; line-height:1.7; }
+.trace-chain-number { margin-top:4px; font:13px/1.8 Consolas,"Microsoft YaHei",monospace; }
+.trace-chain-note { color:#536b5c; font-size:12px!important; }
+.trace-chain-formula { line-height:2.8; }
+.trace-chain sub { font-size:.75em; }
 body.is-replay { font-family:"Microsoft YaHei",system-ui,sans-serif; }
 @media(min-width:1600px) {
   body.is-replay .trace-view p,body.is-replay .trace-equation { font-size:14px; }

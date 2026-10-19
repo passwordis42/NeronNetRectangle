@@ -1234,6 +1234,20 @@ body.is-replay .trace-sample-control { display:grid; grid-template-columns:62px 
 body.is-replay .layers { pointer-events:none; }
 body.is-replay .neuron { pointer-events:auto; }
 
+.trace-source-help { flex-basis:100%; max-height:240px; overflow:auto; padding:6px 8px; border:1px solid #dce3d8; border-radius:6px; background:#f6f8f2; font-size:12px; line-height:1.6; }
+.trace-source-help summary { cursor:pointer; color:#285a46; font-weight:600; }
+.trace-source-help p { margin:6px 0; }
+.trace-source-help dt { font-weight:700; margin-top:8px; }
+.trace-source-help dd { margin:2px 0 8px 12px; }
+.trace-fraction { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:2px 3px; line-height:1.45; font-family:Cambria,"Times New Roman",serif; white-space:nowrap; }
+.trace-fraction > span:first-child { border-bottom:1px solid currentColor; padding:0 4px 2px; }
+.trace-fraction > span:last-child { padding:2px 4px 0; }
+.trace-chain-steps { padding-left:26px; }
+.trace-chain-steps li { padding:8px 6px; border-bottom:1px solid #dce3d8; overflow-wrap:anywhere; line-height:1.7; }
+.trace-chain-number { margin-top:4px; font:13px/1.8 Consolas,"Microsoft YaHei",monospace; }
+.trace-chain-note { color:#536b5c; font-size:12px!important; }
+.trace-chain-formula { line-height:2.8; }
+.trace-chain sub { font-size:.75em; }
 body.is-replay { font-family:"Microsoft YaHei",system-ui,sans-serif; }
 @media(min-width:1600px) {
   body.is-replay .trace-view p,body.is-replay .trace-equation { font-size:14px; }
@@ -2676,6 +2690,7 @@ function createSquareBackpropCore() {
       const outputWeight=d.layer===1?p[1300+j]:null,activationDerivative=d.layer===1?1-h[j]*h[j]:null;
       const derivative=d.layer===1?outputWeight*activationDerivative*input:input;
       record(0,{index,id,positive,pixels:x,score,target:positive?1.6:.4,relation:positive?'>=':'<=',error,unaveragedLoss:error*error,loss:error*error/n,
+        response:j===undefined?null:h[j],z:j===undefined?null:f.preActivations[0][j],
         lossDerivative:ds,scoreDerivative:derivative,input,outputWeight,activationDerivative,rawDerivative:ds*derivative,divisor:n,rawGradient:ds*derivative/n});
       if(feature){
         const matches=feature.on.every(i=>x[i]===1)&&feature.off.every(i=>x[i]===0),target=matches?.9:-.9,error=h[j]-target;
@@ -2759,19 +2774,63 @@ const SquareBackpropLosses = (() => {
   function audit(trace,kind,rowIndex,num){
     const rows=trace.rows[kind],selected=Math.max(0,Math.min(rows.length-1,rowIndex||0)),r=rows[selected],d=trace.parameter;
     const title=r?kind<2?`批次样本 ${r.index+1} · 图案编号 ${r.id}`:kind===2?r.kind==='satisfy'?'满足目标的最不利输入':`X${r.bit+1} 违反须${r.required?'亮':'空'}条件的最不利输入`:`${r.name} · H1-${r.neuron+1}`:'';
-    let formula='';
-    if(r){
-      if(kind===0)formula=`∂ℓ/∂s = 2 × ${num(r.error)} = ${num(r.lossDerivative)}<br>`+(d.layer===1?`∂s/∂θ = vⱼ × (1−hⱼ²) × ${d.kind==='bias'?'1':'xᵢ'}<br>= ${num(r.outputWeight)} × ${num(r.activationDerivative)} × ${num(r.input)} = ${num(r.scoreDerivative)}`:`∂s/∂θ = ${d.kind==='bias'?'1':'hⱼ'} = ${num(r.scoreDerivative)}`);
-      if(kind===1)formula=`∂ℓ/∂h = 0.4 × (h−t) = ${num(r.lossDerivative)}<br>∂h/∂θ = (1−h²) × ${d.kind==='bias'?'1':'xᵢ'} = ${num(r.activationDerivative)} × ${num(r.input)}`;
-      if(kind===2)formula=`z = ${num(r.z)}；目标 ${r.kind==='satisfy'?'≥':'≤'} ${num(r.target)}<br>e = ${r.kind==='satisfy'?'min':'max'}(z − ${num(r.target)}, 0) = ${num(r.error)}<br>∂ℓ/∂θ = 2e × ${d.kind==='bias'?'1':'xᵢ'} = ${num(r.lossDerivative)} × ${num(r.input)}`;
-      if(kind===3)formula=`h = ${num(r.response)}；v = ${num(r.outputWeight)}<br>c = h × v = ${num(r.contribution)}；目标 ≥ ${num(r.target)}<br>e = min(c−0.14,0) = ${num(r.error)}<br>∂ℓ/∂c = 8e = ${num(r.lossDerivative)}<br>∂c/∂θ = ${d.layer===1?`v × (1−h²) × ${d.kind==='bias'?'1':'xᵢ'} = ${num(r.outputWeight)} × ${num(r.activationDerivative)} × ${num(r.input)}`:`h = ${num(r.response)}`}`;
-    }
     return `<div class="trace-audit"><h3>逐项追溯：${escape(d.label)}</h3><label>损失来源 <select id="trace-audit-kind">${names.map((name,k)=>`<option value="${k}" ${kind===k?'selected':''}>${name} · ${trace.rows[k].length} 项</option>`).join('')}</select></label><p>只列出在计算结构上与该参数有关的项；其余项对该参数偏导为 0。重复样本保留各自批次位置。</p><div class="trace-equation">原始梯度求和 = ${num(trace.rawGradients[kind])}<br>× 阶段系数 ${trace.lossWeights[kind]} = ${num(trace.parts[kind])}</div>
-      ${!r?`<p class="trace-audit-empty">${kind===1?'该参数没有局部特征监督目标；输出层与自由神经元不受此项直接监督。':kind===2?'该参数不属于明确特征的输入权重或偏置，边界损失不依赖它。':'该参数不参与六个方框的四边贡献约束。'} 本项梯度为 0。</p>`:`<div class="trace-audit-detail">${grid(r.pixels)}<div><b>${escape(title)}</b><p>${kind<2?'单项损失（未除以 N）':'单项损失'} = ${num(r.unaveragedLoss??r.loss)}${r.target!==undefined?`；目标 ${num(r.target)}`:''}</p>${kind<2?`<button data-trace-pick-sample="${r.index}">用此训练样本观察网络</button>`:''}</div></div><div class="trace-equation">${formula}<br>单项原始偏导 = ${num(r.rawDerivative)}<br>× 阶段系数 ${r.coefficient} ÷ ${r.divisor} = <b>${num(r.gradient)}</b>${kind<2?'（对批次总梯度的贡献）':'（约束项不除以 N）'}</div>
+      ${!r?`<p class="trace-audit-empty">${kind===1?'该参数没有局部特征监督目标；输出层与自由神经元不受此项直接监督。':kind===2?'该参数不属于明确特征的输入权重或偏置，边界损失不依赖它。':'该参数不参与六个方框的四边贡献约束。'} 本项梯度为 0。</p>`:`<div class="trace-audit-detail">${grid(r.pixels)}<div><b>${escape(title)}</b><p>${kind<2?'单项损失（未除以 N）':'单项损失'} = ${num(r.unaveragedLoss??r.loss)}${r.target!==undefined?`；目标 ${num(r.target)}`:''}</p>${kind<2?`<button data-trace-pick-sample="${r.index}">用此训练样本观察网络</button>`:''}</div></div>${chain(d,kind,r,num)}
       <div class="trace-table-scroll"><table><thead><tr><th>来源项</th><th>${kind<2?'单样本／特征损失':'单项损失'}</th><th>原始偏导</th><th>有效梯度贡献</th></tr></thead><tbody>${rows.map((row,i)=>`<tr class="${selected===i?'trace-selected':''}"><td><button data-trace-audit-row="${i}">${kind<2?`样本 ${row.index+1}`:kind===2?row.kind==='satisfy'?'满足目标':`X${row.bit+1} 违约`:escape(row.name)}</button></td><td>${num(row.unaveragedLoss??row.loss)}</td><td>${num(row.rawDerivative)}</td><td>${num(row.gradient)}</td></tr>`).join('')}</tbody></table></div>`}
       <p data-trace-audit-check>四项有效梯度之和 ${num(trace.total)}；已与本次记录总梯度校验，最大误差 ${num(trace.maximumError)}。</p></div>`;
   }
-  return {definition,summary,guide,lossTable,sampleLoss,audit};
+
+  const sourceOptions=[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']];
+  function sourceHelp(source,c,open){
+    const explanations={
+      auto:`自动选择一种单样本偏导来讲解；当前选择${c.lossWeights[0]===0?'特征监督':'分类损失'}。这不表示训练只使用这一项，实际启用系数为 [${c.lossWeights.join(', ')}]。`,
+      classification:'只看当前训练样本的分类误差怎样影响该参数：正例要求得分 ≥ 1.6，负例要求得分 ≤ 0.4。',
+      concept:'只看当前训练样本的局部特征误差：满足检测目标时隐藏响应趋向 +0.9，否则趋向 −0.9；仅监督指定的 25 个神经元。',
+      boundary:'汇总该参数相关的最不利输入约束：满足特征时激活前输入和 z ≥ 0.55，不满足时 z ≤ −0.55。使用专门构造的图案，不是当前单个训练样本。',
+      composition:'汇总六个示例的四边贡献约束：要求每条边的响应 × 输出权重 ≥ 0.14。使用标准方框，不是当前单个训练样本。',
+      total:'整批样本的分类、特征梯度分别平均，再加上边界和四边贡献约束梯度；全部乘过阶段系数。这才是实际交给 Adam 的梯度。'
+    };
+    return `<details class="trace-source-help" data-replay-source-help ${open?'open':''}><summary>偏导来源是什么意思？</summary><p><b>当前：</b>${explanations[source]}</p><dl>${sourceOptions.map(([key,label])=>`<dt>${label}</dt><dd>${explanations[key]}</dd>`).join('')}</dl><p>单样本选项在权重格显示“单样本原始偏导 × 阶段系数”，尚未除以批次大小 N；左侧会继续展示除以 N 后的贡献。两个约束选项显示该类约束的梯度之和，无需除以 N。总梯度也不等于实际改变量 Δw，Adam 还使用动量与二阶矩。</p><p>切换来源只改变显示，不改变历史训练。若选中损失的阶段系数为 0，它在本阶段不参与更新。</p></details>`;
+  }
+  const fraction=(top,bottom)=>`<span class="trace-fraction"><span>${top}</span><span>${bottom}</span></span>`;
+  function chain(d,kind,r,num){
+    if(!r)return `<p class="trace-chain-empty">${kind===1?'该参数没有局部特征监督目标；自由神经元和输出层参数不受此项直接监督。':kind===2?'边界约束只依赖明确特征的输入权重与偏置。':'该参数不参与六个方框的四边贡献约束。'} 此项损失不依赖该参数，∂ℓ/∂θ = 0。</p>`;
+    const j=(d.layer===1?d.neuron:d.input)+1,h=`h<sub>${j}</sub>`,z=`z<sub>${j}</sub>`,v=`v<sub>${j}</sub>`;
+    const theta=d.layer===1?(d.kind==='bias'?`b<sub>1,${j}</sub>`:`W<sub>1,${j},${d.input+1}</sub>`):d.kind==='bias'?'b<sub>2</sub>':v;
+    const deriv=(a,b)=>fraction('∂'+a,'∂'+b),terms=[];
+    const term=(a,b,expression,substitution,value)=>terms.push({symbol:deriv(a,b),expression,substitution,value});
+    let preparation='';
+    if(kind===0){
+      preparation=`ℓ分类 = e²；e = ${r.positive?'min':'max'}(s − ${r.target}, 0)<br>e = ${r.positive?'min':'max'}(${num(r.score)} − ${num(r.target)}, 0) = ${num(r.error)}`;
+      term('ℓ分类','s','2e',`2 × (${num(r.error)})`,r.lossDerivative);
+      if(d.layer===1)term('s',h,v,num(r.outputWeight),r.outputWeight);
+      else term('s',theta,d.kind==='bias'?'1':h,num(r.input),r.input);
+    }else if(kind===1){
+      preparation=`ℓ特征 = 0.2 × (${h} − t)²<br>e = ${num(r.response)} − (${num(r.target)}) = ${num(r.error)}`;
+      term('ℓ特征',h,`0.4 × (${h} − t)`,`0.4 × (${num(r.error)})`,r.lossDerivative);
+    }else if(kind===2){
+      preparation=`ℓ边界 = e²；${z} = ${num(r.z)}，目标 ${r.kind==='satisfy'?'≥':'≤'} ${num(r.target)}<br>e = ${r.kind==='satisfy'?'min':'max'}(${num(r.z)} − (${num(r.target)}), 0) = ${num(r.error)}`;
+      term('ℓ边界',z,'2e',`2 × (${num(r.error)})`,r.lossDerivative);
+    }else{
+      preparation=`ℓ组合 = 4e²；c = ${h} × ${v}<br>c = ${num(r.response)} × (${num(r.outputWeight)}) = ${num(r.contribution)}<br>e = min(${num(r.contribution)} − 0.14, 0) = ${num(r.error)}`;
+      term('ℓ组合','c','8e',`8 × (${num(r.error)})`,r.lossDerivative);
+      if(d.layer===1)term('c',h,v,num(r.outputWeight),r.outputWeight);
+      else term('c',theta,h,num(r.response),r.response);
+    }
+    if(d.layer===1){
+      if(kind!==2)term(h,z,`1 − ${h}²`,`1 − (${num(r.response)})²`,r.activationDerivative);
+      term(z,theta,d.kind==='bias'?'1':`x<sub>${d.input+1}</sub>`,num(r.input),r.input);
+    }
+    const loss=['ℓ分类','ℓ特征','ℓ边界','ℓ组合'][kind],weighted=r.rawDerivative*r.coefficient;
+    const zero=r.coefficient===0?'本阶段系数为 0，因此这一项不参与更新；原始偏导仍按真实参数计算。':r.rawDerivative===0?(r.lossDerivative===0?'这一项已达到目标，损失对上游量的偏导为 0。':r.input===0?'当前图案中这个输入像素为 0，最后一个因子为 0，因此这条输入连接的偏导为 0。':r.activationDerivative===0?'当前 tanh 在计算精度下已饱和，激活函数导数为 0。':'链条中存在零因子（例如输出权重为 0），因此乘积为 0。'):'';
+    return `<div class="trace-chain" data-chain-kind="${kind}" data-chain-parameter="${d.index}"><p>θ = ${theta} · ${escape(d.label)}。${kind<2?'以下先计算这个训练样本的原始偏导，再乘阶段系数、除以批次大小。':'以下计算选中约束项的偏导，再与其他约束项相加。'}</p><div class="trace-equation">${preparation}</div>
+      <div class="trace-equation trace-chain-formula" aria-label="链式法则">${deriv(loss,theta)} = ${terms.map(t=>t.symbol).join(' · ')}</div>
+      <ol class="trace-chain-steps">${terms.map(t=>`<li><div>${t.symbol} = ${t.expression}</div><div class="trace-chain-number">= ${t.substitution===num(t.value)?'':t.substitution+' = '}<b data-chain-factor="${t.value}">${num(t.value)}</b></div></li>`).join('')}</ol>
+      ${kind===0?'<p class="trace-chain-note">本模型使用间隔平方损失 ℓ = e²，没有 ½ 系数，因此第一项偏导为 2e；达到分类间隔后 e = 0。</p>':''}
+      ${d.layer===1&&kind!==2?'<p class="trace-chain-note">隐藏层使用 tanh，实际导数为 1 − h²；这里没有把导数人为设为 1。输出层为线性输出。</p>':''}
+      <div class="trace-equation">${deriv(loss,theta)} = ${terms.map(t=>`(${num(t.value)})`).join(' × ')}<br>= <b data-chain-raw="${r.rawDerivative}">${num(r.rawDerivative)}</b><br>× 阶段系数 ${r.coefficient} = <span data-chain-weighted="${weighted}">${num(weighted)}</span><br>${kind<2?`÷ 批次大小 ${r.divisor} = <b data-chain-contribution="${r.gradient}">${num(r.gradient)}</b>（对批次总梯度的贡献）`:`该约束项的有效梯度贡献 = <b data-chain-contribution="${r.gradient}">${num(r.gradient)}</b>（无需除以 N）`}</div>${zero?`<p class="trace-chain-note">${zero}</p>`:''}</div>`;
+  }
+  return {definition,summary,guide,lossTable,sampleLoss,audit,chain,sourceOptions,sourceHelp};
 })();
 
 /* Read-only, versioned training replay. Every displayed update is a recorded update. */
@@ -2784,7 +2843,7 @@ const SquareBackpropTeaching = (() => {
     let phase='after',source='auto',metric='weight',networkSource='sample',section='backward',zoom=1,layout='compact',zoomMode='manual';
     let result=null,currentModel=null,busy=false,error='',notice='',requestId=0,worker=null,workerURL=null;
     let observed=Array(25).fill(0),sampleIndex=0,fullTable=false,expandedAdam=false,sampleDetails=false;
-    let traceOpen=false,formulasOpen=false,auditKind=0,auditRow=null,cachedTrace=null;
+    let traceOpen=false,formulasOpen=false,auditKind=0,auditRow=null,cachedTrace=null,chainRow=null,sourceHelpOpen=false;
     const chunks=new Map(),pending=new Map();
     const num=v=>Number.isFinite(v)?(precision?String(v):v!==0&&Math.abs(v)<.0000005?v.toExponential(6):v.toFixed(6)):'—';
     const integer=(v,min,max,fallback)=>Number.isInteger(v)&&v>=min&&v<=max?v:fallback;
@@ -2794,7 +2853,7 @@ const SquareBackpropTeaching = (() => {
     const actualSource=()=>source==='auto'?(config().lossWeights[0]===0?'concept':'classification'):source;
     const sourceName=()=>({classification:'单样本 · 分类损失',concept:'单样本 · 特征监督',boundary:'检测边界约束梯度',composition:'四边贡献约束梯度',total:'本次更新 · 总梯度'}[actualSource()]);
     const grid=(pixels,label)=>`<div class="trace-pixels" role="img" aria-label="${label}">${pixels.map(x=>`<i class="${x?'is-on':''}"></i>`).join('')}</div>`;
-    function save(){try{localStorage.setItem(key(),JSON.stringify({step,parameter,precision,source,metric,networkSource,section,sampleIndex,phase,zoom,layout,zoomMode}));}catch(_){}}
+    function save(){try{localStorage.setItem(key(),JSON.stringify({step,parameter,precision,source,metric,networkSource,section,sampleIndex,phase,zoom,layout,zoomMode,sourceHelpOpen}));}catch(_){}}
     function notify(){options.onChange();}
     function switchEntry(next){
       ++requestId;enabled=false;busy=false;result=null;currentModel=null;error='';entry=next;manifest=next?.manifest;artifact=next?.artifact;
@@ -2806,6 +2865,7 @@ const SquareBackpropTeaching = (() => {
       layout=['compact','vertical','expanded'].includes(saved.layout)?saved.layout:'compact';
       zoomMode=saved.zoomMode==='fit'?'fit':'manual';
       source=['auto','classification','concept','boundary','composition','total'].includes(saved.source)?saved.source:'auto';
+      sourceHelpOpen=Boolean(saved.sourceHelpOpen);chainRow=null;
       metric=['weight','gradient','delta'].includes(saved.metric)?saved.metric:'weight';
       networkSource=saved.networkSource==='observation'?'observation':'sample';
       section=['forward','loss','backward','update'].includes(saved.section)?saved.section:'backward';
@@ -2846,6 +2906,7 @@ const SquareBackpropTeaching = (() => {
     }
     async function seek(next,selectedSample=null,keepPhase=false,find=false){
       step=integer(Number(next),0,manifest.steps,step);if(!keepPhase)phase=step===manifest.steps?'published':'after';
+      chainRow=null;
       const id=++requestId,index=Math.max(0,Math.floor((step-1)/100));sampleIndex=selectedSample;busy=true;error='';notice='';result=null;currentModel=null;save();notify();
       try{
         if(!globalThis.Worker||!globalThis.DecompressionStream||!globalThis.crypto?.subtle)throw Error('请使用支持训练记录解压的新版浏览器；原有前向教学仍可使用。');
@@ -2866,7 +2927,7 @@ const SquareBackpropTeaching = (() => {
         delta:step?result.after[i]-result.before[i]:null,step,source:s,sourceName:sourceName(),sampleIndex,metric};
     }
     const metricValue=i=>{const p=parameterInfo(i);return p?p[metric==='weight'?'weight':metric==='delta'?'delta':'gradient']:null;};
-    function selectParameter(i,select=true){parameter=integer(Number(i),0,1350,parameter);save();if(select){const d=core.describe(parameter);options.onSelect(d.layer,d.neuron);}else notify();}
+    function selectParameter(i,select=true){chainRow=null;parameter=integer(Number(i),0,1350,parameter);save();if(select){const d=core.describe(parameter);options.onSelect(d.layer,d.neuron);}else notify();}
     function parameterOptions(){const d=core.describe(parameter),ids=d.layer===1?[...Array.from({length:25},(_,i)=>d.neuron*25+i),1250+d.neuron,1300+d.neuron]:[...Array.from({length:50},(_,i)=>1300+i),1350];return ids.map(i=>`<option value="${i}" ${i===parameter?'selected':''}>${core.describe(i).label}</option>`).join('');}
     function parameterProvenance(){
       if(!step||!result?.details)return null;
@@ -2883,6 +2944,20 @@ const SquareBackpropTeaching = (() => {
     }
     function showLoss(){section='loss';traceOpen=true;formulasOpen=false;save();render();focusLoss();}
     function provenanceView(){const trace=parameterProvenance();return !trace?'':trace.error?`<p class="trace-error">${trace.error}</p>`:losses.audit(trace,auditKind,auditRow??(auditKind<2?sampleIndex:0),num);}
+    function backwardView(){
+      const p=parameterInfo(parameter),src=actualSource(),kind={classification:0,concept:1,boundary:2,composition:3}[src];
+      const trace=parameterProvenance();if(trace.error)return `<p class="trace-error">${trace.error}</p>`;
+      let body='';
+      if(src==='total'){
+        body=`<div class="trace-equation">∂L/∂θ = λ分类 ∂L分类/∂θ + λ特征 ∂L特征/∂θ + λ边界 ∂L边界/∂θ + λ组合 ∂L组合/∂θ<br>= ${trace.rawGradients.map((g,k)=>`${trace.lossWeights[k]} × (${num(g)})`).join(' + ')}<br>= ${trace.parts.map(g=>`(${num(g)})`).join(' + ')}<br>= <b>${num(p.totalGradient)}</b></div><p>前两项已对整批样本取平均，后两项汇总全部对应约束。不同样本的梯度可能相互抵消。</p>`;
+      }else{
+        const rows=trace.rows[kind],fallback=Math.max(0,rows.findIndex(r=>r.rawDerivative!==0)),index=kind<2?sampleIndex:Math.min(rows.length-1,chainRow??fallback),r=rows[index];
+        if(kind>=2&&r)body+=`<label>展开一个约束项 <select id="trace-chain-row">${rows.map((row,i)=>`<option value="${i}" ${i===index?'selected':''}>${kind===2?row.kind==='satisfy'?'满足目标的最不利输入':`X${row.bit+1} 违约的最不利输入`:escape(row.name)}</option>`).join('')}</select></label><div class="trace-sample">${grid(r.pixels,'选中的约束图案')}<p>这是该约束项使用的图案，不是当前选中的训练样本。</p></div>`;
+        body+=losses.chain(trace.parameter,kind,r,num);
+        if(kind>=2)body+=`<div class="trace-equation">本参数的 ${rows.length} 个${names[kind]}项相加：<br>∂L${kind===2?'边界':'组合'}/∂θ = ${rows.length?rows.map(row=>`(${num(row.rawGradient)})`).join(' + '):'0'}<br>= ${num(trace.rawGradients[kind])}<br>× 阶段系数 ${trace.lossWeights[kind]} = <b>${num(p.gradient)}</b>（此来源在权重格显示的偏导）</div>`;
+      }
+      return `<h3>链式法则 · ${escape(p.label)}</h3><p><b>${sourceName()}</b> · 第 ${step.toLocaleString()} 次更新前${p.isSingle?` · 样本 ${sampleIndex+1}`:' · 相关项汇总'}</p>${body}<p>实际交给 Adam 的总梯度为 <b>${num(p.totalGradient)}</b>。实际改变量 Δw = <b>${num(p.delta)}</b>，还受动量、学习率和裁剪影响。</p><button data-trace-action="chain-audit">查看全部来源的逐项计算</button>`;
+    }
     function rows(filter=''){if(!result)return '';return Array.from({length:1351},(_,i)=>i).filter(i=>core.describe(i).label.toLowerCase().includes(filter.toLowerCase())).map(i=>`<tr><td><button data-trace-parameter="${i}">${core.describe(i).label}</button></td><td>${num(result.before[i])}</td>${names.map((_,k)=>`<td>${step?num(result.details.parts[k][i]):'—'}</td>`).join('')}<td>${step?num(result.gradient[i]):'—'}</td><td>${step?num(result.after[i]-result.before[i]):'—'}</td><td>${num(result.after[i])}</td></tr>`).join('');}
     function render(){
       tabs.hidden=!entry;host.hidden=!entry||!enabled;
@@ -2904,12 +2979,9 @@ const SquareBackpropTeaching = (() => {
       <div class="trace-update" data-trace-update><div><small>更新前</small><b>${num(p.before)}</b></div><span>→</span><div><small>更新后</small><b>${num(p.after)}</b></div><div><small>实际 Δw</small><b>${num(p.delta)}</b></div></div>
       <div class="trace-calculation-tabs">${[['forward','前向'],['loss','损失'],['backward','反传'],['update','更新']].map(([id,label])=>`<button data-trace-section="${id}" aria-pressed="${section===id}">${label}</button>`).join('')}</div>`;
       if(s){
-        const sourceValue=p.gradient;
         html+=`<section class="trace-section" data-trace-pane="forward" ${section!=='forward'?'hidden':''}><h3>前向计算 · 本次训练样本</h3><div class="trace-sample">${grid(s.pixels,'选中的历史训练样本')}<div><b>${s.positive?'正例 · 完整方框':'负例'}</b><p>使用第 ${step} 次更新前的参数。${d.layer===1?`H1-${j+1}：z = ${num(s.preActivations[0][j])}，h = ${num(s.activations[1][j])}。`:d.kind==='bias'?`输出偏置 b₂ = ${num(result.before[1350])}。`:`H1-${j+1} 响应 h = ${num(s.activations[1][j])}；输出权重 v = ${num(result.before[parameter])}；该连接贡献 h × v = ${num(s.activations[1][j]*result.before[parameter])}。`}输出 s = b₂ + Σⱼ vⱼhⱼ = ${num(s.outputs[0])}。</p></div></div><button data-trace-action="sample-details">${sampleDetails?'收起':'展开'}全部 50 个神经元</button>${sampleDetails?`<div class="trace-table-scroll"><table><thead><tr><th>神经元</th><th>z</th><th>h</th><th>特征目标 t</th><th>该特征单样本损失</th><th>1−h²</th><th>分类 δ/N</th><th>特征 δ/N</th></tr></thead><tbody>${s.activations[1].map((h,i)=>`<tr><td>H1-${i+1}</td><td>${num(s.preActivations[0][i])}</td><td>${num(h)}</td><td>${s.targets[i]===null?'无指定目标':num(s.targets[i])}</td><td>${s.targets[i]===null?'—':num(.2*(h-s.targets[i])**2)}</td><td>${num(1-h*h)}</td><td>${num(s.dzClass[i])}</td><td>${num(s.dzConcept[i])}</td></tr>`).join('')}</tbody></table></div>`:''}</section>
         <section class="trace-section" data-trace-pane="loss" ${section!=='loss'?'hidden':''}><button data-trace-action="formulas">${formulasOpen?'收起':'查看'}四个损失函数、目标值与阶段安排</button>${formulasOpen?losses.guide(manifest,c,num,result):''}${losses.lossTable(result,parameter,c,num)}${losses.sampleLoss(result,parameter,c,num)}<button data-trace-action="provenance">${traceOpen?'收起':'展开'}选中参数的逐项溯源</button>${traceOpen&&section==='loss'?provenanceView():''}</section>
-        <section class="trace-section" data-trace-pane="backward" ${section!=='backward'?'hidden':''}><h3>偏导如何传到 ${escape(d.label)}</h3><p><b>${sourceName()}</b> · ${step} 次更新前 · 样本 ${sampleIndex+1}</p>
-        ${['total','boundary','composition'].includes(actualSource())?`<div class="trace-equation">∂L/∂θ = 分类＋特征监督＋边界约束＋四边贡献<br>${result.details.parts.map(part=>num(part[parameter])).join(' + ')} = ${num(p.totalGradient)}${actualSource()!=='total'?`<br>当前选中 ${sourceName()} = ${num(p.rawGradient)} × 阶段系数 ${p.coefficient} = ${num(sourceValue)}<br>约束从特征边界或六个标准方框计算，不属于当前单个训练样本，无需再除以训练批次数。`:''}</div>`:`<div class="trace-equation">${actualSource()==='classification'?`∂ℓ分类/∂s = 2 × 间隔误差 = ${num(2*s.error)}${d.layer===1?`<br>δH1-${j+1} = ${num(2*s.error)} × ${num(result.before[1300+j])} × (1 − ${num(s.activations[1][j])}²) = ${num(s.dzClass[j]*result.ids.length)}`:''}`:d.layer===2||s.targets[j]===null?'该参数没有局部特征监督目标。':`局部目标 t = ${num(s.targets[j])}<br>δ特征,H1-${j+1} = 0.4 × (h − t) × (1 − h²) = ${num(s.dzConcept[j]*result.ids.length)}`}<br>${d.layer===2?actualSource()==='concept'?'局部特征监督不依赖输出层参数，此项偏导为 0':`输出${d.kind==='bias'?'偏置':'权重'}偏导 = 2 × 间隔误差 × ${d.kind==='bias'?'1':'对应隐藏响应'}`:`${d.kind==='bias'?'偏置偏导 = δ':'输入权重偏导 = δ × 对应输入'}`}<br>单样本原始偏导 = ${num(p.rawGradient)}<br>× 阶段系数 ${p.coefficient} = ${num(sourceValue)}<br>÷ 批次 ${result.ids.length} = 对批次梯度的贡献 ${num(p.batchContribution)}</div>`}
-        <p>${sourceValue===0?(p.coefficient===0?'本阶段未启用该损失，因此不参与更新。':actualSource()==='concept'&&(d.layer===2||s.targets[d.neuron]===null)?'该参数没有局部特征监督目标，因此此项偏导为零。':['boundary','composition'].includes(actualSource())?'约束当前已满足，或该参数不参与这项约束。':actualSource()==='classification'&&s.error===0?'该样本已达到分类间隔，所以分类偏导为零。':'偏导为零：可能是对应输入为零，或链式法则中的因子为零。'):'绿色／红色表示偏导正负；Adam 实际改变量还受总梯度和动量影响。'}</p>
+        <section class="trace-section" data-trace-pane="backward" ${section!=='backward'?'hidden':''}>${section==='backward'?backwardView():''}
         <button data-trace-action="find" ${!p.isSingle?'disabled':''}>查看本批次中偏导非零的样本</button><p role="status">${notice}</p></section>
         <section class="trace-section" data-trace-pane="update" ${section!=='update'?'hidden':''}><h3>Adam · 使用批次总梯度</h3><p>g = ${num(p.totalGradient)}；学习率 ${c.learningRate}。单样本偏导不直接等于实际 Δw；零梯度也可能因动量继续更新。</p><button data-trace-action="adam">${expandedAdam?'收起':'展开'} Adam 与裁剪</button>${expandedAdam?`<div class="trace-equation">m = ${c.beta1} × ${num(result.oldM[parameter])} + ${num(c.beta1===.9?.1:1-c.beta1)} × ${num(p.totalGradient)} = ${num(result.m[parameter])}<br>v（二阶矩）= ${c.beta2} × ${num(result.oldV[parameter])} + ${num(c.beta2===.999?.001:1-c.beta2)} × g² = ${num(result.v[parameter])}<br>m̂ = m / (1−${c.beta1}^${step}) = ${num(result.correctedM[parameter])}<br>v̂ = v / (1−${c.beta2}^${step}) = ${num(result.correctedV[parameter])}<br>候选值 = ${num(p.before)} − ${c.learningRate} × m̂ / (√v̂ + ${num(c.epsilon)}) = ${num(result.proposed[parameter])}<br>裁剪到 [${c.bounds.join(", ")}] → ${num(p.after)} · ${result.clipped[parameter]?'发生裁剪':'未裁剪'}</div>`:''}</section>
 `;
@@ -2940,8 +3012,9 @@ const SquareBackpropTeaching = (() => {
     }
     function setEnabled(value){enabled=Boolean(value&&entry);if(enabled){const d=core.describe(parameter);options.onSelect(d.layer,d.neuron);seek(step,sampleIndex,true);}else{++requestId;busy=false;result=null;currentModel=null;notify();}}
     tabs.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.traceMode)setEnabled(b.dataset.traceMode==='replay');if(b.hasAttribute('data-trace-fullscreen')){try{if(document.fullscreenElement)await document.exitFullscreen();else await document.documentElement.requestFullscreen();}catch(_){notice='浏览器未允许全屏，可使用 F11。';render();}}});
-    host.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.traceSeek!==undefined){seek(Number(b.dataset.traceSeek));return;}if(b.dataset.traceParameter!==undefined){section='loss';traceOpen=true;selectParameter(Number(b.dataset.traceParameter));focusLoss();return;}if(b.dataset.traceAuditRow!==undefined){auditRow=Number(b.dataset.traceAuditRow);render();return;}if(b.dataset.tracePickSample!==undefined){seek(step,Number(b.dataset.tracePickSample),true);return;}if(b.dataset.traceSection){section=b.dataset.traceSection;if(b.hasAttribute('data-trace-focus-loss'))formulasOpen=true;save();render();if(b.hasAttribute('data-trace-focus-loss'))focusLoss();return;}switch(b.dataset.traceAction){case'formulas':formulasOpen=!formulasOpen;render();break;case'provenance':traceOpen=!traceOpen;render();break;case'jump':seek(Number(host.querySelector('#trace-step').value));break;case'retry':seek(step);break;case'return':setEnabled(false);break;case'find':seek(step,sampleIndex,true,true);break;case'table':fullTable=!fullTable;render();break;case'adam':expandedAdam=!expandedAdam;render();break;case'sample-details':sampleDetails=!sampleDetails;render();break;case'canvas':document.getElementById('replayCanvasFold').open=!document.getElementById('replayCanvasFold').open;break;case'json':case'csv':download(b.dataset.traceAction);break;}});
-    host.addEventListener('change',e=>{switch(e.target.id){case'trace-audit-kind':auditKind=Number(e.target.value);auditRow=null;render();break;case'trace-phase':phase=e.target.value;setModel();save();notify();break;case'trace-precision':precision=e.target.checked;save();notify();break;case'trace-parameter':selectParameter(Number(e.target.value));break;case'trace-neuron':selectParameter(Number(e.target.value)===50?1350:Number(e.target.value)*25+6);break;case'trace-sample':seek(step,Number(e.target.value),true);break;}});
+    host.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.traceSeek!==undefined){seek(Number(b.dataset.traceSeek));return;}if(b.dataset.traceParameter!==undefined){section='loss';traceOpen=true;selectParameter(Number(b.dataset.traceParameter));focusLoss();return;}if(b.dataset.traceAuditRow!==undefined){auditRow=Number(b.dataset.traceAuditRow);render();return;}if(b.dataset.tracePickSample!==undefined){seek(step,Number(b.dataset.tracePickSample),true);return;}if(b.dataset.traceSection){section=b.dataset.traceSection;if(b.hasAttribute('data-trace-focus-loss'))formulasOpen=true;save();render();if(b.hasAttribute('data-trace-focus-loss'))focusLoss();return;}switch(b.dataset.traceAction){case'chain-audit':auditKind=({classification:0,concept:1,boundary:2,composition:3}[actualSource()]??0);auditRow=null;showLoss();break;case'formulas':formulasOpen=!formulasOpen;render();break;case'provenance':traceOpen=!traceOpen;render();break;case'jump':seek(Number(host.querySelector('#trace-step').value));break;case'retry':seek(step);break;case'return':setEnabled(false);break;case'find':seek(step,sampleIndex,true,true);break;case'table':fullTable=!fullTable;render();break;case'adam':expandedAdam=!expandedAdam;render();break;case'sample-details':sampleDetails=!sampleDetails;render();break;case'canvas':document.getElementById('replayCanvasFold').open=!document.getElementById('replayCanvasFold').open;break;case'json':case'csv':download(b.dataset.traceAction);break;}});
+    host.addEventListener('change',e=>{switch(e.target.id){case'trace-chain-row':chainRow=Number(e.target.value);render();break;case'trace-audit-kind':auditKind=Number(e.target.value);auditRow=null;render();break;case'trace-phase':phase=e.target.value;setModel();save();notify();break;case'trace-precision':precision=e.target.checked;save();notify();break;case'trace-parameter':selectParameter(Number(e.target.value));break;case'trace-neuron':selectParameter(Number(e.target.value)===50?1350:Number(e.target.value)*25+6);break;case'trace-sample':seek(step,Number(e.target.value),true);break;}});
+    document.addEventListener('toggle',e=>{if(e.target.matches?.('[data-replay-source-help]')){sourceHelpOpen=e.target.open;save();}},true);
     host.addEventListener('keydown',e=>{if(e.target.id==='trace-step'&&e.key==='Enter')seek(Number(e.target.value));});
     host.addEventListener('input',e=>{if(e.target.id==='trace-filter')host.querySelector('#trace-parameter-rows').innerHTML=rows(e.target.value);});
     return {
@@ -2957,13 +3030,13 @@ const SquareBackpropTeaching = (() => {
           save();options.onViewportChange?.();return;
         }
         if(kind==='metric'&&['weight','gradient','delta'].includes(value))metric=value;
-        if(kind==='source'&&['auto','classification','concept','boundary','composition','total'].includes(value))source=value;
+        if(kind==='source'&&['auto','classification','concept','boundary','composition','total'].includes(value)){source=value;chainRow=null;}
         if(kind==='network'&&['sample','observation'].includes(value))networkSource=value;
         if(kind==='layout'&&['compact','vertical','expanded'].includes(value))layout=value;
         save();notify();
       },
       updateFitZoom(value){zoom=Math.max(.1,Math.min(3,value));},
-      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']].map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>布局 <select data-replay-view="layout">${[['compact','横向紧凑'],['vertical','纵向三层'],['expanded','逐个展开']].map(([v,t])=>`<option value="${v}" ${layout===v?'selected':''}>${t}</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span></div>`;},
+      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${losses.sourceOptions.map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>布局 <select data-replay-view="layout">${[['compact','横向紧凑'],['vertical','纵向三层'],['expanded','逐个展开']].map(([v,t])=>`<option value="${v}" ${layout===v?'selected':''}>${t}</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span>${losses.sourceHelp(source,config(),sourceHelpOpen)}</div>`;},
       sync(state){const next=entries.find(e=>e.manifest.presetId===state.teachingPreset)||null;if(next!==entry)switchEntry(next);observed=state.pixels.slice();render();},
       selectNeuron(layer,index){if(enabled&&[1,2].includes(layer))selectParameter(layer===2?1350:index*25+6,false);},
       selectConnection(layer,neuron,input){if(enabled)selectParameter(layer===1?neuron*25+input:1300+input);},selectParameter

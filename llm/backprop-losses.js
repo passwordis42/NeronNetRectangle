@@ -43,17 +43,61 @@ const SquareBackpropLosses = (() => {
   function audit(trace,kind,rowIndex,num){
     const rows=trace.rows[kind],selected=Math.max(0,Math.min(rows.length-1,rowIndex||0)),r=rows[selected],d=trace.parameter;
     const title=r?kind<2?`批次样本 ${r.index+1} · 图案编号 ${r.id}`:kind===2?r.kind==='satisfy'?'满足目标的最不利输入':`X${r.bit+1} 违反须${r.required?'亮':'空'}条件的最不利输入`:`${r.name} · H1-${r.neuron+1}`:'';
-    let formula='';
-    if(r){
-      if(kind===0)formula=`∂ℓ/∂s = 2 × ${num(r.error)} = ${num(r.lossDerivative)}<br>`+(d.layer===1?`∂s/∂θ = vⱼ × (1−hⱼ²) × ${d.kind==='bias'?'1':'xᵢ'}<br>= ${num(r.outputWeight)} × ${num(r.activationDerivative)} × ${num(r.input)} = ${num(r.scoreDerivative)}`:`∂s/∂θ = ${d.kind==='bias'?'1':'hⱼ'} = ${num(r.scoreDerivative)}`);
-      if(kind===1)formula=`∂ℓ/∂h = 0.4 × (h−t) = ${num(r.lossDerivative)}<br>∂h/∂θ = (1−h²) × ${d.kind==='bias'?'1':'xᵢ'} = ${num(r.activationDerivative)} × ${num(r.input)}`;
-      if(kind===2)formula=`z = ${num(r.z)}；目标 ${r.kind==='satisfy'?'≥':'≤'} ${num(r.target)}<br>e = ${r.kind==='satisfy'?'min':'max'}(z − ${num(r.target)}, 0) = ${num(r.error)}<br>∂ℓ/∂θ = 2e × ${d.kind==='bias'?'1':'xᵢ'} = ${num(r.lossDerivative)} × ${num(r.input)}`;
-      if(kind===3)formula=`h = ${num(r.response)}；v = ${num(r.outputWeight)}<br>c = h × v = ${num(r.contribution)}；目标 ≥ ${num(r.target)}<br>e = min(c−0.14,0) = ${num(r.error)}<br>∂ℓ/∂c = 8e = ${num(r.lossDerivative)}<br>∂c/∂θ = ${d.layer===1?`v × (1−h²) × ${d.kind==='bias'?'1':'xᵢ'} = ${num(r.outputWeight)} × ${num(r.activationDerivative)} × ${num(r.input)}`:`h = ${num(r.response)}`}`;
-    }
     return `<div class="trace-audit"><h3>逐项追溯：${escape(d.label)}</h3><label>损失来源 <select id="trace-audit-kind">${names.map((name,k)=>`<option value="${k}" ${kind===k?'selected':''}>${name} · ${trace.rows[k].length} 项</option>`).join('')}</select></label><p>只列出在计算结构上与该参数有关的项；其余项对该参数偏导为 0。重复样本保留各自批次位置。</p><div class="trace-equation">原始梯度求和 = ${num(trace.rawGradients[kind])}<br>× 阶段系数 ${trace.lossWeights[kind]} = ${num(trace.parts[kind])}</div>
-      ${!r?`<p class="trace-audit-empty">${kind===1?'该参数没有局部特征监督目标；输出层与自由神经元不受此项直接监督。':kind===2?'该参数不属于明确特征的输入权重或偏置，边界损失不依赖它。':'该参数不参与六个方框的四边贡献约束。'} 本项梯度为 0。</p>`:`<div class="trace-audit-detail">${grid(r.pixels)}<div><b>${escape(title)}</b><p>${kind<2?'单项损失（未除以 N）':'单项损失'} = ${num(r.unaveragedLoss??r.loss)}${r.target!==undefined?`；目标 ${num(r.target)}`:''}</p>${kind<2?`<button data-trace-pick-sample="${r.index}">用此训练样本观察网络</button>`:''}</div></div><div class="trace-equation">${formula}<br>单项原始偏导 = ${num(r.rawDerivative)}<br>× 阶段系数 ${r.coefficient} ÷ ${r.divisor} = <b>${num(r.gradient)}</b>${kind<2?'（对批次总梯度的贡献）':'（约束项不除以 N）'}</div>
+      ${!r?`<p class="trace-audit-empty">${kind===1?'该参数没有局部特征监督目标；输出层与自由神经元不受此项直接监督。':kind===2?'该参数不属于明确特征的输入权重或偏置，边界损失不依赖它。':'该参数不参与六个方框的四边贡献约束。'} 本项梯度为 0。</p>`:`<div class="trace-audit-detail">${grid(r.pixels)}<div><b>${escape(title)}</b><p>${kind<2?'单项损失（未除以 N）':'单项损失'} = ${num(r.unaveragedLoss??r.loss)}${r.target!==undefined?`；目标 ${num(r.target)}`:''}</p>${kind<2?`<button data-trace-pick-sample="${r.index}">用此训练样本观察网络</button>`:''}</div></div>${chain(d,kind,r,num)}
       <div class="trace-table-scroll"><table><thead><tr><th>来源项</th><th>${kind<2?'单样本／特征损失':'单项损失'}</th><th>原始偏导</th><th>有效梯度贡献</th></tr></thead><tbody>${rows.map((row,i)=>`<tr class="${selected===i?'trace-selected':''}"><td><button data-trace-audit-row="${i}">${kind<2?`样本 ${row.index+1}`:kind===2?row.kind==='satisfy'?'满足目标':`X${row.bit+1} 违约`:escape(row.name)}</button></td><td>${num(row.unaveragedLoss??row.loss)}</td><td>${num(row.rawDerivative)}</td><td>${num(row.gradient)}</td></tr>`).join('')}</tbody></table></div>`}
       <p data-trace-audit-check>四项有效梯度之和 ${num(trace.total)}；已与本次记录总梯度校验，最大误差 ${num(trace.maximumError)}。</p></div>`;
   }
-  return {definition,summary,guide,lossTable,sampleLoss,audit};
+
+  const sourceOptions=[['auto','单样本 · 当前训练目标'],['classification','单样本 · 分类损失'],['concept','单样本 · 特征监督'],['boundary','检测边界约束'],['composition','四边贡献约束'],['total','本次更新 · 总梯度']];
+  function sourceHelp(source,c,open){
+    const explanations={
+      auto:`自动选择一种单样本偏导来讲解；当前选择${c.lossWeights[0]===0?'特征监督':'分类损失'}。这不表示训练只使用这一项，实际启用系数为 [${c.lossWeights.join(', ')}]。`,
+      classification:'只看当前训练样本的分类误差怎样影响该参数：正例要求得分 ≥ 1.6，负例要求得分 ≤ 0.4。',
+      concept:'只看当前训练样本的局部特征误差：满足检测目标时隐藏响应趋向 +0.9，否则趋向 −0.9；仅监督指定的 25 个神经元。',
+      boundary:'汇总该参数相关的最不利输入约束：满足特征时激活前输入和 z ≥ 0.55，不满足时 z ≤ −0.55。使用专门构造的图案，不是当前单个训练样本。',
+      composition:'汇总六个示例的四边贡献约束：要求每条边的响应 × 输出权重 ≥ 0.14。使用标准方框，不是当前单个训练样本。',
+      total:'整批样本的分类、特征梯度分别平均，再加上边界和四边贡献约束梯度；全部乘过阶段系数。这才是实际交给 Adam 的梯度。'
+    };
+    return `<details class="trace-source-help" data-replay-source-help ${open?'open':''}><summary>偏导来源是什么意思？</summary><p><b>当前：</b>${explanations[source]}</p><dl>${sourceOptions.map(([key,label])=>`<dt>${label}</dt><dd>${explanations[key]}</dd>`).join('')}</dl><p>单样本选项在权重格显示“单样本原始偏导 × 阶段系数”，尚未除以批次大小 N；左侧会继续展示除以 N 后的贡献。两个约束选项显示该类约束的梯度之和，无需除以 N。总梯度也不等于实际改变量 Δw，Adam 还使用动量与二阶矩。</p><p>切换来源只改变显示，不改变历史训练。若选中损失的阶段系数为 0，它在本阶段不参与更新。</p></details>`;
+  }
+  const fraction=(top,bottom)=>`<span class="trace-fraction"><span>${top}</span><span>${bottom}</span></span>`;
+  function chain(d,kind,r,num){
+    if(!r)return `<p class="trace-chain-empty">${kind===1?'该参数没有局部特征监督目标；自由神经元和输出层参数不受此项直接监督。':kind===2?'边界约束只依赖明确特征的输入权重与偏置。':'该参数不参与六个方框的四边贡献约束。'} 此项损失不依赖该参数，∂ℓ/∂θ = 0。</p>`;
+    const j=(d.layer===1?d.neuron:d.input)+1,h=`h<sub>${j}</sub>`,z=`z<sub>${j}</sub>`,v=`v<sub>${j}</sub>`;
+    const theta=d.layer===1?(d.kind==='bias'?`b<sub>1,${j}</sub>`:`W<sub>1,${j},${d.input+1}</sub>`):d.kind==='bias'?'b<sub>2</sub>':v;
+    const deriv=(a,b)=>fraction('∂'+a,'∂'+b),terms=[];
+    const term=(a,b,expression,substitution,value)=>terms.push({symbol:deriv(a,b),expression,substitution,value});
+    let preparation='';
+    if(kind===0){
+      preparation=`ℓ分类 = e²；e = ${r.positive?'min':'max'}(s − ${r.target}, 0)<br>e = ${r.positive?'min':'max'}(${num(r.score)} − ${num(r.target)}, 0) = ${num(r.error)}`;
+      term('ℓ分类','s','2e',`2 × (${num(r.error)})`,r.lossDerivative);
+      if(d.layer===1)term('s',h,v,num(r.outputWeight),r.outputWeight);
+      else term('s',theta,d.kind==='bias'?'1':h,num(r.input),r.input);
+    }else if(kind===1){
+      preparation=`ℓ特征 = 0.2 × (${h} − t)²<br>e = ${num(r.response)} − (${num(r.target)}) = ${num(r.error)}`;
+      term('ℓ特征',h,`0.4 × (${h} − t)`,`0.4 × (${num(r.error)})`,r.lossDerivative);
+    }else if(kind===2){
+      preparation=`ℓ边界 = e²；${z} = ${num(r.z)}，目标 ${r.kind==='satisfy'?'≥':'≤'} ${num(r.target)}<br>e = ${r.kind==='satisfy'?'min':'max'}(${num(r.z)} − (${num(r.target)}), 0) = ${num(r.error)}`;
+      term('ℓ边界',z,'2e',`2 × (${num(r.error)})`,r.lossDerivative);
+    }else{
+      preparation=`ℓ组合 = 4e²；c = ${h} × ${v}<br>c = ${num(r.response)} × (${num(r.outputWeight)}) = ${num(r.contribution)}<br>e = min(${num(r.contribution)} − 0.14, 0) = ${num(r.error)}`;
+      term('ℓ组合','c','8e',`8 × (${num(r.error)})`,r.lossDerivative);
+      if(d.layer===1)term('c',h,v,num(r.outputWeight),r.outputWeight);
+      else term('c',theta,h,num(r.response),r.response);
+    }
+    if(d.layer===1){
+      if(kind!==2)term(h,z,`1 − ${h}²`,`1 − (${num(r.response)})²`,r.activationDerivative);
+      term(z,theta,d.kind==='bias'?'1':`x<sub>${d.input+1}</sub>`,num(r.input),r.input);
+    }
+    const loss=['ℓ分类','ℓ特征','ℓ边界','ℓ组合'][kind],weighted=r.rawDerivative*r.coefficient;
+    const zero=r.coefficient===0?'本阶段系数为 0，因此这一项不参与更新；原始偏导仍按真实参数计算。':r.rawDerivative===0?(r.lossDerivative===0?'这一项已达到目标，损失对上游量的偏导为 0。':r.input===0?'当前图案中这个输入像素为 0，最后一个因子为 0，因此这条输入连接的偏导为 0。':r.activationDerivative===0?'当前 tanh 在计算精度下已饱和，激活函数导数为 0。':'链条中存在零因子（例如输出权重为 0），因此乘积为 0。'):'';
+    return `<div class="trace-chain" data-chain-kind="${kind}" data-chain-parameter="${d.index}"><p>θ = ${theta} · ${escape(d.label)}。${kind<2?'以下先计算这个训练样本的原始偏导，再乘阶段系数、除以批次大小。':'以下计算选中约束项的偏导，再与其他约束项相加。'}</p><div class="trace-equation">${preparation}</div>
+      <div class="trace-equation trace-chain-formula" aria-label="链式法则">${deriv(loss,theta)} = ${terms.map(t=>t.symbol).join(' · ')}</div>
+      <ol class="trace-chain-steps">${terms.map(t=>`<li><div>${t.symbol} = ${t.expression}</div><div class="trace-chain-number">= ${t.substitution===num(t.value)?'':t.substitution+' = '}<b data-chain-factor="${t.value}">${num(t.value)}</b></div></li>`).join('')}</ol>
+      ${kind===0?'<p class="trace-chain-note">本模型使用间隔平方损失 ℓ = e²，没有 ½ 系数，因此第一项偏导为 2e；达到分类间隔后 e = 0。</p>':''}
+      ${d.layer===1&&kind!==2?'<p class="trace-chain-note">隐藏层使用 tanh，实际导数为 1 − h²；这里没有把导数人为设为 1。输出层为线性输出。</p>':''}
+      <div class="trace-equation">${deriv(loss,theta)} = ${terms.map(t=>`(${num(t.value)})`).join(' × ')}<br>= <b data-chain-raw="${r.rawDerivative}">${num(r.rawDerivative)}</b><br>× 阶段系数 ${r.coefficient} = <span data-chain-weighted="${weighted}">${num(weighted)}</span><br>${kind<2?`÷ 批次大小 ${r.divisor} = <b data-chain-contribution="${r.gradient}">${num(r.gradient)}</b>（对批次总梯度的贡献）`:`该约束项的有效梯度贡献 = <b data-chain-contribution="${r.gradient}">${num(r.gradient)}</b>（无需除以 N）`}</div>${zero?`<p class="trace-chain-note">${zero}</p>`:''}</div>`;
+  }
+  return {definition,summary,guide,lossTable,sampleLoss,audit,chain,sourceOptions,sourceHelp};
 })();

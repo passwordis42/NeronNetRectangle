@@ -1,5 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),zlib=require('node:zlib');
 const core=require('../backprop-core.js'),root=path.resolve(__dirname,'..');
+const losses=require('node:vm').runInNewContext(fs.readFileSync(path.join(root,'backprop-losses.js'),'utf8')+';SquareBackpropLosses',{SquareBackpropCore:core});
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 let checked=0;
 for(const version of ['v1','v2']){
@@ -33,8 +34,23 @@ for(const version of ['v1','v2']){
      close(t.total,r.gradient[parameter]);t.parts.forEach((v,k)=>close(v,full.parts[k][parameter]));checked++;
      if(version==='v2'&&step<=6000&&[31,1251,1300,1301,1320,1350].includes(parameter)){assert.equal(t.total,0);assert.equal(r.before[parameter],r.after[parameter]);}
      if(parameter===1350)assert.deepEqual(t.rows.slice(1),[[],[],[]]);
+     // Each displayed chain must reproduce the independently reconstructed derivative,
+     // including zero inputs, inactive losses, output paths and both biases.
+     for(let k=0;k<4;k++){
+       const candidates=[...t.rows[k].slice(0,3),t.rows[k].find(row=>row.rawDerivative!==0)].filter(Boolean);
+       if(!candidates.length)assert.match(losses.chain(t.parameter,k,null,String),/∂ℓ\/∂θ = 0/);
+       for(const row of candidates){
+         const html=losses.chain(t.parameter,k,row,String),factors=[...html.matchAll(/data-chain-factor="([^"]+)"/g)].map(m=>Number(m[1]));
+         assert.ok(factors.length>=2&&factors.length<=4);assert.doesNotMatch(html,/NaN|undefined/);
+         close(factors.reduce((a,b)=>a*b,1),row.rawDerivative);
+         close(Number(html.match(/data-chain-contribution="([^"]+)"/)[1]),row.gradient);
+         if(parameter===1350){assert.equal(factors.length,2);assert.equal(factors[1],1);}
+         if(parameter===1270)assert.equal(factors.at(-1),1);
+       }
+     }
+
    }
  }
 }
 assert.throws(()=>core.parameterTrace(new Float64Array(core.P),new Uint32Array(),0,[],[],0));
-console.log(`PASS loss provenance: ${checked} parameter audits; all 1,351 paths in both versions and phase configurations; individual row factors, all four losses, real batch totals, zero gradients and both biases.`);
+console.log(`PASS loss provenance: ${checked} parameter audits; all 1,351 paths in both versions and phase configurations; displayed chain factors, all four losses, real batch totals, zero gradients and both biases.`);

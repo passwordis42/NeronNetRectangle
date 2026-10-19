@@ -178,6 +178,7 @@ function createSquareBackpropCore() {
       const outputWeight=d.layer===1?p[1300+j]:null,activationDerivative=d.layer===1?1-h[j]*h[j]:null;
       const derivative=d.layer===1?outputWeight*activationDerivative*input:input;
       record(0,{index,id,positive,pixels:x,score,target:positive?1.6:.4,relation:positive?'>=':'<=',error,unaveragedLoss:error*error,loss:error*error/n,
+        response:j===undefined?null:h[j],z:j===undefined?null:f.preActivations[0][j],
         lossDerivative:ds,scoreDerivative:derivative,input,outputWeight,activationDerivative,rawDerivative:ds*derivative,divisor:n,rawGradient:ds*derivative/n});
       if(feature){
         const matches=feature.on.every(i=>x[i]===1)&&feature.off.every(i=>x[i]===0),target=matches?.9:-.9,error=h[j]-target;
