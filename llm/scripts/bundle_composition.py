@@ -19,11 +19,19 @@ assert len(partial_features["featureDefinitions"]) == 25 and len(partial_feature
 assert shuffled_features["verification"]["inputCount"] == 1 << 25 and shuffled_features["verification"]["errors"] == 0
 assert shuffled_features["featureVerification"]["passed"] and shuffled_features["compositionVerification"]["passed"] and shuffled_features["permutationVerification"]["passed"]
 assert shuffled_features["neuronOrder"]["sourceModelSha256"] == partial_features["modelSha256"]
+random_features = json.loads((ROOT / "partial-features-random-model.json").read_text(encoding="utf-8"))
+assert random_features["verification"]["errors"] == 0 and random_features["featureVerification"]["passed"] and random_features["compositionVerification"]["passed"]
 source = (ROOT / "composition-teaching.js").read_text(encoding="utf-8")
 trace = json.loads((ROOT / "training-trace/v1/manifest.json").read_text(encoding="utf-8"))
 assert trace["modelSha256"] == shuffled_features["modelSha256"]
 assert trace["verification"]["stepsChecked"] == 12000 and trace["verification"]["finalModelExactMatch"]
-replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace, ensure_ascii=False, separators=(",", ":")) + ';\n'
+random_trace = json.loads((ROOT / "training-trace/v2/manifest.json").read_text(encoding="utf-8"))
+assert random_trace["modelSha256"] == random_features["modelSha256"] and random_trace["verification"]["stepsChecked"] == random_trace["steps"]
+# The page only needs the index; complete per-update losses remain in the trace.
+trace_view = {k:v for k,v in trace.items() if k != 'timeline'}
+random_trace_view = {k:v for k,v in random_trace.items() if k != 'timeline'}
+replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
+                 + '\nconst SquareRandomTrainingTraceManifest = ' + json.dumps(random_trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + (ROOT / "backprop-core.js").read_text(encoding="utf-8") + '\n'
                  + (ROOT / "backprop-teaching.js").read_text(encoding="utf-8"))
 block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionModelData = '
@@ -31,6 +39,7 @@ block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionMo
          + ';\nconst SquareAllFeaturesModelData = ' + json.dumps(all_features, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquarePartialFeaturesModelData = ' + json.dumps(partial_features, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquareShuffledPartialModelData = ' + json.dumps(shuffled_features, ensure_ascii=False, separators=(",", ":"))
+         + ';\nconst SquareRandomPartialModelData = ' + json.dumps(random_features, ensure_ascii=False, separators=(",", ":"))
          + ';\n' + source + replay_source + '\n</script>\n<!-- END COMPOSITION BUNDLE -->')
 html = path.read_text(encoding="utf-8-sig")
 css = ('/* BEGIN BACKPROP CSS */\n' + (ROOT / "backprop-teaching.css").read_text(encoding="utf-8") + '\n/* END BACKPROP CSS */')

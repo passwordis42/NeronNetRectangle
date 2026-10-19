@@ -12,7 +12,9 @@ function createSquareCompositionTeaching(artifact, ID, name) {
   const freeCount = count - features.length;
   const colors = ["#18798b", "#b56b1a", "#7554ae", "#ce5468"];
   const sides = ["上边", "下边", "左边", "右边"];
-  const number = value => Math.abs(value) > 0 && Math.abs(value) < .0001 ? value.toExponential(3) : value.toFixed(4);
+  const number = value => artifact.training.initialization?.inheritedParameters === false
+    ? value !== 0 && Math.abs(value) < .0000005 ? value.toExponential(6) : value.toFixed(6)
+    : Math.abs(value) > 0 && Math.abs(value) < .0001 ? value.toExponential(3) : value.toFixed(4);
   const signed = value => `${value > 0 ? "+" : ""}${number(value)}`;
   const preciseScore = value => value !== 1 && Math.abs(value - 1) < .005 ? value.toPrecision(12) : number(value);
   const featureName = i => `H1-${i + 1}${featureByNeuron.has(i) ? ` · ${featureByNeuron.get(i).name}` : " · 自由学习特征"}`;
@@ -159,7 +161,7 @@ function createSquareCompositionTeaching(artifact, ID, name) {
       <details class="trained-contributions" data-trained-detail="teachingOutputOpen" ${state.teachingOutputOpen ? "open" : ""}><summary>核对全部 ${count} 项输出贡献</summary><div class="trained-table-scroll"><table><thead><tr><th>特征</th><th>响应</th><th>输出权重</th><th>贡献</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><th colspan="3">全部贡献之和</th><td>${number(focusSum + otherSum)}</td></tr><tr><th colspan="3">偏置</th><td>${signed(bias)}</td></tr><tr><th colspan="3">最终得分</th><td>${preciseScore(score)}</td></tr></tfoot></table></div><p class="hint">使用完整精度计算，显示值保留四位小数。绿色底行是当前例子的四条边。</p></details>
       ${allFeatures ? renderPair(state, forward) + renderCatalog(state, forward) : `<details class="trained-contributions" data-trained-detail="teachingFirstFeaturesOpen" ${state.teachingFirstFeaturesOpen ? "open" : ""}><summary>其余 ${count - focus.size} 个神经元 · ${features.filter(f => !focus.has(f.neuronIndex)).length} 个明确特征与 ${freeCount} 个自由学习特征</summary><p class="hint">这些特征同样参与最终判断。自由学习特征的小图展示输入权重，不指定形状含义；正负贡献均保留。</p><div class="trained-features">${otherCards}</div></details>`}
       <details class="trained-provenance" data-trained-detail="teachingTrainingOpen" ${state.teachingTrainingOpen ? "open" : ""}><summary>训练来源与验证结果</summary>
-        ${allFeatures ? `<p>人工指定全部 ${count} 个检测目标。前 13 个局部特征从旧版组合模型初始化；新增 60 个检测器使用结构化初始化，输出连接从随机幅度开始训练。Adam 种子 ${artifact.training.seed}，训练 ${artifact.training.steps.toLocaleString("zh-CN")} 步。</p><p>总计 ${artifact.training.totalParameters.toLocaleString("zh-CN")} 个参数，其中 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个有效连接与偏置参与训练；${artifact.training.fixedZeroConnections} 个非限定位置的输入连接固定为零。须亮位置权重为正，须空位置为负；轮廓支持项输出权重为正，缺角检查输出权重为负。这些结构约束用于保证特征含义清楚。</p>` : `<p>${expandedComposition ? "训练时从旧版组合模型初始化 13 个局部特征，为新增 12 条边设置局部目标" : "从原单层特征引导模型初始化，为新增边设置局部目标"}，再用 Adam 训练全部 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个参数。固定种子 ${artifact.training.seed}，共 ${artifact.training.steps.toLocaleString("zh-CN")} 步；${features.length} 个明确特征与 ${freeCount} 个自由学习特征共同学习。没有增加隐藏层。自由学习神经元不指定形状目标，不使用完整轮廓／缺角模板。</p>`}
+        ${allFeatures ? `<p>人工指定全部 ${count} 个检测目标。前 13 个局部特征从旧版组合模型初始化；新增 60 个检测器使用结构化初始化，输出连接从随机幅度开始训练。Adam 种子 ${artifact.training.seed}，训练 ${artifact.training.steps.toLocaleString("zh-CN")} 步。</p><p>总计 ${artifact.training.totalParameters.toLocaleString("zh-CN")} 个参数，其中 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个有效连接与偏置参与训练；${artifact.training.fixedZeroConnections} 个非限定位置的输入连接固定为零。须亮位置权重为正，须空位置为负；轮廓支持项输出权重为正，缺角检查输出权重为负。这些结构约束用于保证特征含义清楚。</p>` : `<p>${artifact.training.initialization?.inheritedParameters === false ? "两层权重从 U(−0.1,0.1) 独立随机初始化，偏置为零；前 6,000 次学习局部特征，随后联合学习分类与组合" : expandedComposition ? "训练时从旧版组合模型初始化 13 个局部特征，为新增 12 条边设置局部目标" : "从原单层特征引导模型初始化，为新增边设置局部目标"}，再用 Adam 训练全部 ${artifact.training.trainableParameters.toLocaleString("zh-CN")} 个参数。固定种子 ${artifact.training.seed}，共 ${artifact.training.steps.toLocaleString("zh-CN")} 步；${features.length} 个明确特征与 ${freeCount} 个自由学习特征共同学习。没有增加隐藏层。自由学习神经元不指定形状目标，不使用完整轮廓／缺角模板。</p>`}
         <p>正式六位小数模型已穷举 ${artifact.verification.inputCount.toLocaleString("zh-CN")} 种黑白输入，误判 ${artifact.verification.errors}。30 个正例最低分 ${number(artifact.verification.closestPositive.score)}，其他图案最高分 ${number(artifact.verification.closestNegative.score)}。</p>
         <p>${features.length} 个检测器通过全部目标模式及外围像素极值验证：满足目标时响应均为正，不满足时均为负。${examples.length} 个标准例子的每条边贡献至少 0.1。</p>
         <p>离线干预验证：将四条边的响应置零，${artifact.compositionVerification.examples.map(e => `${e.name}得分下降 ${number(e.scoreDrop)}`).join("；")}。该干预不改变页面实际计算。</p>
@@ -184,3 +186,6 @@ const SquarePartialFeaturesLegacyTeaching = createSquareCompositionTeaching(Squa
   "square-trained-partial-50-v3", "单隐藏层部分解释预设（6 个方框，25 个明确特征 + 25 个自由学习特征）");
 const SquarePartialFeaturesTeaching = createSquareCompositionTeaching(SquareShuffledPartialModelData,
   "square-trained-partial-50-v4", "单隐藏层部分解释预设（6 个方框，明确特征与自由学习特征混排）");
+
+const SquareRandomPartialTeaching = createSquareCompositionTeaching(SquareRandomPartialModelData,
+  "square-trained-partial-50-v5", "随机初始化 · 部分解释（6 个方框，18,000 次真实更新）");

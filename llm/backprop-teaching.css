@@ -75,3 +75,126 @@
   .trace-toolbar > label { width:100%; }
   .trace-toolbar select { flex:1; }
 }
+/* Replay presentation: one persistent network beside the scrollable explanation. */
+body.is-replay .topbar { display:none; }
+body.is-replay .app { display:block; padding:8px; min-height:0; }
+body.is-replay .network-panel { display:block; min-width:0; border:0; box-shadow:none; }
+body.is-replay .network-head { padding:4px 10px; min-height:0; }
+body.is-replay .network-head h2 { font-size:16px; }
+body.is-replay .network-head #connectionModeText { display:none; }
+body.is-replay .network-actions > :not(#trainedVariantControl) { display:none!important; }
+body.is-replay #trainedVariantControl { display:block; font-size:0; }
+body.is-replay #trainedVariantSelect { width:min(440px,50vw); font-size:12px; }
+body.is-replay .trace-tabs { padding:6px 10px; }
+body.is-replay .trace-tabs button { padding:7px 12px; font-size:13px; }
+body.is-replay [data-trace-fullscreen] { margin-left:auto; }
+#replayWorkbench { display:grid; grid-template-columns:clamp(380px,34vw,520px) minmax(0,1fr); gap:12px; height:calc(100dvh - 115px); min-height:480px; }
+.replay-left { min-width:0; min-height:0; display:flex; flex-direction:column; border:1px solid #d5dfd7; border-radius:9px; overflow:hidden; }
+.replay-left .trace-view { overflow:auto; min-height:0; flex:1; padding:0 14px 18px; scrollbar-gutter:stable; }
+.trace-sticky { position:sticky; top:0; background:#fffefb; z-index:4; padding:12px 0 5px; border-bottom:1px solid #e1e5dd; }
+.trace-header h2 { font-size:20px; margin:4px 0; }
+.trace-stages { margin:10px 0 8px; gap:3px; }
+.trace-stages button { font-size:12px; padding:7px 0; }
+.trace-stages small { font-size:8px; }
+.trace-navigation { gap:4px; margin:6px 0; }
+.trace-navigation button { padding:6px; font-size:11px; }
+.trace-navigation input { width:68px; padding:5px; }
+.trace-position { font-size:11px!important; margin:4px 0!important; }
+.trace-view .trace-toolbar { margin:8px 0; }
+.trace-view .trace-observation { grid-template-columns:62px minmax(0,1fr); padding:8px; gap:8px; margin:10px 0; }
+.trace-view .trace-observation .trace-pixels { width:60px; height:60px; }
+.trace-view .trace-observation b { font-size:16px; }
+.trace-view .trace-observation p { font-size:11px; }
+.trace-view .trace-observation button { padding:4px 7px; font-size:11px; }
+.trace-view .trace-update { padding:10px; gap:6px; }
+.trace-view .trace-update b { font-size:14px; }
+.trace-calculation-tabs { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin:12px 0 0; }
+.trace-view .trace-section { padding:14px 0; }
+.trace-section[hidden] { display:none; }
+.trace-view .trace-equation { font-size:12px; padding:10px; overflow-wrap:anywhere; }
+.trace-view select { font-size:12px; }
+.trace-sample-control { border-top:1px solid #e1e5dd; padding-top:10px; }
+.trace-sample-control label { display:block; }
+.trace-sample-control select { margin-top:5px; }
+#replayCanvasFold { border-top:1px solid #d5dfd7; padding:8px; max-height:320px; overflow:auto; flex-shrink:0; }
+#replayCanvasFold summary { cursor:pointer; font-size:12px; }
+#replayCanvasFold .side { grid-template-columns:minmax(170px,1fr) minmax(140px,1fr); gap:6px; margin-top:8px; }
+#replayCanvasFold .section { padding:8px; gap:6px; }
+#replayCanvasFold .pixel-grid { grid-template-columns:repeat(5,minmax(0,1fr)); gap:3px; }
+#replayCanvasFold .pixel { font-size:9px; }
+#replayCanvasFold .hint,#replayCanvasFold .brush-readout { display:none; }
+#replayCanvasFold button { padding:5px; font-size:11px; }
+.replay-right { min-width:0; min-height:0; display:grid; grid-template-rows:auto minmax(240px,36%) auto minmax(0,1fr); border:1px solid #d5dfd7; border-radius:9px; overflow:hidden; background:#fff; }
+.trace-network-toolbar { padding:8px 10px; display:flex; flex-wrap:wrap; gap:6px 10px; align-items:center; border-bottom:1px solid #dce3d8; }
+.trace-network-toolbar label { display:flex; align-items:center; gap:5px; font-size:11px; min-width:0; }
+.trace-network-toolbar select { width:auto; padding:4px; min-height:29px; font-size:11px; }
+.trace-network-toolbar > span { width:100%; font-size:11px; color:#5a6d60; }
+body.is-replay .network-scroll { min-height:0; overflow:auto; }
+body.is-replay .network-canvas { padding:12px 14px; min-height:100%; }
+body.is-replay .layers { display:flex; gap:42px; align-items:center; justify-content:center; min-height:0; }
+body.is-replay .layer { min-width:0; }
+body.is-replay .layer::after { display:none; }
+body.is-replay .layer-title { min-height:30px; gap:1px; }
+body.is-replay .layer-title b { font-size:12px; }
+body.is-replay .layer-title span { font-size:10px; }
+body.is-replay .neuron { display:flex; flex-direction:column; justify-content:center; gap:2px; }
+body.is-replay .neuron small { font-size:8px; opacity:.85; }
+body.is-replay .summary-panel { padding:5px 10px; font-size:10px; }
+body.is-replay #detailSidebar { display:flex; flex-direction:column; position:static; inset:auto; width:auto; height:auto; max-height:none; min-height:0; border:0; border-top:1px solid #dce3d8; box-shadow:none; border-radius:0; }
+body.is-replay #detailSidebar .inspector-toolbar { display:none; }
+body.is-replay #weightInspector { overflow:auto; min-height:0; padding:10px; }
+body.is-replay .replay-detail-columns { display:grid; grid-template-columns:minmax(230px,.9fr) minmax(240px,1.1fr); gap:12px; margin-top:6px; }
+body.is-replay .weight-inspector-head h3 { font-size:15px; }
+body.is-replay .trace-map-heading { display:flex; justify-content:space-between; align-items:baseline; gap:5px; font-size:12px; margin:4px 0 7px; }
+.trace-map-heading span { font-size:10px; color:#66766b; }
+body.is-replay .replay-parameter-grid { max-width:none; width:100%; margin:0; gap:3px; }
+body.is-replay .replay-parameter-grid .contribution-cell { aspect-ratio:auto; height:39px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; padding:2px; }
+body.is-replay .replay-parameter-grid small { font-size:9px; opacity:.8; }
+body.is-replay .replay-parameter-grid .contribution-value { font-size:11px; letter-spacing:-.4px; }
+body.is-replay .replay-output-grid { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.trace-bias-button { display:block; width:100%; text-align:left; margin-top:5px; padding:6px!important; background:#eff5eb!important; color:#294e38!important; border:1px solid #cfddc8!important; font:11px Consolas,'Microsoft YaHei',monospace; }
+.trace-bias-button[aria-pressed=true] { outline:2px solid #b67a23; }
+body.is-replay .inspector-calculation { margin:0; }
+body.is-replay .calculation-line { padding:3px 0; }
+body.is-replay .calculation-line b { font-size:11px; }
+@media(max-width:1199px) {
+  #replayWorkbench { display:flex; flex-direction:column; height:auto; min-height:0; }
+  .replay-left .trace-view { max-height:65dvh; }
+  .replay-right { min-height:680px; grid-template-rows:auto 270px auto minmax(300px,1fr); }
+  body.is-replay .replay-detail-columns { grid-template-columns:minmax(230px,1fr) minmax(240px,1fr); }
+  body.is-replay #detailSidebar { display:flex!important; }
+}
+@media(max-width:600px) {
+  body.is-replay .network-head h2 { display:none; }
+  body.is-replay #trainedVariantSelect { width:calc(100vw - 40px); }
+  #replayWorkbench { gap:8px; }
+  .replay-left .trace-view { padding:0 10px 12px; }
+  .trace-stages { grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .trace-sticky { position:static; }
+  .replay-right { display:flex; flex-direction:column; }
+  body.is-replay .network-scroll { height:280px; flex-shrink:0; }
+  body.is-replay .replay-detail-columns { grid-template-columns:minmax(0,1fr); }
+  body.is-replay #weightInspector { overflow:visible; }
+  .trace-network-toolbar label { flex-wrap:wrap; }
+  body.is-replay .replay-parameter-grid .contribution-cell { height:48px; }
+}
+
+/* Override the shared inspector's later, more specific rules. */
+body.is-replay #weightInspector .replay-parameter-grid { max-width:none; width:100%; margin:0; }
+body.is-replay .trace-sample-control { display:grid; grid-template-columns:62px minmax(0,1fr); gap:5px 10px; margin:10px 0; }
+.trace-sample-control .trace-pixels { width:60px; height:60px; grid-row:span 2; }
+.trace-sample-control p { margin:0; font-size:11px; }
+#replayCanvasFold .side { display:block; max-width:280px; margin:auto; }
+#replayCanvasFold .side > .panel:last-child { display:none; }
+body.is-replay .layers { pointer-events:none; }
+body.is-replay .neuron { pointer-events:auto; }
+
+body.is-replay { font-family:"Microsoft YaHei",system-ui,sans-serif; }
+@media(min-width:1600px) {
+  body.is-replay .trace-view p,body.is-replay .trace-equation { font-size:14px; }
+  body.is-replay .trace-view select { font-size:13px; }
+  body.is-replay .calculation-line,body.is-replay .trace-bias-button { font-size:13px; }
+  body.is-replay .calculation-line b { font-size:14px; }
+  body.is-replay #weightInspector .contribution-value { font-size:14px; }
+  body.is-replay .replay-parameter-grid .contribution-cell { height:44px; }
+}

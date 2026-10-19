@@ -30,7 +30,7 @@ function createSquareBackpropCore() {
     const vector = () => Float64Array.from({ length: P }, f64);
     if (u32() !== 0x31435254) throw Error("训练记录格式不匹配");
     const firstStep = u32(), count = u32();
-    if (u32() !== P || count !== 100 || firstStep < 1 || firstStep > 11901 || firstStep % 100 !== 1) throw Error("训练记录维度不匹配");
+    if (u32() !== P || count !== 100 || firstStep < 1 || firstStep % 100 !== 1) throw Error("训练记录维度不匹配");
     const p = vector(), m = vector(), v = vector(), steps = [];
     for (let k = 0; k < count; k++) {
       const size = u32(), positives = u32();
@@ -44,6 +44,7 @@ function createSquareBackpropCore() {
     return { firstStep, p, m, v, steps, end };
   }
   function adam(p, m, v, g, t, opt) {
+    opt = optimizerAt(opt, t);
     const proposed = new Float64Array(P), correctedM = new Float64Array(P), correctedV = new Float64Array(P);
     const clipped = new Uint8Array(P), before = p.slice();
     for (let k = 0; k < P; k++) {
@@ -57,6 +58,10 @@ function createSquareBackpropCore() {
       clipped[k] = Number(p[k] !== proposed[k]);
     }
     return { before, after: p.slice(), proposed, correctedM, correctedV, clipped, m: m.slice(), v: v.slice() };
+  }
+  function optimizerAt(opt, step) {
+    const phase = opt.phases?.find(p => Math.max(1, step) >= p.firstStep && Math.max(1, step) <= p.lastStep);
+    return { ...opt, ...(phase || {}), lossWeights: phase?.lossWeights || [1,1,1,1] };
   }
   function reconstruct(chunk, step, opt) {
     if (step === 0 && chunk.firstStep === 1) return { step, before: chunk.p.slice(), after: chunk.p.slice(), gradient: new Float64Array(P), m: chunk.m.slice(), v: chunk.v.slice(), ids: new Uint32Array(), positives: 0 };
@@ -77,7 +82,7 @@ function createSquareBackpropCore() {
     }
     return result;
   }
-  function gradients(p, ids, positives, features, examples, sampleIndex = 0) {
+  function gradients(p, ids, positives, features, examples, sampleIndex = 0, lossWeights = [1,1,1,1]) {
     const parts = Array.from({ length: 4 }, () => new Float64Array(P));
     const losses = [0,0,0,0], net = model(p), n = ids.length;
     const byNeuron = new Map(features.map(f => [f.neuronIndex, f]));
@@ -127,8 +132,10 @@ function createSquareBackpropCore() {
         for(let i=0;i<25;i++) parts[3][j*25+i] += x[i]*dz;
       }
     }
-    const total = Float64Array.from({length:P},(_,i)=>parts.reduce((sum,a)=>sum+a[i],0));
-    return { parts, losses, total, sample };
+    const total = new Float64Array(P);
+    const rawLosses = losses.slice(), rawParts = parts.map(p=>p.slice());
+    parts.forEach((part,k)=>{ losses[k]*=lossWeights[k]; for(let i=0;i<P;i++){part[i]*=lossWeights[k];total[i]+=part[i];} });
+    return { parts, losses, total, sample, rawLosses, rawParts, lossWeights };
   }
   function describe(k) {
     if(k<1250) return { index:k, layer:1, neuron:Math.floor(k/25), input:k%25, kind:"weight", label:`输入 ${k%25+1} → H1-${Math.floor(k/25)+1}` };
@@ -142,7 +149,21 @@ function createSquareBackpropCore() {
     const x=d.kind==="bias"?1:sample.pixels[d.input];
     return { classification: sample.dzClass[d.neuron]*x, concept: sample.dzConcept[d.neuron]*x };
   }
-  return { P, forward, model, flatten, pixels, readChunk, adam, reconstruct, gradients, describe, sampleGradient };
+  function findNonzeroSample(p, ids, positives, features, parameter, source, start = 0) {
+    const net=model(p), d=describe(parameter), f=features.find(f=>f.neuronIndex===d.neuron);
+    for(let offset=1;offset<=ids.length;offset++) {
+      const index=(start+offset)%ids.length, x=pixels(ids[index]), r=forward(x,net), h=r.activations[1];
+      const err=index<positives?Math.min(r.outputs[0]-1.6,0):Math.max(r.outputs[0]-.4,0);
+      let g;
+      if(source==='concept') {
+        const target=f && (f.on.every(i=>x[i]===1)&&f.off.every(i=>x[i]===0)?.9:-.9);
+        g=d.layer!==1||!f?0:.4*(h[d.neuron]-target)*(1-h[d.neuron]**2)*(d.kind==='bias'?1:x[d.input]);
+      } else g=d.layer===2?2*err*(d.kind==='bias'?1:h[d.input]):2*err*p[1300+d.neuron]*(1-h[d.neuron]**2)*(d.kind==='bias'?1:x[d.input]);
+      if(g!==0) return index;
+    }
+    return -1;
+  }
+  return { P, forward, model, flatten, pixels, readChunk, adam, optimizerAt, reconstruct, gradients, describe, sampleGradient, findNonzeroSample };
 }
 const SquareBackpropCore = createSquareBackpropCore();
 if (typeof module !== "undefined" && module.exports) module.exports = SquareBackpropCore;

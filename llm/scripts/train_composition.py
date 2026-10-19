@@ -193,13 +193,16 @@ def exhaustive(params, batch_size=131072):
     return result, hard_ids
 
 
-def loss_and_gradients(params, x, features, examples, example_x):
+def loss_and_gradients(params, x, features, examples, example_x, loss_weights=None):
+    coefficients = [1., 1., 1., 1.] if loss_weights is None else loss_weights
     w, b, v, c = params
     h, scores = forward(x, params)
     ds = np.maximum(scores - .4, 0)
     ds[:128] = np.minimum(scores[:128] - 1.6, 0)
     class_loss = float(np.mean(ds ** 2))
     ds *= 2 / len(x)
+    if coefficients[0] != 1:
+        ds *= coefficients[0]
     dh = ds[:, None] * v
     # Local concept supervision; all 1,351 parameters remain trainable.
     feature_loss = 0.
@@ -208,7 +211,7 @@ def loss_and_gradients(params, x, features, examples, example_x):
         present = np.all(x[:, f["on"]] == 1, axis=1) & np.all(x[:, f["off"]] == 0, axis=1)
         target = np.where(present, .9, -.9)
         error = h[:, i] - target
-        dh[:, i] += .4 * error / len(x)
+        dh[:, i] += (.4 * error / len(x)) * coefficients[1]
         feature_loss += float(np.mean(error ** 2))
     dz = dh * (1 - h * h)
     grads = [x.T @ dz, dz.sum(axis=0), h.T @ ds, np.array([ds.sum()])]
@@ -221,20 +224,21 @@ def loss_and_gradients(params, x, features, examples, example_x):
         ep = min(float(xp @ w[:, i] + b[i]) - .55, 0.)
         en = np.maximum(xn @ w[:, i] + b[i] + .55, 0.)
         robust_loss += ep ** 2 + float(en @ en)
-        grads[0][:, i] += 2 * (ep * xp + en @ xn)
-        grads[1][i] += 2 * (ep + en.sum())
+        grads[0][:, i] += (2 * (ep * xp + en @ xn)) * coefficients[2]
+        grads[1][i] += (2 * (ep + en.sum())) * coefficients[2]
     contribution_loss = 0.
     eh, _ = forward(example_x, params)
     for k, example in enumerate(examples):
         indices = example["featureIndices"]
         err = np.minimum(eh[k, indices] * v[indices] - .14, 0)
         contribution_loss += 4 * float(err @ err)
-        derivative = 8 * err
+        derivative = (8 * err) * coefficients[3]
         grads[2][indices] += derivative * eh[k, indices]
         local = derivative * v[indices] * (1 - eh[k, indices] ** 2)
         grads[0][:, indices] += example_x[k, :, None] * local
         grads[1][indices] += local
-    return [class_loss, .2 * feature_loss, robust_loss, contribution_loss], grads
+    losses = [class_loss, .2 * feature_loss, robust_loss, contribution_loss]
+    return [value * weight for value, weight in zip(losses, coefficients)], grads
 
 
 def adam_update(params, grads, moments, variances, total_steps, learning_rate):
