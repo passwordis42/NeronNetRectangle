@@ -17,10 +17,13 @@ const SquareBackpropLosses = (() => {
     const ready=Boolean(result?.details),total=ready?result.losses.reduce((a,b)=>a+b,0):null;
     return `<div class="trace-loss-summary"><div><small>${ready?`本次更新前 · 训练批次 ${result.ids.length} 个样本`:'初始化 · 尚无训练批次'}</small><b>总损失 L = <span data-trace-loss-current>${num(total)}</span></b></div><button data-trace-section="loss" data-trace-focus-loss>损失函数与目标 ↗</button><div class="trace-loss-chips">${names.map((name,k)=>`<span>${name} <b>${ready?num(result.losses[k]):'—'}</b>${c.lossWeights[k]===0?' · 未启用':''}</span>`).join('')}</div><small>有效损失 = 原始损失 × 阶段系数；这里使用训练样本和更新前参数。</small></div>`;
   }
-  function guide(manifest,c,num){
+  function guide(manifest,c,num,result){
     const phases=manifest.optimizer.phases||[{firstStep:1,lastStep:manifest.steps,name:'联合训练',learningRate:manifest.optimizer.learningRate,lossWeights:[1,1,1,1]}];
+    const substitution=result?.details
+      ? `<br><small>第 ${result.step.toLocaleString()} 次更新前 · 当前训练批次及约束项</small><br><span data-trace-loss-substitution>L = ${result.details.rawLosses.map((loss,k)=>`${c.lossWeights[k]} × ${num(loss)}`).join(' + ')}</span><br><span data-trace-loss-sum>= ${result.losses.map(num).join(' + ')}</span><br><strong data-trace-loss-total>= ${num(result.losses.reduce((a,b)=>a+b,0))}</strong><br><small>总和按完整精度计算，各显示值分别四舍五入；可勾选“完整精度”核对。</small>`
+      : '<br><small>初始化尚无训练批次，暂无可代入的损失数值。</small>';
     return `<div class="trace-loss-guide"><h3>损失函数与固定目标</h3><p><b>目标值固定，损失值随参数与训练批次变化。</b>分阶段只改变启用系数 λ 和学习率；未启用的项系数为 0，参数本身不会被清零。同一套 1,351 个参数接收各项梯度之和。</p>
-      <div class="trace-equation">hⱼ = tanh(Σᵢ W₁,ⱼᵢ xᵢ + b₁,ⱼ)<br>s = Σⱼ vⱼ hⱼ + b₂<br>L = λ₁ L分类 + λ₂ L特征 + λ₃ L边界 + λ₄ L组合</div>
+      <div class="trace-equation">hⱼ = tanh(Σᵢ W₁,ⱼᵢ xᵢ + b₁,ⱼ)<br>s = Σⱼ vⱼ hⱼ + b₂<br>L = λ₁ L分类 + λ₂ L特征 + λ₃ L边界 + λ₄ L组合${substitution}</div>
       <p>N 是本批次样本数；F 是指定特征神经元集合（25 个）；vⱼ 是 H1-j 到输出的权重。分类与特征项按 N 平均，特征之间求和；边界与组合项直接求和，不再除以 N。</p>
       <div class="trace-loss-definition"><h4>① 分类：间隔平方损失</h4><div class="trace-equation">正例：e = min(s − 1.6, 0)<br>负例：e = max(s − 0.4, 0)<br>L分类 = (1/N) Σ样本 e²<br>∂ℓ分类/∂s = 2e</div><p>正例期望 s ≥ 1.6，负例期望 s ≤ 0.4，达到间隔后该样本的分类损失与偏导为 0。页面判断阈值 s &gt; 1 是推理规则，不是训练目标。</p></div>
       <div class="trace-loss-definition"><h4>② 局部特征：响应平方误差</h4><div class="trace-equation">目标 tⱼ = 满足全部须亮／须空条件 ? +0.9 : −0.9<br>L特征 = (0.2/N) Σ样本 Σⱼ∈F (hⱼ − tⱼ)²<br>∂ℓ特征/∂hⱼ = 0.4(hⱼ − tⱼ)</div><p>自由神经元没有这项目标。此项不依赖输出权重与输出偏置。0.2 已包含在原始损失中，不能再乘一次。</p></div>
