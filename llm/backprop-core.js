@@ -163,7 +163,55 @@ function createSquareBackpropCore() {
     }
     return -1;
   }
-  return { P, forward, model, flatten, pixels, readChunk, adam, optimizerAt, reconstruct, gradients, describe, sampleGradient, findNonzeroSample };
+  // On-demand audit of one parameter. This does not change the recorded trainer
+  // or Adam trajectory. Every row exposes the factors behind its derivative.
+  function parameterTrace(p, ids, positives, features, examples, parameter, lossWeights = [1,1,1,1]) {
+    if(!Number.isInteger(parameter)||parameter<0||parameter>=P||!ids.length)throw Error('参数或训练批次无效');
+    const d=describe(parameter),net=model(p),n=ids.length,j=d.layer===1?d.neuron:d.input;
+    const feature=d.layer===1?features.find(f=>f.neuronIndex===j):null;
+    const rows=[[],[],[],[]],rawGradients=[0,0,0,0];
+    const record=(kind,row)=>{rows[kind].push({...row,coefficient:lossWeights[kind],effectiveLoss:row.loss*lossWeights[kind],gradient:row.rawGradient*lossWeights[kind]});rawGradients[kind]+=row.rawGradient;};
+    for(let index=0;index<n;index++){
+      const id=ids[index],x=pixels(id),f=forward(x,net),h=f.activations[1],score=f.outputs[0],positive=index<positives;
+      const error=positive?Math.min(score-1.6,0):Math.max(score-.4,0),ds=2*error;
+      const input=d.kind==='bias'?1:d.layer===1?x[d.input]:h[d.input];
+      const outputWeight=d.layer===1?p[1300+j]:null,activationDerivative=d.layer===1?1-h[j]*h[j]:null;
+      const derivative=d.layer===1?outputWeight*activationDerivative*input:input;
+      record(0,{index,id,positive,pixels:x,score,target:positive?1.6:.4,relation:positive?'>=':'<=',error,unaveragedLoss:error*error,loss:error*error/n,
+        lossDerivative:ds,scoreDerivative:derivative,input,outputWeight,activationDerivative,rawDerivative:ds*derivative,divisor:n,rawGradient:ds*derivative/n});
+      if(feature){
+        const matches=feature.on.every(i=>x[i]===1)&&feature.off.every(i=>x[i]===0),target=matches?.9:-.9,error=h[j]-target;
+        const derivative=1-h[j]*h[j],lossDerivative=.4*error;
+        record(1,{index,id,pixels:x,neuron:j,target,matches,response:h[j],error,input,activationDerivative:derivative,lossDerivative,
+          unaveragedLoss:.2*error*error,loss:.2*error*error/n,rawDerivative:lossDerivative*derivative*input,divisor:n,rawGradient:lossDerivative*derivative*input/n});
+      }
+    }
+    if(feature){
+      const w=p.slice(j*25,j*25+25),b=p[1250+j];
+      const boundRow=(x,kind,bit=null,required=null)=>{
+        const z=x.reduce((sum,v,i)=>sum+v*w[i],b),target=kind==='satisfy'?.55:-.55;
+        const error=kind==='satisfy'?Math.min(z-target,0):Math.max(z-target,0),input=d.kind==='bias'?1:x[d.input];
+        record(2,{kind,neuron:j,bit,required,pixels:x,z,target,error,input,loss:error*error,lossDerivative:2*error,rawDerivative:2*error*input,divisor:1,rawGradient:2*error*input});
+      };
+      const minimum=Array.from(w,v=>Number(v<0));feature.on.forEach(i=>minimum[i]=1);feature.off.forEach(i=>minimum[i]=0);boundRow(minimum,'satisfy');
+      for(const [bit,required] of [...feature.on.map(i=>[i,1]),...feature.off.map(i=>[i,0])]){
+        const maximum=Array.from(w,v=>Number(v>0));maximum[bit]=1-required;boundRow(maximum,'violate',bit,required);
+      }
+    }
+    if(j!==undefined)examples.forEach((example,index)=>{
+      if(!example.featureIndices.includes(j))return;
+      const x=Array.from({length:25},(_,i)=>Number(example.boundary.includes(i))),h=forward(x,net).activations[1][j],w=p[1300+j];
+      const contribution=h*w,error=Math.min(contribution-.14,0),lossDerivative=8*error;
+      const input=d.kind==='bias'?1:d.layer===1?x[d.input]:null;
+      const derivative=d.layer===1?w*(1-h*h)*input:h;
+      record(3,{index,name:example.name,neuron:j,pixels:x,response:h,outputWeight:w,contribution,target:.14,error,input,activationDerivative:1-h*h,
+        loss:4*error*error,lossDerivative,contributionDerivative:derivative,rawDerivative:lossDerivative*derivative,divisor:1,rawGradient:lossDerivative*derivative});
+    });
+    const parts=rawGradients.map((v,k)=>v*lossWeights[k]);
+    return {parameter:d,batchSize:n,feature:feature||null,lossWeights,rows,rawGradients,parts,total:parts.reduce((a,b)=>a+b,0),
+      note:'Rows include every batch sample for classification, and every local/constraint term that structurally depends on this parameter. Omitted terms have zero derivative. Duplicates retain separate batch indices.'};
+  }
+  return { P, forward, model, flatten, pixels, readChunk, adam, optimizerAt, reconstruct, gradients, describe, sampleGradient, findNonzeroSample, parameterTrace };
 }
 const SquareBackpropCore = createSquareBackpropCore();
 if (typeof module !== "undefined" && module.exports) module.exports = SquareBackpropCore;

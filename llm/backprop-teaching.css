@@ -25,6 +25,19 @@
 .trace-position { color:#52715b; font-variant-numeric:tabular-nums; }
 .trace-status { padding:36px 18px; background:#f3f6ed; border:1px dashed #c8d4c2; border-radius:12px; line-height:1.7; }
 .trace-status button { display:block; margin-top:12px; }
+.trace-loss-summary { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:7px; padding:10px; margin:10px 0; background:#f0f5e9; border:1px solid #c8d8bf; border-radius:8px; }
+.trace-loss-summary > div:first-child { display:grid; gap:5px; }
+.trace-loss-summary b { font-variant-numeric:tabular-nums; }
+.trace-loss-summary small { font-size:10px; color:#607253; }
+.trace-loss-chips { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; width:100%; font-size:11px; }
+.trace-loss-chips span { background:#fffefa; border:1px solid #e0e7d6; border-radius:4px; padding:5px; }
+.trace-loss-guide h4,.trace-loss-sample h4 { margin:16px 0 7px; }
+.trace-loss-definition { border-top:1px solid #e2e6d8; }
+.trace-audit { margin:16px 0; padding:10px; border:1px solid #c9d9c0; border-radius:8px; background:#f8fbf4; }
+.trace-audit-detail { display:grid; grid-template-columns:70px minmax(0,1fr); gap:10px; margin:12px 0; }
+.trace-audit-detail .trace-pixels { width:68px; height:68px; }
+.trace-audit-empty { padding:10px; background:#f5efe3; border-radius:5px; }
+body.is-replay .trace-provenance-link { margin-top:8px; padding:7px 10px; font-size:12px; color:#285a46; background:#edf4e7; border:1px solid #c8d8bf; }
 .trace-error { background:#fff2e7; color:#9b4a26; }
 .trace-observation { display:grid; grid-template-columns:96px minmax(0,1fr); gap:20px; padding:18px; margin:16px 0; border-radius:12px; background:#edf3e7; border:1px solid #c9d9c0; }
 .trace-observation > div:first-child { font-size:11px; text-align:center; }

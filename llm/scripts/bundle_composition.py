@@ -33,6 +33,7 @@ random_trace_view = {k:v for k,v in random_trace.items() if k != 'timeline'}
 replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + '\nconst SquareRandomTrainingTraceManifest = ' + json.dumps(random_trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + (ROOT / "backprop-core.js").read_text(encoding="utf-8") + '\n'
+                 + (ROOT / "backprop-losses.js").read_text(encoding="utf-8") + '\n'
                  + (ROOT / "backprop-teaching.js").read_text(encoding="utf-8") + '\n'
                  + (ROOT / "backprop-viewport.js").read_text(encoding="utf-8"))
 block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionModelData = '
