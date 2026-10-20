@@ -35,6 +35,7 @@ replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace_vie
                  + (ROOT / "backprop-core.js").read_text(encoding="utf-8") + '\n'
                  + (ROOT / "backprop-losses.js").read_text(encoding="utf-8") + '\n'
                  + (ROOT / "backprop-teaching.js").read_text(encoding="utf-8") + '\n'
+                 + (ROOT / "backprop-annotations.js").read_text(encoding="utf-8") + '\n'
                  + (ROOT / "backprop-viewport.js").read_text(encoding="utf-8"))
 block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionModelData = '
          + json.dumps(artifact, ensure_ascii=False, separators=(",", ":"))

@@ -28,6 +28,7 @@ jobs:
           node llm/tests/backprop.test.cjs
           node llm/tests/backprop.test.cjs v2
           node llm/tests/loss-provenance.test.cjs
+          node llm/tests/annotations.test.cjs
       - name: Build standalone website
         run: python llm/scripts/build_site.py
       - uses: actions/upload-pages-artifact@v4

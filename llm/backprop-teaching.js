@@ -186,6 +186,18 @@ const SquareBackpropTeaching = (() => {
       get active(){return enabled&&Boolean(entry);},get model(){return currentModel;},get loading(){return busy;},get parameter(){return parameter;},get metric(){return metric;},get zoom(){return zoom;},get layout(){return layout;},get zoomMode(){return zoomMode;},format:num,
       get networkModel(){return result&&networkSource==='sample'?core.model(result.before):currentModel;},get networkPixels(){return networkSource==='sample'&&result?.details?result.details.sample.pixels:observed;},
       get context(){return {step,source:actualSource(),sourceName:sourceName(),metric,networkSource,sampleIndex,hasGradient:Boolean(step&&result),phase:networkSource==='sample'?'before':phase};},
+      annotationSnapshot(){
+        const base={step,steps:manifest?.steps||0,parameter,source,networkSource,phase,precision,busy,error,
+          parameterOptions:parameterOptions(),description:core.describe(parameter)};
+        if(!result||!currentModel)return base;
+        const m=networkSource==='sample'?core.model(result.before):currentModel;
+        const pixels=networkSource==='sample'&&result.details?result.details.sample.pixels:observed;
+        return {...base,ready:true,model:m,pixels:Array.from(pixels),forward:core.forward(pixels,m),
+          parameterInfo:parameterInfo(parameter),sampleIndex,batchSize:result.ids.length,
+          networkPhase:step===0?'initial':networkSource==='sample'?'before':phase,
+          losses:result.losses?Array.from(result.losses):null};
+      },
+      seekUpdate(value){if(enabled)seek(value);},
       parameterInfo,metricValue,showLoss,
       setView(kind,value){
         if(kind==='zoom'||kind==='fit'){
@@ -201,7 +213,7 @@ const SquareBackpropTeaching = (() => {
         save();notify();
       },
       updateFitZoom(value){zoom=Math.max(.1,Math.min(3,value));},
-      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${losses.sourceOptions.map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>布局 <select data-replay-view="layout">${[['compact','横向紧凑'],['vertical','纵向三层'],['expanded','逐个展开']].map(([v,t])=>`<option value="${v}" ${layout===v?'selected':''}>${t}</option>`).join('')}</select></label><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span>${losses.sourceHelp(source,config(),sourceHelpOpen)}</div>`;},
+      renderToolbar(){if(!manifest)return '';return `<div class="trace-network-toolbar"><label>网络观察 <select data-replay-view="network"><option value="sample" ${networkSource==='sample'?'selected':''}>训练样本 · 更新前</option><option value="observation" ${networkSource==='observation'?'selected':''}>观察画布 · 所选参数</option></select></label><label>数值 <select data-replay-view="metric">${[['weight','权重 w'],['gradient','偏导'],['delta','实际改变量 Δw']].map(([v,t])=>`<option value="${v}" ${metric===v?'selected':''}>${t}</option>`).join('')}</select></label><label>偏导来源 <select data-replay-view="source">${losses.sourceOptions.map(([v,t])=>`<option value="${v}" ${source===v?'selected':''}>${t}</option>`).join('')}</select></label><label>布局 <select data-replay-view="layout">${[['compact','横向紧凑'],['vertical','纵向三层'],['expanded','逐个展开']].map(([v,t])=>`<option value="${v}" ${layout===v?'selected':''}>${t}</option>`).join('')}</select></label><button type="button" data-replay-annotations aria-haspopup="dialog" aria-controls="replayParameterMap" aria-expanded="false">显示各个参数对应</button><span>${!result?'正在加载并校验所选更新，暂不显示历史数值':step===0?'初始化，无偏导':`更新 ${step.toLocaleString()} · ${sourceName()}${['classification','concept'].includes(actualSource())?` · 样本 ${sampleIndex+1}`:''}`}</span>${losses.sourceHelp(source,config(),sourceHelpOpen)}</div>`;},
       sync(state){const next=entries.find(e=>e.manifest.presetId===state.teachingPreset)||null;if(next!==entry)switchEntry(next);observed=state.pixels.slice();render();},
       selectNeuron(layer,index){if(enabled&&[1,2].includes(layer))selectParameter(layer===2?1350:index*25+6,false);},
       selectConnection(layer,neuron,input){if(enabled)selectParameter(layer===1?neuron*25+input:1300+input);},selectParameter

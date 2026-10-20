@@ -239,3 +239,78 @@ body.is-replay { font-family:"Microsoft YaHei",system-ui,sans-serif; }
   body.is-replay #weightInspector .contribution-value { font-size:14px; }
   body.is-replay .replay-parameter-grid .contribution-cell { height:44px; }
 }
+/* The symbol map uses a focused path; numerical values still use the full network. */
+.trace-network-toolbar [data-replay-annotations] { background:#e9f3ff;color:#14548c;border:1px solid #97bfe3;border-radius:8px;padding:8px 11px;font-size:12px;font-weight:700;cursor:pointer; }
+.replay-parameter-map { width:min(1280px,96vw);max-width:96vw;max-height:94dvh;padding:0;border:1px solid #aec8df;border-radius:16px;color:#183344;background:#fbfdff;box-shadow:0 20px 100px #142b4566;overflow:auto; }
+.replay-parameter-map::backdrop { background:#122a45aa;backdrop-filter:blur(3px); }
+.map-header { position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;background:#eef6ff;border-bottom:1px solid #bed4e9; }
+.map-header span { font-size:12px;color:#456a8d; }
+.map-header h2 { margin:3px 0 0;font-size:clamp(20px,2.3vw,30px);line-height:1.4;color:#132f52; }
+.replay-parameter-map button { border:1px solid #b2c6d7;border-radius:8px;background:white;color:#234a66;font:inherit;padding:8px 13px;cursor:pointer; }
+.map-header button { flex:none; }
+.map-body { padding:18px 24px 24px; }
+.map-controls { display:flex;flex-wrap:wrap;align-items:end;gap:10px;margin-bottom:16px; }
+.map-controls label { display:grid;gap:4px;font-size:12px;color:#536b7e; }
+.map-controls select,.map-controls input { font:inherit;font-size:13px;background:white;color:#1a3b50;border:1px solid #b7cad6;border-radius:7px;min-height:36px;padding:5px 8px;max-width:100%; }
+.map-controls input { width:90px; }
+.map-context { margin:0 0 6px;font-weight:700;font-size:15px; }
+.map-scope { margin:0 0 16px;color:#526b7c;font-size:13px; }
+.map-warning { padding:12px 16px;border-left:4px solid #c37a23;background:#fff4db;border-radius:6px;font-size:13px; }
+.map-diagram { position:relative;isolation:isolate;padding:12px 0; }
+.map-callout-row { display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;align-items:start; }
+.map-callout { position:relative;z-index:1;padding:14px 16px;border:2px solid var(--map-color);border-radius:12px;background:white;box-shadow:0 3px 12px #193f5010;min-width:0; }
+.map-callout.map-x { background:#edf7ff; }
+.map-callout.map-w1 { background:#fff3e5; }
+.map-callout.map-h { background:#edfaef; }
+.map-callout.map-w2 { background:#f7efff; }
+.map-callout.map-y { background:#fff0f1; }
+.map-callout.map-gradient { background:#fff1f7; }
+.map-callout.map-b { background:#fff9df; }
+.map-callout p { margin:8px 0 0;font-size:12px;line-height:1.7;overflow-wrap:anywhere; }
+.map-callout strong { display:block;font-size:14px;margin-top:8px; }
+.map-symbol { color:var(--map-color);font-family:Cambria,Georgia,serif;font-size:clamp(16px,1.7vw,24px);line-height:1.6;overflow-wrap:anywhere; }
+.map-symbol b { font-weight:700;font-variant-numeric:tabular-nums; }
+.map-fraction { display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;font-style:italic;line-height:1.6; }
+.map-fraction>span:first-child { border-bottom:1px solid currentColor; }
+.map-fraction>span { padding:0 5px; }
+.map-path { position:relative;height:200px;margin:20px 0;background:linear-gradient(90deg,#d7e3eb44 1px,transparent 1px),linear-gradient(#d7e3eb44 1px,transparent 1px);background-size:24px 24px;border-radius:10px; }
+.map-path-lines { position:absolute;inset:0;width:100%;height:100%;overflow:visible; }
+.map-node,.map-edge-label { position:absolute;left:var(--map-left);top:50%;transform:translate(-50%,-50%);z-index:1;color:var(--map-color);background:white; }
+.map-node { border:2px solid var(--map-color);border-radius:12px;min-width:108px;width:min(150px,20%);box-sizing:border-box;padding:12px;text-align:center;box-shadow:0 3px 12px #12335015; }
+.map-node small { display:block;font-size:12px;margin-bottom:6px; }
+.map-node b { display:block;font-size:18px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere; }
+.map-edge-label { padding:5px 10px;border:1px solid var(--map-color);border-radius:6px;font-size:18px;font-family:Cambria,Georgia,serif; }
+.map-edge-label.is-selected { box-shadow:0 0 0 4px #f4d06d88; }
+.map-leaders { position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible; }
+.map-bottom:has(> :only-child) { grid-template-columns:1fr; }
+.map-bottom:has(> :nth-child(2):last-child) { grid-template-columns:1fr 1fr; }
+.map-inset { margin-top:24px;padding:18px 20px;border:2px solid #ebbe55;border-radius:12px;background:#fffbed; }
+.map-inset h3 { margin:0 0 14px;font-size:19px; }
+.map-inset-flow { display:grid;grid-template-columns:1.2fr auto 1fr auto 1fr;gap:14px;align-items:center; }
+.map-inset-flow article { align-self:stretch;background:white;padding:14px;border:1px solid #ddd1a5;border-radius:9px;min-width:0; }
+.map-inset p { font-size:13px;line-height:1.8;margin:8px 0 0;overflow-wrap:anywhere; }
+.map-inset-flow>span { font-size:24px;color:#7c6b36; }
+.map-footer { margin-top:20px;padding:14px 18px;background:#eef5fb;border-radius:10px;font-size:13px;line-height:1.9;overflow-wrap:anywhere; }
+.map-status { min-height:180px;padding:32px;line-height:1.8; }
+.replay-parameter-map :focus-visible { outline:3px solid #287acf;outline-offset:3px; }
+@media(max-width:700px) {
+  .replay-parameter-map { max-height:96dvh;width:96vw; }
+  .map-header { padding:12px;gap:8px; }
+  .map-header h2 { font-size:19px; }
+  .map-header button { padding:7px; }
+  .map-body { padding:12px; }
+  .map-controls { display:grid;grid-template-columns:1fr 1fr; }
+  .map-controls label { min-width:0; }
+  .map-controls input { width:100%;box-sizing:border-box; }
+  .map-callout-row,.map-bottom:has(> :nth-child(2):last-child) { grid-template-columns:1fr;gap:12px; }
+  .map-leaders { display:none; }
+  .map-path { height:150px;margin:14px 0; }
+  .map-node { padding:8px 3px;min-width:0;width:68px; }
+  .map-node small { font-size:10px; }
+  .map-node b { font-size:12px; }
+  .map-edge-label { font-size:12px;padding:2px 3px; }
+  .map-symbol { font-size:22px; }
+  .map-inset { padding:12px; }
+  .map-inset-flow { grid-template-columns:1fr;gap:8px; }
+  .map-inset-flow>span { transform:rotate(90deg);justify-self:center; }
+}
