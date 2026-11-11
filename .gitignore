@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 llm/.*-checkpoint.npz
+llm/.geometry-*-trial.npz
+llm/.geometry-*-exhaustive.npz
 
 # Generated website and local backups
 _site/

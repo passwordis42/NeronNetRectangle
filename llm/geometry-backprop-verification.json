@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "engine": "geometry-backprop-core.js",
+  "test": "tests/geometry-backprop.test.cjs",
+  "unitVerification": {
+    "passed": true,
+    "workerFactorySelfContained": true,
+    "sparseParameterRoundtrip": true,
+    "finiteDifferences": "All parameters and all five loss components of a three-layer sparse fixture; epsilon 1e-5, absolute tolerance 2e-7.",
+    "parameterProvenance": "Every fixture parameter: all row gradients sum to each loss component; sample raw derivatives reproduce normalized contributions.",
+    "zeroGradientMomentumAndProjection": true,
+    "pythonOracle": {
+      "singleSparseParameters": 1977,
+      "doubleSparseParameters": 888,
+      "allFiveLossesAndGradients": true,
+      "gradientAbsoluteTolerance": 1e-8,
+      "adamStateAbsoluteTolerance": 1e-13
+    }
+  },
+  "traces": [
+    {
+      "id": "geometry-double-v1",
+      "modelSha256": "273276df8dbb5ff791e9ae3a8de01356ed6352aaa381839421f0a9c99595e660",
+      "updatesChecked": 8000,
+      "gradientsRecomputed": 8000,
+      "lossesRecomputed": 8000,
+      "chunkHashesChecked": 80,
+      "maximumGradientError": 3.608224830031759e-15,
+      "maximumLossError": 3.694822225952521e-13,
+      "maximumAdamAndEndpointError": 0,
+      "crossChunkContinuity": true,
+      "publishedSixDecimalParametersExactlyMatch": true,
+      "passed": true
+    },
+    {
+      "id": "geometry-single-v1",
+      "modelSha256": "6205d8312551c1c3767f70c0c42038c89a66560ce61cdfa7c3fc8d825c53b609",
+      "updatesChecked": 8000,
+      "gradientsRecomputed": 8000,
+      "lossesRecomputed": 8000,
+      "chunkHashesChecked": 80,
+      "maximumGradientError": 4.440892098500626e-15,
+      "maximumLossError": 1.1368683772161603e-13,
+      "maximumAdamAndEndpointError": 0,
+      "crossChunkContinuity": true,
+      "publishedSixDecimalParametersExactlyMatch": true,
+      "hardNegativeBoundaryStepsCovered": [4000, 4001],
+      "passed": true
+    }
+  ]
+}

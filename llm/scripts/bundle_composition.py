@@ -30,6 +30,30 @@ assert random_trace["modelSha256"] == random_features["modelSha256"] and random_
 # The page only needs the index; complete per-update losses remain in the trace.
 trace_view = {k:v for k,v in trace.items() if k != 'timeline'}
 random_trace_view = {k:v for k,v in random_trace.items() if k != 'timeline'}
+geometry_models = {}
+geometry_traces = {}
+geometry_audit = json.loads((ROOT / 'geometry-backprop-verification.json').read_text(encoding='utf-8'))
+for kind in ('single', 'double'):
+    geometry_models[kind] = json.loads((ROOT / f'geometry-{kind}-model.json').read_text(encoding='utf-8'))
+    geometry_traces[kind] = json.loads((ROOT / f'training-trace/geometry-{kind}-v1/manifest.json').read_text(encoding='utf-8'))
+    gm, gt = geometry_models[kind], geometry_traces[kind]
+    assert gm['verification']['inputCount'] == 1 << 25 and gm['verification']['errors'] == 0
+    assert gm['featureVerification']['passed']
+    assert gt['modelSha256'] == gm['modelSha256']
+    assert gt['verification']['stepsChecked'] == gt['steps'] and gt['verification']['finalModelExactMatch']
+    audit = next(record for record in geometry_audit['traces'] if record['id'] == gt['id'])
+    assert audit['passed'] and audit['modelSha256'] == gm['modelSha256']
+    assert audit['updatesChecked'] == audit['gradientsRecomputed'] == audit['lossesRecomputed'] == gt['steps']
+    assert audit['publishedSixDecimalParametersExactlyMatch']
+geometry_source = '\n'.join(
+    'const ' + name + ' = ' + json.dumps(value, ensure_ascii=False, separators=(',', ':')) + ';'
+    for name, value in (
+        ('SquareGeometrySingleModelData', geometry_models['single']),
+        ('SquareGeometryDoubleModelData', geometry_models['double']),
+        ('SquareGeometrySingleTraceManifest', {k:v for k,v in geometry_traces['single'].items() if k != 'timeline'}),
+        ('SquareGeometryDoubleTraceManifest', {k:v for k,v in geometry_traces['double'].items() if k != 'timeline'})))
+geometry_source += '\n' + '\n'.join((ROOT / file).read_text(encoding='utf-8') for file in (
+    'geometry-backprop-core.js', 'geometry-teaching.js', 'geometry-backprop-teaching.js'))
 replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + '\nconst SquareRandomTrainingTraceManifest = ' + json.dumps(random_trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + (ROOT / "backprop-core.js").read_text(encoding="utf-8") + '\n'
@@ -43,9 +67,10 @@ block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionMo
          + ';\nconst SquarePartialFeaturesModelData = ' + json.dumps(partial_features, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquareShuffledPartialModelData = ' + json.dumps(shuffled_features, ensure_ascii=False, separators=(",", ":"))
          + ';\nconst SquareRandomPartialModelData = ' + json.dumps(random_features, ensure_ascii=False, separators=(",", ":"))
-         + ';\n' + source + replay_source + '\n</script>\n<!-- END COMPOSITION BUNDLE -->')
+         + ';\n' + source + replay_source + '\n' + geometry_source + '\n</script>\n<!-- END COMPOSITION BUNDLE -->')
 html = path.read_text(encoding="utf-8-sig")
-css = ('/* BEGIN BACKPROP CSS */\n' + (ROOT / "backprop-teaching.css").read_text(encoding="utf-8") + '\n/* END BACKPROP CSS */')
+css = ('/* BEGIN BACKPROP CSS */\n' + '\n'.join((ROOT / file).read_text(encoding='utf-8') for file in
+       ('backprop-teaching.css', 'geometry-teaching.css', 'geometry-backprop.css')) + '\n/* END BACKPROP CSS */')
 if '/* BEGIN BACKPROP CSS */' in html:
     html = re.sub(r'/\* BEGIN BACKPROP CSS \*/.*?/\* END BACKPROP CSS \*/', lambda _: css, html, flags=re.S)
 else:
@@ -56,5 +81,6 @@ else:
     anchor = '  <script>\n    const STORAGE_KEY'
     assert html.count(anchor) == 1
     html = html.replace(anchor, block + '\n' + anchor)
+html = html.replace("https://passwordis42.github.io/NeronNetRectangle/downloads/neural-network-offline.zip", "https://github.com/passwordis42/NeronNetRectangle/releases/download/geometry-teaching-v1/neural-network-offline.zip")
 path.write_text(html, encoding="utf-8")
 print("Bundled verified composition model and renderer into", path)

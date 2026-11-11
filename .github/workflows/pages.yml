@@ -15,6 +15,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v6
       - name: Bundle verified models
@@ -29,8 +31,20 @@ jobs:
           node llm/tests/backprop.test.cjs v2
           node llm/tests/loss-provenance.test.cjs
           node llm/tests/annotations.test.cjs
+          node llm/tests/geometry-teaching.test.cjs
+          node llm/tests/geometry-backprop.test.cjs llm/training-trace/geometry-single-v1/manifest.json llm/geometry-single-model.json
+          node llm/tests/geometry-backprop.test.cjs llm/training-trace/geometry-double-v1/manifest.json llm/geometry-double-model.json
       - name: Build standalone website
         run: python llm/scripts/build_site.py
+      - name: Publish complete offline package
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if ! gh release view geometry-teaching-v1 >/dev/null 2>&1; then
+            gh release create geometry-teaching-v1 --target "$GITHUB_SHA" --title "全特征可解释教学与完整训练回放" --notes "包含单隐藏层、双隐藏层、旧模型，以及全部真实训练记录。解压后直接打开 index.html。"
+          fi
+          gh release upload geometry-teaching-v1 _site/downloads/neural-network-offline.zip --clobber
+          rm _site/downloads/neural-network-offline.zip
       - uses: actions/upload-pages-artifact@v4
         with:
           path: _site
