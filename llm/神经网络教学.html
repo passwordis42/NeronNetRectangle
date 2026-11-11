@@ -1378,6 +1378,42 @@ body.is-replay { font-family:"Microsoft YaHei",system-ui,sans-serif; }
 .trace-view [data-geometry-parameter-select] {max-width:100%;width:100%}
 .trace-view .trace-equation {max-height:480px;overflow:auto}
 
+/* The ranking and network always observe the same forward pass. */
+#contributionRanking { display:flex; flex-direction:column; gap:10px; min-height:0; min-width:0; flex:1; padding:12px; overflow:auto; container-type:inline-size; }
+.ranking-head h3 { margin:0 0 5px; font-size:18px; }
+.ranking-head p,.ranking-context { margin:4px 0; color:var(--muted); font-size:12px; line-height:1.6; }
+.ranking-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; font-size:12px; }
+.ranking-controls label { display:flex; align-items:center; gap:6px; }
+.ranking-controls select { width:auto; max-width:100%; padding:5px 8px; font-size:12px; }
+.ranking-controls input[type=checkbox] { width:auto; }
+.ranking-list { flex:1; min-height:120px; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; overflow-anchor:none; }
+.contribution-ranking-row { border:1px solid #dce5df; border-radius:8px; padding:10px; margin:0 0 8px; background:#fff; }
+.ranking-row-head { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
+.ranking-rank { color:#69776e; font:12px/1.8 Consolas,monospace; min-width:22px; }
+#contributionRanking button { box-shadow:none; font-size:12px; line-height:1.5; }
+.ranking-neuron { flex:1; min-width:0; background:transparent; color:#204c3a; border:0; border-radius:3px; text-align:left; padding:0; overflow-wrap:anywhere; }
+.ranking-connection { flex:none; background:#f3f6f1; color:#315745; border:1px solid #d8e2d9; border-radius:5px; padding:3px 6px; }
+.ranking-numbers { display:grid; font-size:12px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(22%,calc(var(--ranking-digits,10)*.61em + 4px))),1fr)); gap:8px; }
+.ranking-numbers > div { min-width:0; }
+.ranking-numbers small { display:block; color:#6c7870; font-size:10px; margin-bottom:3px; }
+.ranking-value { display:block; font:600 12px/1.6 Consolas,monospace; white-space:nowrap; overflow-wrap:normal; word-break:normal; }
+.ranking-positive { color:#08785d; }
+.ranking-negative { color:#b92750; }
+.ranking-zero { color:#69736e; }
+.ranking-bar { height:3px; margin-top:8px; background:#eef2ef; border-radius:2px; overflow:hidden; }
+.ranking-bar i { display:block; height:100%; background:currentColor; }
+.ranking-summary { border-top:1px solid #dce5df; padding-top:9px; font-size:12px; line-height:1.7; }
+.ranking-summary p { margin:0 0 5px; }
+.ranking-equation { display:flex; flex-wrap:wrap; gap:4px 7px; align-items:baseline; }
+.ranking-equation b { font:600 12px/1.7 Consolas,monospace; white-space:nowrap; }
+.ranking-summary small { color:var(--muted); }
+body.is-replay #detailSidebar .inspector-toolbar { display:flex; padding:5px 10px; }
+body.is-replay #closeInspectorButton { display:none; }
+body.is-replay #contributionRanking { padding:10px; }
+@container(max-width:560px) { .ranking-numbers { grid-template-columns:repeat(auto-fit,minmax(min(100%,max(40%,calc(var(--ranking-digits,10)*.61em + 4px))),1fr)); } }
+@container(max-width:320px) { .ranking-row-head { flex-wrap:wrap; } .ranking-connection { margin-left:30px; } }
+@media(max-width:1199px) { body.is-replay #contributionRanking { min-height:420px; max-height:650px; } }
+
 /* END BACKPROP CSS */
   </style>
   <style>
@@ -1752,6 +1788,7 @@ body.inspector-modal-open { overflow: hidden; }
         <div class="network-actions">
           <div class="inspector-launchers" aria-label="查看详情">
             <button id="openFeaturesButton" class="secondary" type="button" data-open-inspector="features" aria-controls="detailSidebar" aria-expanded="false">查看特征</button>
+            <button id="openRankingButton" class="secondary" type="button" data-open-inspector="ranking" aria-controls="detailSidebar" aria-expanded="false">贡献排行</button>
             <button id="openSettingsButton" class="secondary" type="button" data-open-inspector="settings" aria-controls="detailSidebar" aria-expanded="false">设置</button>
           </div>
           <label id="trainedVariantControl" class="trained-variant-control" hidden>
@@ -1826,11 +1863,13 @@ body.inspector-modal-open { overflow: hidden; }
       <div class="inspector-toolbar">
         <div class="inspector-tabs" role="tablist" aria-label="右侧面板">
           <button id="featuresTab" type="button" role="tab" data-inspector-tab="features" aria-selected="true" aria-controls="weightInspector">特征</button>
+          <button id="rankingTab" type="button" role="tab" data-inspector-tab="ranking" aria-selected="false" aria-controls="contributionRanking" tabindex="-1">贡献排行</button>
           <button id="settingsTab" type="button" role="tab" data-inspector-tab="settings" aria-selected="false" aria-controls="settingsPanel" tabindex="-1">设置</button>
         </div>
         <button id="closeInspectorButton" class="secondary" type="button" aria-label="关闭详情面板">关闭</button>
       </div>
       <div id="weightInspector" class="weight-inspector" role="tabpanel" aria-labelledby="featuresTab" tabindex="0"></div>
+      <section id="contributionRanking" role="tabpanel" aria-labelledby="rankingTab" tabindex="0" hidden></section>
       <div id="settingsPanel" class="inspector-settings" role="tabpanel" aria-labelledby="settingsTab" tabindex="0" hidden>
           <label id="brushRangeLabel">实验画笔亮度（普通模式）<input id="brushRange" type="range" min="0" max="1" step="0.05" value="1"><span id="brushChip" class="brush-chip">1.00</span></label>
       <section class="panel collapsible-panel" data-panel-key="config">
@@ -4085,6 +4124,77 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
   return {create};
 })();
 
+/* Read-only output attribution. Values always come from one actual forward pass. */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module !== 'undefined' && module.exports) module.exports = api;
+  else root.OutputContributionRanking = api;
+})(typeof globalThis !== 'undefined' ? globalThis : this, function () {
+  'use strict';
+
+  function finiteVector(values, size) {
+    if (!(Array.isArray(values) || ArrayBuffer.isView(values)) ||
+      !Number.isInteger(values.length) || values.length === 0 ||
+      size !== undefined && values.length !== size) return false;
+    for (let i = 0; i < values.length; i++) if (!Number.isFinite(values[i])) return false;
+    return true;
+  }
+
+  function compute(model, forward, outputIndex = 0) {
+    if (!model || !forward || !Array.isArray(model.layers) || model.layers.length === 0 ||
+      !Number.isInteger(outputIndex) || outputIndex < 0 ||
+      !Array.isArray(forward.activations) || forward.activations.length !== model.layers.length + 1 ||
+      !Array.isArray(forward.preActivations) || forward.preActivations.length !== model.layers.length ||
+      !finiteVector(forward.activations[0])) return null;
+
+    const topology = [forward.activations[0].length];
+    for (let layerIndex = 0; layerIndex < model.layers.length; layerIndex++) {
+      const layer = model.layers[layerIndex];
+      if (!layer || !Array.isArray(layer.weights) || !finiteVector(layer.biases, layer.weights.length)) return null;
+      for (const weights of layer.weights) if (!finiteVector(weights, topology[layerIndex])) return null;
+      const size = layer.weights.length;
+      if (!finiteVector(forward.activations[layerIndex + 1], size) ||
+        !finiteVector(forward.preActivations[layerIndex], size)) return null;
+      topology.push(size);
+    }
+    if (model.topology !== undefined && (!finiteVector(model.topology, topology.length) ||
+      topology.some((size, i) => size !== model.topology[i]))) return null;
+
+    const outputLayer = model.layers.length, last = model.layers[outputLayer - 1];
+    if (outputIndex >= last.weights.length || !finiteVector(forward.outputs, last.weights.length)) return null;
+    const activations = forward.activations[outputLayer - 1], weights = last.weights[outputIndex];
+    const rows = [];
+    let positiveSum = 0, negativeSum = 0, weightedSum = 0, maxMagnitude = 0;
+    for (let index = 0; index < weights.length; index++) {
+      const activation = activations[index], weight = weights[index];
+      const product = activation * weight, contribution = product === 0 ? 0 : product;
+      if (!Number.isFinite(contribution)) return null;
+      const magnitude = Math.abs(contribution);
+      rows.push({ index, activation, weight, contribution, magnitude });
+      if (contribution > 0) positiveSum += contribution;
+      if (contribution < 0) negativeSum += contribution;
+      // Sum in connection order, before sorting or display rounding.
+      weightedSum += contribution;
+      maxMagnitude = Math.max(maxMagnitude, magnitude);
+    }
+    if (![positiveSum, negativeSum, weightedSum].every(Number.isFinite)) return null;
+    rows.sort((a, b) => b.magnitude - a.magnitude || a.index - b.index);
+    return { sourceLayer: outputLayer - 1, outputLayer, outputIndex, rows, positiveSum, negativeSum,
+      bias: last.biases[outputIndex], weightedSum,
+      preActivation: forward.preActivations[outputLayer - 1][outputIndex],
+      output: forward.outputs[outputIndex], maxMagnitude };
+  }
+
+  function format(value, full = false) {
+    if (!Number.isFinite(value)) return '—';
+    const normalized = value === 0 ? 0 : value;
+    if (full) return String(normalized);
+    return normalized !== 0 && Math.abs(normalized) < 1e-6 ? normalized.toExponential(6) : normalized.toFixed(6);
+  }
+
+  return { compute, format };
+});
+
 </script>
 <!-- END COMPOSITION BUNDLE -->
   <script>
@@ -4173,7 +4283,8 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       connectionSvg: document.getElementById("connectionSvg"),
       layers: document.getElementById("layers"),
       summaryPanel: document.getElementById("summaryPanel"),
-      weightInspector: document.getElementById("weightInspector")
+      weightInspector: document.getElementById("weightInspector"),
+      contributionRanking: document.getElementById("contributionRanking")
     };
 
     let state = loadState();
@@ -4202,6 +4313,8 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         selectedNeuron: null,
         contributionColorMode: "all",
         inspectorTab: "features",
+        rankingOutput: 0,
+        rankingPrecision: false,
         inspectorMap: "contribution",
         inspectorPixel: null,
         weightLabelMode: "selected",
@@ -4262,10 +4375,10 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       if (isTeaching()) {
         const { pixels, brushValue, teachingCandidate, teachingExample, compositionExample, featurePair, teachingLocalFeaturesOpen, teachingSkeletonFeaturesOpen, teachingDefectFeaturesOpen, teachingOutputOpen, teachingTrainingOpen, teachingFirstFeaturesOpen, teachingFullNetwork, teachingNonzeroOnly, teachingBlanksOpen, teachingCalculationOpen, teachingWeightsOpen,
           geometryOpenGroups, selectedNeuron, collapsedPanels, expandedMode, viewportScale, weightLabelMode, contributionColorMode,
-          inspectorTab, inspectorMap, inspectorPixel } = state;
+          inspectorTab, inspectorMap, inspectorPixel, rankingOutput, rankingPrecision } = state;
         localStorage.setItem(teachingStorageKey(state.teachingPreset), JSON.stringify({ pixels, brushValue, teachingCandidate, teachingExample, compositionExample, featurePair, teachingLocalFeaturesOpen, teachingSkeletonFeaturesOpen, teachingDefectFeaturesOpen, teachingOutputOpen, teachingTrainingOpen, teachingFirstFeaturesOpen,
           teachingFullNetwork, teachingNonzeroOnly, teachingBlanksOpen, teachingCalculationOpen, teachingWeightsOpen, geometryOpenGroups, selectedNeuron, collapsedPanels, expandedMode,
-          viewportScale, weightLabelMode, contributionColorMode, inspectorTab, inspectorMap, inspectorPixel }));
+          viewportScale, weightLabelMode, contributionColorMode, inspectorTab, inspectorMap, inspectorPixel, rankingOutput, rankingPrecision }));
       } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
@@ -4950,6 +5063,68 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       return `${sourceName} ${fmt4(weightedSum)} + 偏置 ${fmt4(bias)} = ${fmt4(preActivation)}`;
     }
 
+    function rankingContextLabel() {
+      if (!backpropReplay?.active) return isTeaching() ? "当前画布 · 当前教学模型" : "当前画布 · 当前实验参数";
+      const context = backpropReplay.context;
+      if (context.step === 0) return "初始化 · 观察画布 · 初始参数";
+      const source = context.networkSource === "sample" ? `训练样本 ${context.sampleIndex + 1}` : "观察画布";
+      const phase = context.networkSource === "sample" ? "更新前参数" : ({ before: "更新前参数", after: "更新后参数", published: "正式参数 · 六位小数" }[context.phase] || "历史参数");
+      return `第 ${context.step.toLocaleString()} 次更新 · ${source} · ${phase}`;
+    }
+
+    function renderContributionRanking() {
+      const panel = els.contributionRanking;
+      const focus = panel.contains(document.activeElement) ? rememberInspectorFocus(document.activeElement) : null;
+      const scroll = panel.querySelector(".ranking-list")?.scrollTop || 0;
+      // currentDisplayModel falls back to the formal model when history is unavailable.
+      // Never use that fallback to fill a historical ranking.
+      if (!latestForward || (backpropReplay?.active && (backpropReplay.loading || !backpropReplay.model))) {
+        panel.innerHTML = '<div class="ranking-head" data-ranking-loading><h3>输出贡献排行</h3><p>当前没有可用的计算结果。训练记录加载完成后显示；若加载失败，请在回放区重试。</p></div>';
+        return;
+      }
+      const model = currentDisplayModel();
+      const outputIndex = clampInt(state.rankingOutput, 0, model.layers.at(-1).weights.length - 1, 0);
+      const data = OutputContributionRanking.compute(model, latestForward, outputIndex);
+      if (!data) {
+        panel.innerHTML = '<div class="ranking-head"><h3>输出贡献排行</h3><p>计算数据不完整，暂时无法列出贡献。</p></div>';
+        return;
+      }
+      const number = value => OutputContributionRanking.format(value, state.rankingPrecision);
+      const signed = value => `${value > 0 ? "+" : ""}${number(value)}`;
+      panel.style.setProperty("--ranking-digits", Math.max(10, ...data.rows.flatMap(row => [number(row.activation).length, number(row.weight).length, signed(row.contribution).length, number(row.magnitude).length])));
+      const name = index => data.sourceLayer === 0 ? `X${index + 1} · 输入像素` : isTeaching() ? teachingDefinition().neuronName(data.sourceLayer, index) : `H${data.sourceLayer}-${index + 1}`;
+      const nonlinear = state.outputActivation !== "linear";
+      const rows = data.rows.map((row, rank) => {
+        const sign = row.contribution > 0 ? "positive" : row.contribution < 0 ? "negative" : "zero";
+        return `<article class="contribution-ranking-row" data-ranking-index="${row.index}" data-ranking-contribution="${row.contribution}">
+          <div class="ranking-row-head"><span class="ranking-rank">${rank + 1}</span><button type="button" class="ranking-neuron" data-ranking-neuron="${row.index}" title="${data.sourceLayer ? '查看神经元详情' : '查看该输入到输出的连接'}">${escapeHtml(name(row.index))}</button><button type="button" class="ranking-connection" data-ranking-connection="${row.index}">查看输出连接</button></div>
+          <div class="ranking-numbers"><div><small>${data.sourceLayer ? '神经元响应 a' : '输入值 x'}</small><b class="ranking-value">${number(row.activation)}</b></div><div><small>输出权重 w</small><b class="ranking-value">${number(row.weight)}</b></div><div><small>贡献 a × w · ${row.contribution > 0 ? '加分' : row.contribution < 0 ? '减分' : '零'}</small><b class="ranking-value ranking-${sign}" data-ranking-value>${signed(row.contribution)}</b></div><div><small>绝对值 |a × w|</small><b class="ranking-value">${number(row.magnitude)}</b></div></div>
+          <div class="ranking-bar ranking-${sign}" aria-hidden="true"><i style="width:${data.maxMagnitude ? 100 * row.magnitude / data.maxMagnitude : 0}%"></i></div></article>`;
+      }).join("");
+      panel.innerHTML = `<div class="ranking-head"><h3>${data.sourceLayer ? '输出贡献排行' : '输入贡献排行'}</h3><p class="ranking-context">${escapeHtml(rankingContextLabel())}</p><p>按 |响应 × 输出权重| 降序 · ${data.sourceLayer ? `最后隐藏层 H${data.sourceLayer}` : '输入层'} · 全部 ${data.rows.length} 项。正值加分，负值减分。</p></div>
+        <div class="ranking-controls">${state.outputs.length > 1 ? `<label>查看输出 <select id="rankingOutputSelect">${state.outputs.map((output, i) => `<option value="${i}" ${i === outputIndex ? 'selected' : ''}>Y${i + 1} · ${escapeHtml(output.name)}</option>`).join("")}</select></label>` : `<span>Y${outputIndex + 1} · ${escapeHtml(state.outputs[outputIndex]?.name || '输出')}</span>`}<label><input id="rankingPrecision" type="checkbox" ${state.rankingPrecision ? 'checked' : ''}>完整精度</label></div>
+        <div class="ranking-list" tabindex="0" aria-label="全部输出贡献，按绝对值降序">${rows}</div>
+        <div class="ranking-summary"><p>正贡献之和 ＋ 负贡献之和 ＋ 偏置 ＝ ${nonlinear ? '输出加权和 z' : '输出得分'}</p>
+          <div class="ranking-equation"><b class="ranking-positive" data-ranking-positive="${data.positiveSum}">${number(data.positiveSum)}</b><span>＋</span><b class="ranking-negative" data-ranking-negative="${data.negativeSum}">(${number(data.negativeSum)})</b><span>＋</span><b data-ranking-bias="${data.bias}">(${number(data.bias)})</b><span>＝</span><b data-ranking-z="${data.preActivation}">${number(data.preActivation)}</b></div>
+          <p data-ranking-sum="${data.weightedSum}" data-ranking-output="${data.output}">${nonlinear ? `${escapeHtml(state.outputActivation)}(${number(data.preActivation)}) ＝ ${number(data.output)}` : ''}</p><small>偏置单列，不参与排名。排行是当前输入的直接输出贡献，不是损失偏导；求和与排序使用完整精度。</small></div>`;
+      panel.querySelector(".ranking-list").scrollTop = scroll;
+      if (focus) restoreInspectorFocus(focus);
+    }
+
+    function selectRankingConnection(input) {
+      if (!latestForward || (backpropReplay?.active && !backpropReplay.model)) return;
+      const model = currentDisplayModel(), layer = model.layers.length;
+      const output = clampInt(state.rankingOutput, 0, model.layers.at(-1).weights.length - 1, 0);
+      if (!Number.isInteger(input) || input < 0 || input >= model.layers.at(-1).weights[output].length) return;
+      state.selectedNeuron = { layerIndex: layer, neuronIndex: output };
+      state.inspectorPixel = input;
+      state.inspectorTab = "features";
+      if (isTeaching()) state.teachingFullNetwork = true;
+      if (backpropReplay?.active) backpropReplay.selectConnection(layer, output, input);
+      saveAndRender();
+      document.getElementById("featuresTab").focus({ preventScroll: true });
+    }
+
     let replayLayout = null;
     let replayAnnotations = null;
     function syncReplayLayout() {
@@ -5568,6 +5743,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       renderConfig();
       renderTeachingControls();
       renderNetwork();
+      renderContributionRanking();
       renderSamples();
       renderCollapsiblePanels();
       renderMetrics();
@@ -5630,7 +5806,9 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
 
     function sanitizeInspectorState(saved) {
       return {
-        inspectorTab: saved.inspectorTab === "settings" ? "settings" : "features",
+        inspectorTab: ["features", "ranking", "settings"].includes(saved.inspectorTab) ? saved.inspectorTab : "features",
+        rankingOutput: clampInt(saved.rankingOutput, 0, 9, 0),
+        rankingPrecision: saved.rankingPrecision === true,
         inspectorMap: saved.inspectorMap === "weights" ? "weights" : "contribution",
         inspectorPixel: Number.isInteger(saved.inspectorPixel) && saved.inspectorPixel >= 0 && saved.inspectorPixel < 352 ? saved.inspectorPixel : null
       };
@@ -5639,7 +5817,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     // Rendering replaces neuron buttons, so keep a selector as well as the live node.
     function rememberInspectorFocus(element) {
       if (!element) return null;
-      const attributes = ["data-teaching-layer", "data-teaching-neuron", "data-teaching-candidate", "data-layer", "data-neuron", "data-neuron-step", "data-inspector-map", "data-inspector-pixel", "data-contribution-mode", "data-inspector-source", "data-return-candidate"];
+      const attributes = ["data-teaching-layer", "data-teaching-neuron", "data-teaching-candidate", "data-layer", "data-neuron", "data-neuron-step", "data-inspector-map", "data-inspector-pixel", "data-contribution-mode", "data-inspector-source", "data-return-candidate", "data-ranking-neuron", "data-ranking-connection"];
       let selector = element.id ? `#${CSS.escape(element.id)}` : attributes.filter(key => element.hasAttribute(key)).map(key => `[${key}="${CSS.escape(element.getAttribute(key))}"]`).join("");
       if (element.tagName === "SUMMARY" && element.parentElement.dataset.teachingDetail) selector = `[data-teaching-detail="${element.parentElement.dataset.teachingDetail}"] > summary`;
       return { element, selector };
@@ -5662,6 +5840,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
 
     function renderInspectorSidebar() {
       const replay = Boolean(backpropReplay?.active);
+      const tab = replay && state.inspectorTab === "settings" ? "features" : state.inspectorTab;
       const modal = !replay && inspectorMedia.matches && inspectorDrawerOpen;
       els.detailSidebar.classList.toggle("is-open", modal);
       els.detailSidebar.inert = !replay && inspectorMedia.matches && !modal;
@@ -5673,13 +5852,15 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       document.querySelector(".topbar").inert = modal;
       document.querySelectorAll(".app > :not(#detailSidebar)").forEach(element => { element.inert = modal; });
       document.querySelectorAll("[data-inspector-tab]").forEach(button => {
-        const active = button.dataset.inspectorTab === state.inspectorTab;
+        button.hidden = replay && button.dataset.inspectorTab === "settings";
+        const active = button.dataset.inspectorTab === tab;
         button.setAttribute("aria-selected", String(active));
         button.tabIndex = active ? 0 : -1;
       });
       document.querySelectorAll("[data-open-inspector]").forEach(button => button.setAttribute("aria-expanded", String(modal && button.dataset.openInspector === state.inspectorTab)));
-      els.weightInspector.hidden = !replay && state.inspectorTab !== "features";
-      els.settingsPanel.hidden = replay || state.inspectorTab !== "settings";
+      els.weightInspector.hidden = tab !== "features";
+      els.contributionRanking.hidden = tab !== "ranking";
+      els.settingsPanel.hidden = replay || tab !== "settings";
       updateInspectorHeight();
     }
 
@@ -5688,9 +5869,9 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     }
 
     function openInspector(tab, origin = rememberInspectorFocus(document.activeElement)) {
-      const opening = inspectorMedia.matches && !inspectorDrawerOpen;
+      const opening = !backpropReplay?.active && inspectorMedia.matches && !inspectorDrawerOpen;
       if (opening) { inspectorReturnFocus = origin; inspectorDrawerOpen = true; }
-      state.inspectorTab = tab === "settings" ? "settings" : "features";
+      state.inspectorTab = ["features", "ranking", "settings"].includes(tab) && !(backpropReplay?.active && tab === "settings") ? tab : "features";
       saveState();
       renderInspectorSidebar();
       if (opening) document.getElementById(`${state.inspectorTab}Tab`).focus({ preventScroll: true });
@@ -6195,12 +6376,32 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       const focused = document.activeElement.closest("[data-inspector-pixel]");
       showInspectorPixel(focused ? Number(focused.dataset.inspectorPixel) : state.inspectorPixel);
     });
+    els.contributionRanking.addEventListener("change", event => {
+      if (event.target.id === "rankingOutputSelect") state.rankingOutput = Number(event.target.value);
+      else if (event.target.id === "rankingPrecision") state.rankingPrecision = event.target.checked;
+      else return;
+      saveState();
+      renderContributionRanking();
+    });
+    els.contributionRanking.addEventListener("click", event => {
+      const button = event.target.closest("[data-ranking-neuron], [data-ranking-connection]");
+      if (!button || !latestForward || (backpropReplay?.active && !backpropReplay.model)) return;
+      const input = Number(button.dataset.rankingNeuron ?? button.dataset.rankingConnection);
+      const sourceLayer = currentDisplayModel().layers.length - 1;
+      if (button.hasAttribute("data-ranking-connection") || sourceLayer === 0) selectRankingConnection(input);
+      else {
+        selectNeuron(sourceLayer, input, button);
+        document.getElementById("featuresTab").focus({ preventScroll: true });
+      }
+    });
     document.querySelectorAll("[data-inspector-tab]").forEach(button => {
       button.addEventListener("click", () => openInspector(button.dataset.inspectorTab));
       button.addEventListener("keydown", event => {
         if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
         event.preventDefault();
-        const tab = event.key === "Home" ? "features" : event.key === "End" ? "settings" : state.inspectorTab === "features" ? "settings" : "features";
+        const tabs = [...document.querySelectorAll("[data-inspector-tab]")].filter(item => !item.hidden).map(item => item.dataset.inspectorTab);
+        const current = tabs.indexOf(button.dataset.inspectorTab);
+        const tab = event.key === "Home" ? tabs[0] : event.key === "End" ? tabs.at(-1) : tabs[(current + (event.key === "ArrowLeft" ? -1 : 1) + tabs.length) % tabs.length];
         openInspector(tab);
         document.getElementById(`${tab}Tab`).focus({ preventScroll: true });
       });

@@ -1,0 +1,35 @@
+/* The ranking and network always observe the same forward pass. */
+#contributionRanking { display:flex; flex-direction:column; gap:10px; min-height:0; min-width:0; flex:1; padding:12px; overflow:auto; container-type:inline-size; }
+.ranking-head h3 { margin:0 0 5px; font-size:18px; }
+.ranking-head p,.ranking-context { margin:4px 0; color:var(--muted); font-size:12px; line-height:1.6; }
+.ranking-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; font-size:12px; }
+.ranking-controls label { display:flex; align-items:center; gap:6px; }
+.ranking-controls select { width:auto; max-width:100%; padding:5px 8px; font-size:12px; }
+.ranking-controls input[type=checkbox] { width:auto; }
+.ranking-list { flex:1; min-height:120px; overflow:auto; overscroll-behavior:contain; scrollbar-gutter:stable; overflow-anchor:none; }
+.contribution-ranking-row { border:1px solid #dce5df; border-radius:8px; padding:10px; margin:0 0 8px; background:#fff; }
+.ranking-row-head { display:flex; align-items:flex-start; gap:8px; margin-bottom:8px; }
+.ranking-rank { color:#69776e; font:12px/1.8 Consolas,monospace; min-width:22px; }
+#contributionRanking button { box-shadow:none; font-size:12px; line-height:1.5; }
+.ranking-neuron { flex:1; min-width:0; background:transparent; color:#204c3a; border:0; border-radius:3px; text-align:left; padding:0; overflow-wrap:anywhere; }
+.ranking-connection { flex:none; background:#f3f6f1; color:#315745; border:1px solid #d8e2d9; border-radius:5px; padding:3px 6px; }
+.ranking-numbers { display:grid; font-size:12px; grid-template-columns:repeat(auto-fit,minmax(min(100%,max(22%,calc(var(--ranking-digits,10)*.61em + 4px))),1fr)); gap:8px; }
+.ranking-numbers > div { min-width:0; }
+.ranking-numbers small { display:block; color:#6c7870; font-size:10px; margin-bottom:3px; }
+.ranking-value { display:block; font:600 12px/1.6 Consolas,monospace; white-space:nowrap; overflow-wrap:normal; word-break:normal; }
+.ranking-positive { color:#08785d; }
+.ranking-negative { color:#b92750; }
+.ranking-zero { color:#69736e; }
+.ranking-bar { height:3px; margin-top:8px; background:#eef2ef; border-radius:2px; overflow:hidden; }
+.ranking-bar i { display:block; height:100%; background:currentColor; }
+.ranking-summary { border-top:1px solid #dce5df; padding-top:9px; font-size:12px; line-height:1.7; }
+.ranking-summary p { margin:0 0 5px; }
+.ranking-equation { display:flex; flex-wrap:wrap; gap:4px 7px; align-items:baseline; }
+.ranking-equation b { font:600 12px/1.7 Consolas,monospace; white-space:nowrap; }
+.ranking-summary small { color:var(--muted); }
+body.is-replay #detailSidebar .inspector-toolbar { display:flex; padding:5px 10px; }
+body.is-replay #closeInspectorButton { display:none; }
+body.is-replay #contributionRanking { padding:10px; }
+@container(max-width:560px) { .ranking-numbers { grid-template-columns:repeat(auto-fit,minmax(min(100%,max(40%,calc(var(--ranking-digits,10)*.61em + 4px))),1fr)); } }
+@container(max-width:320px) { .ranking-row-head { flex-wrap:wrap; } .ranking-connection { margin-left:30px; } }
+@media(max-width:1199px) { body.is-replay #contributionRanking { min-height:420px; max-height:650px; } }
