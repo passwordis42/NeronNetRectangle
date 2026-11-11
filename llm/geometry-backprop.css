@@ -1,8 +1,9 @@
 .geometry-metric {margin-top:16px;padding:12px;border:1px solid #d9e4dc;border-radius:10px;background:#f7faf7}
-.geometry-metric-grid {display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:4px;max-height:420px;overflow:auto}
-.geometry-metric-grid.is-pixel {grid-template-columns:repeat(5,minmax(0,1fr));max-height:none}
+.geometry-metric-grid {display:grid;font:11px Consolas,monospace;--metric-min-width:calc(var(--metric-digits,12)*.61em + 8px);grid-template-columns:repeat(auto-fill,minmax(var(--metric-min-width),1fr));gap:4px;max-height:420px;overflow:auto}
+.geometry-metric-grid.is-pixel {grid-template-columns:repeat(5,minmax(var(--metric-min-width),1fr));max-height:none}
 .geometry-metric-cell {border:1px solid #ced9d0;border-radius:5px;min-height:48px;padding:5px 2px;color:#fff;cursor:pointer;overflow-wrap:anywhere}
 .geometry-metric-cell small,.geometry-metric-cell b {display:block;font-size:10px;font-variant-numeric:tabular-nums}
+.geometry-metric-cell b {font:700 11px/1.4 Consolas,monospace;white-space:nowrap;overflow-wrap:normal;word-break:normal}
 .geometry-metric-cell.is-selected {outline:3px solid #e7cb37;outline-offset:-3px}
 .trace-view [data-geometry-parameter-select] {max-width:100%;width:100%}
 .trace-view .trace-equation {max-height:480px;overflow:auto}

@@ -28,6 +28,23 @@ const kind=process.argv[3]||'double';
       const info=await page.evaluate(()=>({context:backpropReplay.context,p:backpropReplay.parameterInfo(backpropReplay.parameter),sum:getSelectedWeightDetails().weightedInputSum,bias:getSelectedWeightDetails().bias,z:getSelectedWeightDetails().preActivation}));
       assert.equal(info.context.step,step);assert.ok(Number.isFinite(info.p.totalGradient));assert.ok(Math.abs(info.sum+info.bias-info.z)<1e-10);
     }
+    // Tiny final-stage derivatives still occupy one readable line, including full precision.
+    await page.locator('[data-replay-view="metric"]').selectOption('gradient');
+    await page.locator('[data-replay-view="source"]').selectOption('total');
+    await page.locator('[data-replay-view="scope"]').selectOption('batch');
+    for(const width of [1680,390]){
+      await page.setViewportSize({width,height:width===390?844:1050});
+      for(const [layer,neuron,input] of [[1,60,6],...(kind==='double'?[[2,0,0]]:[])]){
+        await page.evaluate(([l,j,i])=>backpropReplay.selectParameter(backpropReplay.parameterIndex(l,j,i)),[layer,neuron,input]);
+        for(const full of [false,true]){
+          await page.locator('[data-geometry-precision]').setChecked(full);
+          const values=await page.locator('.geometry-metric-cell b').evaluateAll(nodes=>nodes.map(n=>{const r=document.createRange();r.selectNodeContents(n);return {text:n.textContent,lines:r.getClientRects().length,width:r.getBoundingClientRect().width,box:n.clientWidth};}));
+          for(const value of values){assert.equal(value.lines,1,`Metric must not split ${value.text}`);assert.ok(value.width<=value.box,`Complete metric must fit ${value.text}`);}
+          assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
+        }
+      }
+    }
+    await page.locator('[data-geometry-precision]').setChecked(false);await page.setViewportSize({width:1680,height:1050});
     await page.locator('[data-geometry-phase]').selectOption('published');
     await page.locator('[data-replay-view="network"]').selectOption('observation');
     assert.equal(await page.evaluate(k=>JSON.stringify(currentDisplayModel().layers)===JSON.stringify((k==='double'?SquareGeometryDoubleModelData:SquareGeometrySingleModelData).model.layers),kind),true);
@@ -77,7 +94,7 @@ const kind=process.argv[3]||'double';
     for(const type of ['json','csv']){
       const pending=page.waitForEvent('download');await page.locator(`[data-geometry-action="${type}"]`).click();const file=await pending;
       const text=await fs.readFile(await file.path(),'utf8');
-      if(type==='json'){const data=JSON.parse(text);assert.equal(data.step,101);assert.equal(data.traceId,manifest.id);assert.equal(data.before.length,manifest.parameterMap.length);}
+      if(type==='json'){const data=JSON.parse(text);assert.equal(data.step,101);assert.equal(data.traceId,manifest.id);assert.equal(data.before.length,manifest.parameterMap.length);assert.deepEqual(data.topology,manifest.topology);assert.deepEqual(data.activations,manifest.activations);assert.ok(data.sourceRecord.chunk.sha256);assert.ok(data.trainingTargets.features.length);}
       else {assert.match(text,/Adam候选值/);assert.equal(text.trim().split(/\r?\n/).length,manifest.parameterMap.length+1);}
     }
     await page.locator('[data-replay-view="layout"]').selectOption('vertical');await page.locator('[data-network-zoom="in"]').click();
