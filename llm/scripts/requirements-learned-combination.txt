@@ -1,0 +1,2 @@
+# Matches the recorded deterministic training environment.
+numpy==2.3.5

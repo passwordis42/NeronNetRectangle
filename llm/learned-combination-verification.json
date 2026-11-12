@@ -1,0 +1,1941 @@
+{
+  "presetId": "square-trained-learned-combination-v1",
+  "modelSha256": "bfe4ff130e933d3bd23e78c6b73aa99bc9c5955a17c1eb72d4f2708a81fae2f3",
+  "classification": {
+    "inputCount": 33554432,
+    "positiveCount": 30,
+    "errors": 0,
+    "threshold": 1,
+    "comparison": "gt",
+    "minimumPositive": 1.6000042383212332,
+    "maximumNegative": 0.40037350149134326,
+    "seconds": 23.50725221633911
+  },
+  "features": {
+    "passed": true,
+    "method": "Enumerate every assignment of each exact local support; all outside weights are structurally zero.",
+    "features": [
+      {
+        "neuronIndex": 0,
+        "name": "亮点 X1",
+        "satisfyingMinimum": 0.9996667222505814,
+        "violatingMaximum": 0.00033466025120773725,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 1,
+        "name": "亮点 X2",
+        "satisfyingMinimum": 0.9996650371805221,
+        "violatingMaximum": 0.00033320246225215935,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 2,
+        "name": "亮点 X3",
+        "satisfyingMinimum": 0.9996651402986426,
+        "violatingMaximum": 0.0003337501810133045,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 3,
+        "name": "亮点 X4",
+        "satisfyingMinimum": 0.9996659938199358,
+        "violatingMaximum": 0.0003345515406798707,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 4,
+        "name": "亮点 X5",
+        "satisfyingMinimum": 0.9996665272910942,
+        "violatingMaximum": 0.00033461040722891546,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 5,
+        "name": "亮点 X6",
+        "satisfyingMinimum": 0.9996667042590953,
+        "violatingMaximum": 0.0003348001215891008,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 6,
+        "name": "亮点 X7",
+        "satisfyingMinimum": 0.9996665602922506,
+        "violatingMaximum": 0.0003347582881981834,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 7,
+        "name": "亮点 X8",
+        "satisfyingMinimum": 0.9996683955315796,
+        "violatingMaximum": 0.00033490389095119607,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 8,
+        "name": "亮点 X9",
+        "satisfyingMinimum": 0.9996656300107689,
+        "violatingMaximum": 0.00033463984438625766,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 9,
+        "name": "亮点 X10",
+        "satisfyingMinimum": 0.9996655601435119,
+        "violatingMaximum": 0.0003333507209053556,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 10,
+        "name": "亮点 X11",
+        "satisfyingMinimum": 0.9996666842674168,
+        "violatingMaximum": 0.0003350924317290739,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 11,
+        "name": "亮点 X12",
+        "satisfyingMinimum": 0.9996654263855776,
+        "violatingMaximum": 0.00033343937442101117,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 12,
+        "name": "亮点 X13",
+        "satisfyingMinimum": 0.9996666572767492,
+        "violatingMaximum": 0.00033461743176992873,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 13,
+        "name": "亮点 X14",
+        "satisfyingMinimum": 0.9996649889585635,
+        "violatingMaximum": 0.00033339504471741955,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 14,
+        "name": "亮点 X15",
+        "satisfyingMinimum": 0.9996671407781679,
+        "violatingMaximum": 0.0003347238214108807,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 15,
+        "name": "亮点 X16",
+        "satisfyingMinimum": 0.9996667652263124,
+        "violatingMaximum": 0.0003348831345069408,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 16,
+        "name": "亮点 X17",
+        "satisfyingMinimum": 0.9996651797965271,
+        "violatingMaximum": 0.0003328934966840116,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 17,
+        "name": "亮点 X18",
+        "satisfyingMinimum": 0.9996655862200803,
+        "violatingMaximum": 0.0003336794570814343,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 18,
+        "name": "亮点 X19",
+        "satisfyingMinimum": 0.9996651664079356,
+        "violatingMaximum": 0.00033282129067217444,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 19,
+        "name": "亮点 X20",
+        "satisfyingMinimum": 0.9996659079979981,
+        "violatingMaximum": 0.00033365177207605773,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 20,
+        "name": "亮点 X21",
+        "satisfyingMinimum": 0.9996680300234086,
+        "violatingMaximum": 0.00033507099368537213,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 21,
+        "name": "亮点 X22",
+        "satisfyingMinimum": 0.9996674690389493,
+        "violatingMaximum": 0.0003349698514146126,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 22,
+        "name": "亮点 X23",
+        "satisfyingMinimum": 0.9996675979930564,
+        "violatingMaximum": 0.00033505357628442706,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 23,
+        "name": "亮点 X24",
+        "satisfyingMinimum": 0.9996661944303531,
+        "violatingMaximum": 0.0003335787347103675,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 24,
+        "name": "亮点 X25",
+        "satisfyingMinimum": 0.9996657382928902,
+        "violatingMaximum": 0.0003333927117383323,
+        "localAssignments": 2,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 25,
+        "name": "水平直线 · 第1行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 26,
+        "name": "水平直线 · 第1行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 27,
+        "name": "水平直线 · 第1行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 28,
+        "name": "水平直线 · 第2行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 29,
+        "name": "水平直线 · 第2行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 30,
+        "name": "水平直线 · 第2行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 31,
+        "name": "水平直线 · 第3行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 32,
+        "name": "水平直线 · 第3行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 33,
+        "name": "水平直线 · 第3行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 34,
+        "name": "水平直线 · 第4行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 35,
+        "name": "水平直线 · 第4行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 36,
+        "name": "水平直线 · 第4行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 37,
+        "name": "水平直线 · 第5行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 38,
+        "name": "水平直线 · 第5行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 39,
+        "name": "水平直线 · 第5行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 40,
+        "name": "竖直线 · 第2行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 41,
+        "name": "竖直线 · 第2行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 42,
+        "name": "竖直线 · 第2行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 43,
+        "name": "竖直线 · 第2行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 44,
+        "name": "竖直线 · 第2行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 45,
+        "name": "竖直线 · 第3行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 46,
+        "name": "竖直线 · 第3行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 47,
+        "name": "竖直线 · 第3行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 48,
+        "name": "竖直线 · 第3行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 49,
+        "name": "竖直线 · 第3行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 50,
+        "name": "竖直线 · 第4行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 51,
+        "name": "竖直线 · 第4行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 52,
+        "name": "竖直线 · 第4行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 53,
+        "name": "竖直线 · 第4行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 54,
+        "name": "竖直线 · 第4行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 55,
+        "name": "左上转角 · 第1行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 8,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 56,
+        "name": "左上转角 · 第1行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 57,
+        "name": "左上转角 · 第1行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 58,
+        "name": "左上转角 · 第1行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 59,
+        "name": "左上转角 · 第2行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 60,
+        "name": "左上转角 · 第2行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 61,
+        "name": "左上转角 · 第2行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 62,
+        "name": "左上转角 · 第2行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 63,
+        "name": "左上转角 · 第3行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 64,
+        "name": "左上转角 · 第3行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 65,
+        "name": "左上转角 · 第3行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 66,
+        "name": "左上转角 · 第3行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 67,
+        "name": "左上转角 · 第4行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 68,
+        "name": "左上转角 · 第4行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 69,
+        "name": "左上转角 · 第4行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 70,
+        "name": "左上转角 · 第4行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 71,
+        "name": "右上转角 · 第1行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 72,
+        "name": "右上转角 · 第1行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 73,
+        "name": "右上转角 · 第1行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 74,
+        "name": "右上转角 · 第1行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 8,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 75,
+        "name": "右上转角 · 第2行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 76,
+        "name": "右上转角 · 第2行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 77,
+        "name": "右上转角 · 第2行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 78,
+        "name": "右上转角 · 第2行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 79,
+        "name": "右上转角 · 第3行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 80,
+        "name": "右上转角 · 第3行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 81,
+        "name": "右上转角 · 第3行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 82,
+        "name": "右上转角 · 第3行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 83,
+        "name": "右上转角 · 第4行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 84,
+        "name": "右上转角 · 第4行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 85,
+        "name": "右上转角 · 第4行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 86,
+        "name": "右上转角 · 第4行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 87,
+        "name": "左下转角 · 第2行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 88,
+        "name": "左下转角 · 第2行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 89,
+        "name": "左下转角 · 第2行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 90,
+        "name": "左下转角 · 第2行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 91,
+        "name": "左下转角 · 第3行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 92,
+        "name": "左下转角 · 第3行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 93,
+        "name": "左下转角 · 第3行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 94,
+        "name": "左下转角 · 第3行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 95,
+        "name": "左下转角 · 第4行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 96,
+        "name": "左下转角 · 第4行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 97,
+        "name": "左下转角 · 第4行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 98,
+        "name": "左下转角 · 第4行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 99,
+        "name": "左下转角 · 第5行第1列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 8,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 100,
+        "name": "左下转角 · 第5行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 101,
+        "name": "左下转角 · 第5行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 102,
+        "name": "左下转角 · 第5行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 103,
+        "name": "右下转角 · 第2行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 104,
+        "name": "右下转角 · 第2行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 105,
+        "name": "右下转角 · 第2行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 106,
+        "name": "右下转角 · 第2行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 107,
+        "name": "右下转角 · 第3行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 108,
+        "name": "右下转角 · 第3行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 109,
+        "name": "右下转角 · 第3行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 110,
+        "name": "右下转角 · 第3行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 111,
+        "name": "右下转角 · 第4行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 112,
+        "name": "右下转角 · 第4行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 113,
+        "name": "右下转角 · 第4行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 32,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 114,
+        "name": "右下转角 · 第4行第5列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 115,
+        "name": "右下转角 · 第5行第2列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 116,
+        "name": "右下转角 · 第5行第3列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 117,
+        "name": "右下转角 · 第5行第4列",
+        "satisfyingMinimum": 0.9996646498695336,
+        "violatingMaximum": 0.0003353501304664781,
+        "localAssignments": 16,
+        "outsideInvariant": true,
+        "passed": true
+      },
+      {
+        "neuronIndex": 118,
+        "name": "右下转角 · 第5行第5列",
+        "satisfyingMinimum": 0.9996646512104815,
+        "violatingMaximum": 0.00033534811904648406,
+        "localAssignments": 8,
+        "outsideInvariant": true,
+        "passed": true
+      }
+    ]
+  },
+  "gradients": {
+    "passed": true,
+    "checks": [
+      {
+        "step": 1,
+        "passed": true,
+        "epsilon": 1e-05,
+        "rows": [
+          {
+            "parameter": 0,
+            "analytic": [
+              -0.00025012600781714486,
+              -4.466367869612066e-05,
+              0.0,
+              -0.13353292084519006,
+              0.0
+            ],
+            "numeric": [
+              -0.0002501259865894667,
+              -4.466367865829656e-05,
+              0.0,
+              -0.1335329216090031,
+              0.0
+            ],
+            "maximumError": 7.638130405940302e-10
+          },
+          {
+            "parameter": 1,
+            "analytic": [
+              4.6004154846959537e-05,
+              -9.247008217457385e-05,
+              0.0,
+              -0.13465923213528722,
+              0.0
+            ],
+            "numeric": [
+              4.6004133835708665e-05,
+              -9.247008193880023e-05,
+              0.0,
+              -0.1346592341633368,
+              0.0
+            ],
+            "maximumError": 2.0280495893754136e-09
+          },
+          {
+            "parameter": 451,
+            "analytic": [
+              -0.002288057102587768,
+              0.00032954850617782875,
+              0.0,
+              0.00092086066741498,
+              0.0
+            ],
+            "numeric": [
+              -0.002288057099342211,
+              0.0003295485058452119,
+              0.0,
+              0.0009208605433741467,
+              0.0
+            ],
+            "maximumError": 1.240408332688417e-10
+          },
+          {
+            "parameter": 452,
+            "analytic": [
+              0.000211551041878768,
+              0.00023578622034643476,
+              0.0,
+              -0.0002054506226821795,
+              0.0
+            ],
+            "numeric": [
+              0.00021155099894087923,
+              0.0002357862204094285,
+              0.0,
+              -0.00020545201095956142,
+              0.0
+            ],
+            "maximumError": 1.3882773819146998e-09
+          },
+          {
+            "parameter": 570,
+            "analytic": [
+              0.01477164760660238,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.014771647594002955,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.2599424975556772e-11
+          },
+          {
+            "parameter": 571,
+            "analytic": [
+              0.014707915588395657,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.014707915618750176,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 3.035451924537913e-11
+          },
+          {
+            "parameter": 1522,
+            "analytic": [
+              0.02945518312042888,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.02945518309260819,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.782069019602318e-11
+          },
+          {
+            "parameter": 1523,
+            "analytic": [
+              0.05512877631823764,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.05512877629954004,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.869759902461965e-11
+          },
+          {
+            "parameter": 1530,
+            "analytic": [
+              -1.971847891518248,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -1.9718478915020652,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.6182832851541207e-11
+          },
+          {
+            "parameter": 1531,
+            "analytic": [
+              -1.1461340608957045,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -1.1461340608809323,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.4772183476452483e-11
+          },
+          {
+            "parameter": 1538,
+            "analytic": [
+              -3.230895409211859,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -3.230895409211953,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 9.414691248821327e-14
+          }
+        ]
+      },
+      {
+        "step": 500,
+        "passed": true,
+        "epsilon": 1e-05,
+        "rows": [
+          {
+            "parameter": 0,
+            "analytic": [
+              3.7412462469051336e-06,
+              -1.7512902497179363e-10,
+              0.0,
+              -0.011019291664598758,
+              0.0
+            ],
+            "numeric": [
+              3.7412463968836125e-06,
+              -1.7512033489985865e-10,
+              0.0,
+              -0.01101929143487723,
+              0.0
+            ],
+            "maximumError": 2.297215282581755e-10
+          },
+          {
+            "parameter": 1,
+            "analytic": [
+              1.7113197088818902e-06,
+              -3.1425036939083966e-10,
+              0.0,
+              -0.011230011760201705,
+              0.0
+            ],
+            "numeric": [
+              1.711319801145361e-06,
+              -3.142451576731986e-10,
+              0.0,
+              -0.011230012120222453,
+              0.0
+            ],
+            "maximumError": 3.6002074758900715e-10
+          },
+          {
+            "parameter": 451,
+            "analytic": [
+              4.326134410912125e-05,
+              1.058728755401013e-09,
+              0.0,
+              5.4404132678509756e-05,
+              0.0
+            ],
+            "numeric": [
+              4.326134418145693e-05,
+              1.0587017373886454e-09,
+              0.0,
+              5.4404836191679344e-05,
+              0.0
+            ],
+            "maximumError": 7.035131695880509e-10
+          },
+          {
+            "parameter": 452,
+            "analytic": [
+              3.3760798043217354e-05,
+              8.08642473538193e-10,
+              0.0,
+              4.271678747405638e-06,
+              0.0
+            ],
+            "numeric": [
+              3.376079732615722e-05,
+              8.086413483265885e-10,
+              0.0,
+              4.271782927389722e-06,
+              0.0
+            ],
+            "maximumError": 1.0417998408396301e-10
+          },
+          {
+            "parameter": 570,
+            "analytic": [
+              -0.0028459963965541644,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.0028459963966227793,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 6.861481868791763e-14
+          },
+          {
+            "parameter": 571,
+            "analytic": [
+              -0.0028459986254485434,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.0028459986254605533,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.200992430505643e-14
+          },
+          {
+            "parameter": 1522,
+            "analytic": [
+              -0.006927719251453781,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.006927719253834764,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.3809825638876347e-12
+          },
+          {
+            "parameter": 1523,
+            "analytic": [
+              -0.006037058494758864,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.006037058494540343,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.1852051418358442e-13
+          },
+          {
+            "parameter": 1530,
+            "analytic": [
+              -0.00990669278364703,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.009906692783451763,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.9526567862637734e-13
+          },
+          {
+            "parameter": 1531,
+            "analytic": [
+              -0.004600395113435465,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.004600395113463218,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.7752973530414948e-14
+          },
+          {
+            "parameter": 1538,
+            "analytic": [
+              -0.06057727310124442,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.060577273101642015,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 3.975986206938842e-13
+          }
+        ]
+      },
+      {
+        "step": 1500,
+        "passed": true,
+        "epsilon": 1e-05,
+        "rows": [
+          {
+            "parameter": 0,
+            "analytic": [
+              1.0493608082229386e-08,
+              -4.1331381792077093e-11,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              1.0493598787760133e-08,
+              -4.1331382942857405e-11,
+              0.0,
+              -2.158273559871304e-08,
+              0.0
+            ],
+            "maximumError": 2.158273559871304e-08
+          },
+          {
+            "parameter": 1,
+            "analytic": [
+              3.7525530587979154e-08,
+              -1.0037304143357397e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              3.7525529677297524e-08,
+              -1.00373044260632e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 9.10681630036614e-16
+          },
+          {
+            "parameter": 451,
+            "analytic": [
+              3.636148839861517e-08,
+              2.952250295011153e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              3.636147858767104e-08,
+              2.9522502754864737e-10,
+              0.0,
+              8.526512829121202e-09,
+              0.0
+            ],
+            "maximumError": 8.526512829121202e-09
+          },
+          {
+            "parameter": 452,
+            "analytic": [
+              5.7980210206672136e-08,
+              1.771474009527687e-10,
+              0.0,
+              2.4723828220946145e-07,
+              0.0
+            ],
+            "numeric": [
+              5.7980209063235884e-08,
+              1.7714740650362436e-10,
+              0.0,
+              2.4718005420254485e-07,
+              0.0
+            ],
+            "maximumError": 5.822800691659921e-11
+          },
+          {
+            "parameter": 570,
+            "analytic": [
+              -1.965292836755942e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -1.9652938910324263e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.0542764842418432e-16
+          },
+          {
+            "parameter": 571,
+            "analytic": [
+              -1.965324765145923e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -1.9653197255373176e-10,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 5.039608605341987e-16
+          },
+          {
+            "parameter": 1522,
+            "analytic": [
+              -5.860429697942146e-07,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -5.86042970487175e-07,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 6.929604070058217e-16
+          },
+          {
+            "parameter": 1523,
+            "analytic": [
+              -1.334863754495489e-05,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -1.3348637387063644e-05,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.5789124598963953e-13
+          },
+          {
+            "parameter": 1530,
+            "analytic": [
+              -2.878511115675367e-05,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -2.8785111156726008e-05,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.7660707925536432e-17
+          },
+          {
+            "parameter": 1531,
+            "analytic": [
+              -7.553509449483995e-06,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -7.553509449741839e-06,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.5784360540778706e-16
+          },
+          {
+            "parameter": 1538,
+            "analytic": [
+              -0.00036492273287593024,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -0.00036492273287427093,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.6593172148804403e-15
+          }
+        ]
+      },
+      {
+        "step": 6000,
+        "passed": true,
+        "epsilon": 1e-05,
+        "rows": [
+          {
+            "parameter": 0,
+            "analytic": [
+              0.0,
+              -2.915887704899351e-11,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              -2.9158877060990376e-11,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.1996865380146519e-20
+          },
+          {
+            "parameter": 1,
+            "analytic": [
+              0.0,
+              -5.89088576852995e-11,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              -5.890885912479043e-11,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.4394909280329026e-18
+          },
+          {
+            "parameter": 451,
+            "analytic": [
+              0.0,
+              3.177763068509989e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              3.177763068394566e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.1542323171200094e-20
+          },
+          {
+            "parameter": 452,
+            "analytic": [
+              0.0,
+              2.558648725526941e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              2.558648712198097e-10,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.3328844076749513e-18
+          },
+          {
+            "parameter": 570,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 0.0
+          },
+          {
+            "parameter": 571,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 0.0
+          },
+          {
+            "parameter": 1522,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 0.0
+          },
+          {
+            "parameter": 1523,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 0.0
+          },
+          {
+            "parameter": 1530,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -1.4546510996924133e-08,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 1.4546510996924133e-08
+          },
+          {
+            "parameter": 1531,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 0.0
+          },
+          {
+            "parameter": 1538,
+            "analytic": [
+              0.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "numeric": [
+              -2.1160806902654654e-08,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ],
+            "maximumError": 2.1160806902654654e-08
+          }
+        ]
+      }
+    ]
+  },
+  "replay": {
+    "stepsChecked": 6000,
+    "maximumGradientError": 0.0,
+    "finalModelExactMatch": true,
+    "exhaustiveErrors": 0
+  },
+  "lookupForward": [
+    {
+      "label": "random initialization",
+      "inputCount": 4878,
+      "maximumScoreError": 4.163336342344337e-17,
+      "maximumHiddenInputError": 7.771561172376096e-16,
+      "absoluteTolerance": 1e-10,
+      "passed": true
+    },
+    {
+      "label": "published six-decimal parameters",
+      "inputCount": 4878,
+      "maximumScoreError": 4.440892098500626e-15,
+      "maximumHiddenInputError": 9.947598300641403e-14,
+      "absoluteTolerance": 1e-10,
+      "passed": true
+    }
+  ],
+  "trialExactMatch": true
+}

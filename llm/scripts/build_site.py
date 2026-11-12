@@ -23,6 +23,8 @@ with zipfile.ZipFile(downloads / "neural-network-offline.zip", "w", compression=
     verification = ROOT / 'llm' / 'geometry-backprop-verification.json'
     if verification.exists():
         archive.write(verification, 'neural-network/训练记录验证.json')
+    archive.write(ROOT / 'llm' / 'README-自主组合.md', 'neural-network/自主组合教学.md')
+    archive.write(ROOT / 'llm' / 'learned-combination-backprop-verification.json', 'neural-network/自主组合训练验证.json')
 package = downloads / 'neural-network-offline.zip'
 with package.open('rb') as handle:
     checksum = hashlib.file_digest(handle, 'sha256').hexdigest()

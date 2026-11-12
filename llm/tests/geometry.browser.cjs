@@ -26,7 +26,8 @@ const readableComparison=async page=>{
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(url);await page.waitForTimeout(300);
     assert.match(await page.title(),/神经网络/);
-    assert.equal(await page.locator('#trainedVariantSelect').inputValue(),'square-trained-geometry-double-v1');
+    assert.equal(await page.locator('#trainedVariantSelect').inputValue(),'square-trained-learned-combination-v1');
+    await page.locator('#trainedVariantSelect').selectOption('square-trained-geometry-double-v1');
     assert.equal(await page.locator('#pixelGrid button').count(),25);
     assert.equal(await page.getByRole('button',{name:'绘制 · 1',exact:true}).count(),0);
     const pixel=page.locator('#pixelGrid [data-index="0"]');

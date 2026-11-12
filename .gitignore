@@ -4,6 +4,9 @@ __pycache__/
 llm/.*-checkpoint.npz
 llm/.geometry-*-trial.npz
 llm/.geometry-*-exhaustive.npz
+llm/.learned-combination-*-trial.npz
+llm/.learned-combination-*-trial.json
+llm/.learned-combination-*-expected.npz
 
 # Generated website and local backups
 _site/

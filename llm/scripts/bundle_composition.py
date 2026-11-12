@@ -45,11 +45,23 @@ for kind in ('single', 'double'):
     assert audit['passed'] and audit['modelSha256'] == gm['modelSha256']
     assert audit['updatesChecked'] == audit['gradientsRecomputed'] == audit['lossesRecomputed'] == gt['steps']
     assert audit['publishedSixDecimalParametersExactlyMatch']
+learned_model = json.loads((ROOT / 'learned-combination-model.json').read_text(encoding='utf-8'))
+learned_trace = json.loads((ROOT / 'training-trace/learned-combination-v1/manifest.json').read_text(encoding='utf-8'))
+learned_audit = json.loads((ROOT / 'learned-combination-backprop-verification.json').read_text(encoding='utf-8'))
+assert learned_model['learningMode'] == learned_trace['learningMode'] == 'learned-combination'
+assert learned_model['verification']['inputCount'] == 1 << 25 and learned_model['verification']['errors'] == 0
+assert learned_model['featureVerification']['passed']
+assert learned_trace['modelSha256'] == learned_model['modelSha256'] == learned_audit['modelSha256']
+assert learned_trace['verification']['stepsChecked'] == learned_trace['steps'] and learned_trace['verification']['finalModelExactMatch']
+assert learned_audit['passed'] and learned_audit['publishedSixDecimalParametersExactlyMatch']
+assert learned_audit['updatesChecked'] == learned_audit['gradientsRecomputed'] == learned_audit['lossesRecomputed'] == learned_trace['steps']
 geometry_source = '\n'.join(
     'const ' + name + ' = ' + json.dumps(value, ensure_ascii=False, separators=(',', ':')) + ';'
     for name, value in (
         ('SquareGeometrySingleModelData', geometry_models['single']),
         ('SquareGeometryDoubleModelData', geometry_models['double']),
+        ('SquareLearnedCombinationModelData', learned_model),
+        ('SquareLearnedCombinationTraceManifest', {k:v for k,v in learned_trace.items() if k != 'timeline'}),
         ('SquareGeometrySingleTraceManifest', {k:v for k,v in geometry_traces['single'].items() if k != 'timeline'}),
         ('SquareGeometryDoubleTraceManifest', {k:v for k,v in geometry_traces['double'].items() if k != 'timeline'})))
 geometry_source += '\n' + '\n'.join((ROOT / file).read_text(encoding='utf-8') for file in (

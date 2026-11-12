@@ -35,6 +35,9 @@ jobs:
           node llm/tests/output-contribution-ranking.test.cjs
           node llm/tests/panel-resize.test.cjs
           node llm/tests/second-layer-spatial.test.cjs
+          node llm/tests/learned-combination-teaching.test.cjs
+          node llm/tests/learned-combination-core.test.cjs
+          node llm/tests/geometry-backprop.test.cjs llm/training-trace/learned-combination-v1/manifest.json llm/learned-combination-model.json
           node llm/tests/geometry-backprop.test.cjs llm/training-trace/geometry-single-v1/manifest.json llm/geometry-single-model.json
           node llm/tests/geometry-backprop.test.cjs llm/training-trace/geometry-double-v1/manifest.json llm/geometry-double-model.json
       - name: Build standalone website
@@ -46,6 +49,7 @@ jobs:
           if ! gh release view geometry-teaching-v1 >/dev/null 2>&1; then
             gh release create geometry-teaching-v1 --target "$GITHUB_SHA" --title "全特征可解释教学与完整训练回放" --notes "包含单隐藏层、双隐藏层、旧模型，以及全部真实训练记录。解压后直接打开 index.html。"
           fi
+          gh release edit geometry-teaching-v1 --title "正方形神经网络教学与完整训练回放" --notes "包含第一层特征引导＋第二层自主组合，以及人工目标单层、双层和旧模型对照。包含全部真实训练记录，解压后直接打开 index.html。"
           gh release upload geometry-teaching-v1 _site/downloads/neural-network-offline.zip --clobber
           rm _site/downloads/neural-network-offline.zip
       - uses: actions/upload-pages-artifact@v4

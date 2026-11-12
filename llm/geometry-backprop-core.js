@@ -2,6 +2,8 @@
 function createGeometryBackpropCore(manifest, artifact) {
   'use strict';
   if (!manifest || !artifact || !artifact.model) throw Error('缺少模型或训练清单');
+  const learningMode = manifest.learningMode || artifact.learningMode || 'geometry-supervised';
+  const learnedCombination = learningMode === 'learned-combination';
   const topology = Array.from(manifest.topology || artifact.model.topology);
   const activations = Array.from(manifest.activations || artifact.activations || artifact.model.activations ||
     topology.slice(1).map((_, k) => k === topology.length - 2 ? 'linear' : 'sigmoid'));
@@ -155,16 +157,27 @@ function createGeometryBackpropCore(manifest, artifact) {
   const participationMinimum = config.participation?.minimum ?? .02;
   const sourceIndex = id => typeof id === 'number' ? id : lossDefinitions.findIndex(d => d.id === id);
   const layerParameters = topology.slice(1).map((_, k) => parameterMap.filter(d => d.layer === k + 1));
-  const hasGeometry = topology.length === 4 && topology[2] === 5, finalLayer = topology.length - 1;
+  // Width alone never assigns targets to a freely learned second hidden layer.
+  const hasGeometry = !learnedCombination && topology.length === 4 && topology[2] === 5;
+  const hasGeometryBoundary = hasGeometry && config.boundary?.geometryEnabled !== false;
+  const hasParticipation = !learnedCombination && participationCoefficient !== 0;
+  const finalLayer = topology.length - 1;
+  if (learnedCombination && (geometryCoefficient !== 0 || participationCoefficient !== 0 ||
+    config.boundary?.geometryEnabled !== false || artifact.geometryDefinitions?.length)) {
+    throw Error('自主组合模型不能包含第二层几何目标、几何边界或输出参与约束');
+  }
+  const lossEnabled = id => id === 'geometry' ? hasGeometry && geometryCoefficient !== 0
+    : id === 'participation' ? hasParticipation : true;
   const formulas = {
     classification: 'L分类 = Σ max(正例下界 − s, 0)² / N（正例）；Σ max(s − 负例上界, 0)² / N（负例）',
     local: `L局部 = ${localCoefficient} × Σ(h − t)² / (N × F)`,
     geometry: `L几何 = ${geometryCoefficient} × Σ(g − t几何)² / (N × G)`,
-    boundary: `L边界 = ${boundaryCoefficient} × [Σ局部最坏输入的间隔误差² / F + Σ几何输入和的间隔误差² / (N × G)]`,
+    boundary: hasGeometryBoundary ? `L边界 = ${boundaryCoefficient} × [Σ局部最坏输入的间隔误差² / F + Σ几何输入和的间隔误差² / (N × G)]`
+      : `L边界 = ${boundaryCoefficient} × Σ第一层局部最坏输入的间隔误差² / F`,
     participation: `L参与 = ${participationCoefficient} × Σ min(方向 × 输出权重 − ${participationMinimum}, 0)² / M`
   };
   const normalizations = { classification: 'N 为本次实际训练批次大小', local: 'N × F：样本数乘第一隐藏层目标数',
-    geometry: 'N × G：样本数乘第二隐藏层的 5 个几何条件', boundary: '局部最坏输入项除以 F；样本几何边界项除以 N × G',
+    geometry: 'N × G：样本数乘第二隐藏层的 5 个几何条件', boundary: hasGeometryBoundary ? '局部最坏输入项除以 F；样本几何边界项除以 N × G' : '第一层局部最坏输入项除以特征数 F，不含第二层目标',
     participation: 'M 为输出层可训练权重连接数，与批次大小无关' };
   lossDefinitions.forEach(d => { d.formula ||= formulas[d.id] || ''; d.coefficient ??= 1; d.normalization ||= normalizations[d.id] || ''; });
   function activationDerivative(value, layer) {
@@ -226,10 +239,12 @@ function createGeometryBackpropCore(manifest, artifact) {
       const response = f.activations[2][neuron], e = response - target;
       terms.push({ lossIndex: sourceIndex('geometry'), layer: 2, neuron, preActivation: false, response, target, error: e,
         scale: geometryCoefficient, unaveragedLoss: geometryCoefficient * e * e, derivative: 2 * geometryCoefficient * e, denominator: n * geo.length, label: `H2-${neuron + 1} 几何目标` });
-      const z = f.preActivations[1][neuron], logitTarget = target ? geometryMargin : -geometryMargin;
-      const marginError = target ? Math.min(z - logitTarget, 0) : Math.max(z - logitTarget, 0);
-      terms.push({ lossIndex: sourceIndex('boundary'), layer: 2, neuron, preActivation: true, response: z, target: logitTarget, binaryTarget: target, error: marginError,
-        scale: boundaryCoefficient, hinge: target ? 'min' : 'max', unaveragedLoss: boundaryCoefficient * marginError * marginError, derivative: 2 * boundaryCoefficient * marginError, denominator: n * geo.length, label: `H2-${neuron + 1} 几何检测边界` });
+      if (hasGeometryBoundary) {
+        const z = f.preActivations[1][neuron], logitTarget = target ? geometryMargin : -geometryMargin;
+        const marginError = target ? Math.min(z - logitTarget, 0) : Math.max(z - logitTarget, 0);
+        terms.push({ lossIndex: sourceIndex('boundary'), layer: 2, neuron, preActivation: true, response: z, target: logitTarget, binaryTarget: target, error: marginError,
+          scale: boundaryCoefficient, hinge: target ? 'min' : 'max', unaveragedLoss: boundaryCoefficient * marginError * marginError, derivative: 2 * boundaryCoefficient * marginError, denominator: n * geo.length, label: `H2-${neuron + 1} 几何检测边界` });
+      }
     });
     return { terms, truth, geometryTargets: geo };
   }
@@ -255,6 +270,7 @@ function createGeometryBackpropCore(manifest, artifact) {
     return terms;
   }
   function participationTerms(parameters) {
+    if (!hasParticipation) return [];
     const outputs = parameterMap.filter(d => d.layer === finalLayer && d.kind === 'weight');
     return outputs.map(d => {
       const sign = d.lower >= 0 ? 1 : d.upper <= 0 ? -1 : d.sign ?? 1;
@@ -356,7 +372,10 @@ function createGeometryBackpropCore(manifest, artifact) {
     const contribution = sample.parts[k][parameter] * coefficient;
     return { raw: denominator === null ? null : raw, coefficient, denominator, contribution, rows,
       sourceId: lossDefinitions[k].id, constraintOnly: denominator === null,
-      note: lossDefinitions[k].id === 'boundary' ? '这里仅显示本样本的几何边界项；局部最坏输入约束另见完整来源。' : denominator === null ? '本损失不按训练样本定义，请查看约束项来源。' : '',
+      note: !lossEnabled(lossDefinitions[k].id) ? '本模型未设置此损失目标；不存在该来源的训练偏导。'
+        : lossDefinitions[k].id === 'boundary' ? hasGeometryBoundary ? '这里仅显示本样本的几何边界项；局部最坏输入约束另见完整来源。'
+          : '本模型的检测边界只约束第一层局部特征，不按当前训练样本定义，也不监督第二层。'
+        : denominator === null ? '本损失不按训练样本定义，请查看约束项来源。' : '',
       chain: rows.length === 1 ? rows[0].chain : [
         { formula: '本样本所有相关项的偏导之和', substitution: `${rows.map(r => r.rawDerivative).join(' + ') || '0'} = ${raw}`, value: raw },
         { formula: '本样本对批次梯度的贡献', substitution: denominator === null ? '非样本约束：没有样本偏导' : `${raw} ÷ ${denominator} × ${coefficient} = ${contribution}`, value: denominator === null ? null : contribution }
@@ -393,7 +412,7 @@ function createGeometryBackpropCore(manifest, artifact) {
   }
   function findNonzeroSample(parameters, batch, step, parameter, lossId, start = 0) {
     const k = sourceIndex(lossId);
-    if (k < 0 || lossDefinitions[k].id === 'participation') return -1;
+    if (k < 0 || !lossEnabled(lossDefinitions[k].id) || lossDefinitions[k].id === 'participation') return -1;
     for (let offset = 1; offset <= batch.ids.length; offset++) {
       const index = (start + offset) % batch.ids.length;
       const result = gradients(parameters, { ids: [batch.ids[index]], labels: [batch.labels[index]] }, step, 0);
@@ -401,7 +420,7 @@ function createGeometryBackpropCore(manifest, artifact) {
     }
     return -1;
   }
-  return { P, topology, activations, parameterMap, lossDefinitions, model, flatten, forward, pixels, describe, indexOf,
+  return { P, topology, activations, parameterMap, lossDefinitions, learningMode, learnedCombination, hasGeometry, hasGeometryBoundary, lossEnabled, model, flatten, forward, pixels, describe, indexOf,
     optimizerAt, adam, readChunk, reconstruct, compareVectors, gradients, sampleGradient, parameterTrace, findNonzeroSample, geometryTargets };
 }
 const GeometryBackpropCore = { create: createGeometryBackpropCore };
