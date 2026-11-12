@@ -13,9 +13,12 @@ const near = (actual, expected, label) => assert.ok(Number.isFinite(actual) && M
 const rankedRows = page => page.locator('#contributionRanking .contribution-ranking-row');
 
 async function openRanking(page) {
-  await page.locator('#rankingTab').click();
-  assert.equal(await page.locator('#rankingTab').getAttribute('aria-selected'), 'true');
+  const toggle = page.locator('#toggleContributionsButton');
+  if (await toggle.getAttribute('aria-expanded') !== 'true') await toggle.click();
+  assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
   assert.equal(await page.locator('#contributionRanking').isVisible(), true);
+  assert.equal(await page.locator('#contributionRanking').count(), 1);
+  assert.equal(await page.locator('#networkContributionPane #contributionRanking').count(), 1);
 }
 
 async function checkRanking(page, count) {
@@ -113,6 +116,7 @@ async function checkNoPageOverflow(page) {
     const page = await context.newPage(), errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(url);
+    assert.equal(await page.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'true', 'Contributions are visible by default');
 
     // All actual last-hidden-layer sizes, including an older trained network.
     for (const [id, count] of [['square-trained-geometry-single-v1', 352], ['square-trained-geometry-double-v1', 5], ['square-trained-partial-50-v5', 50]]) {
@@ -129,15 +133,15 @@ async function checkNoPageOverflow(page) {
       assert.notDeepEqual(next, previous, 'Canvas editing recomputes the ranking');
     }
 
-    // Three real tabs must work by keyboard, without trapping focus in a hidden panel.
+    // Details retain only features/settings; the ranking is part of the network.
     const tabs = page.locator('[data-inspector-tab]');
-    assert.equal(await tabs.count(), 3);
+    assert.equal(await tabs.count(), 2);
     const tabIds = await tabs.evaluateAll(nodes => nodes.map(node => node.id));
     await page.locator(`#${tabIds[0]}`).focus();
-    for (let n = 1; n <= 3; n++) {
+    for (let n = 1; n <= 2; n++) {
       await page.keyboard.press('ArrowRight');
-      assert.equal(await page.evaluate(() => document.activeElement.id), tabIds[n % 3]);
-      assert.equal(await page.locator(`#${tabIds[n % 3]}`).getAttribute('aria-selected'), 'true');
+      assert.equal(await page.evaluate(() => document.activeElement.id), tabIds[n % 2]);
+      assert.equal(await page.locator(`#${tabIds[n % 2]}`).getAttribute('aria-selected'), 'true');
     }
     await page.keyboard.press('End'); assert.equal(await page.evaluate(() => document.activeElement.id), tabIds.at(-1));
     await page.keyboard.press('Home'); assert.equal(await page.evaluate(() => document.activeElement.id), tabIds[0]);
@@ -175,9 +179,13 @@ async function checkNoPageOverflow(page) {
     await openRanking(page); await page.locator('#rankingPrecision').check();
     await checkRanking(page, 352); await checkNoPageOverflow(page);
     await page.reload();
-    assert.equal(await page.locator('#rankingTab').getAttribute('aria-selected'), 'true');
+    assert.equal(await page.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'true');
     assert.equal(await page.locator('#rankingPrecision').isChecked(), true);
     await checkRanking(page, 352); await page.locator('#rankingPrecision').uncheck();
+    await page.locator('#toggleContributionsButton').click(); await page.reload();
+    assert.equal(await page.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'false', 'Hidden contribution preference survives refresh');
+    assert.equal(await page.locator('#networkContributionPane').isVisible(), false);
+    await openRanking(page);
 
     for (const [kind, count] of [['single', 352], ['double', 5]]) {
       await page.locator('#trainedVariantSelect').selectOption(`square-trained-geometry-${kind}-v1`);
@@ -246,6 +254,7 @@ async function checkNoPageOverflow(page) {
     await openRanking(page); await checkRanking(page, 5);
     assert.equal(await page.locator('.replay-left').isVisible(), true);
     assert.equal(await page.locator('.replay-right').isVisible(), true);
+    assert.equal(await page.locator('.replay-right #networkWorkspace #networkContributionPane').count(), 1);
     await page.screenshot({ path: path.join(screenshots, 'contribution-ranking-desktop.png') });
     await page.locator('[data-geometry-action="fullscreen"]').click();
     await page.waitForFunction(() => !document.fullscreenElement);
@@ -264,17 +273,19 @@ async function checkNoPageOverflow(page) {
     if (process.env.GEOMETRY_OFFLINE === '1') await mobile.setOffline(true);
     const phone = await mobile.newPage(); phone.on('pageerror', error => errors.push(error.message)); await phone.goto(url);
     await phone.locator('#trainedVariantSelect').selectOption('square-trained-geometry-single-v1');
-    await phone.locator('#openRankingButton').tap();
-    assert.equal(await phone.locator('#detailSidebar').getAttribute('aria-modal'), 'true');
+    await openRanking(phone);
+    assert.equal(await phone.locator('#contributionRanking').getAttribute('role'), 'region');
+    assert.notEqual(await phone.locator('#detailSidebar').getAttribute('aria-modal'), 'true');
     await checkRanking(phone, 352); await checkNoPageOverflow(phone);
     await phone.locator('#rankingPrecision').check(); await checkRanking(phone, 352); await checkNoPageOverflow(phone);
     await phone.screenshot({ path: path.join(screenshots, 'contribution-ranking-mobile.png') });
-    await phone.keyboard.press('Escape');
-    assert.equal(await phone.locator('#openRankingButton').getAttribute('aria-expanded'), 'false');
+    await phone.locator('#toggleContributionsButton').tap();
+    assert.equal(await phone.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'false');
+    assert.equal(await phone.locator('#networkContributionPane').isVisible(), false);
     await phone.locator('#trainedVariantSelect').selectOption('square-trained-geometry-double-v1');
     await phone.locator('[data-geometry-mode="replay"]').click(); await ready(phone, 0);
     await openRanking(phone); await checkRanking(phone, 5); await checkNoPageOverflow(phone);
     assert.deepEqual(errors, []);
-    console.log('PASS contribution ranking: 352/5/50 real contributions and signed absolute order, sums and bias, exact new/legacy connections, canvas changes, multiple outputs and zero-hidden sigmoid z/y, precision and refresh, keyboard, history context, loading/failure/retry isolation, fullscreen and 390px layout.');
+    console.log('PASS contribution ranking: in-network show/hide and persistence, 352/5/50 real signed contributions, exact new/legacy connections, canvas, multiple outputs and zero-hidden sigmoid, precision, two detail tabs, history context, loading/failure/retry isolation, fullscreen and 390px layout.');
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

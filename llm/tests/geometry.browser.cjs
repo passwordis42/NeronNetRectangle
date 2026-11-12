@@ -36,6 +36,10 @@ const readableComparison=async page=>{
     await pixel.focus();await page.keyboard.press('Space');assert.equal(await pixel.getAttribute('aria-pressed'),'true');
     await page.keyboard.press('Enter');assert.equal(await pixel.getAttribute('aria-pressed'),'false');
     assert.equal(await page.locator('.input-comparison .contribution-cell').count(),50);
+    // The details panel is now resizable; wide panels retain the paired layout.
+    await page.locator('[data-resize-key="detail-width"]').focus();
+    for(let i=0;i<6;i++)await page.keyboard.press('Shift+ArrowRight');
+    await page.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
     const columns=await page.locator('.input-comparison-columns > div').evaluateAll(nodes=>nodes.map(n=>({x:n.getBoundingClientRect().x,y:n.getBoundingClientRect().y})));
     assert.equal(columns[0].y,columns[1].y,'Desktop comparisons should be side by side');
     assert.ok(columns[1].x>columns[0].x);
