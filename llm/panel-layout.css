@@ -48,8 +48,14 @@ body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .net
 #sortNetworkContributionButton { white-space:nowrap; font-size:12px; }
 #sortNetworkContributionButton[aria-pressed=true] { background:#255b46; color:#fff; }
 #sortNetworkContributionButton:disabled { opacity:.55; cursor:not-allowed; }
-#layers .neuron.is-contribution-sorted { display:flex; flex-direction:column; justify-content:center; gap:2px; }
-#layers .neuron.is-contribution-sorted small { font:8px/1.1 Consolas,monospace; white-space:nowrap; }
+#layers .neuron-grid.is-contribution-sorted-grid { grid-template-columns:repeat(var(--cols),var(--sorted-node-width)); gap:8px; }
+#layers .neuron.is-contribution-sorted { width:var(--sorted-node-width); height:64px; padding:4px 6px; display:flex; flex-direction:column; justify-content:center; gap:3px; transform:none; font:11px/14px Consolas,"Microsoft YaHei",monospace; }
+#layers .neuron.is-contribution-sorted small { font:10px/12px Consolas,monospace; white-space:nowrap; }
+#layers .network-node-response,#layers .network-node-contribution { display:flex; align-items:baseline; justify-content:center; white-space:nowrap; }
+#layers .network-node-response b,#layers .network-node-contribution b { font:inherit; }
+#layers .network-node-contribution { width:100%; padding:3px 4px; border-radius:4px; background:#f8faf9; color:#424b46; }
+#layers .network-node-contribution.is-positive { color:#146346; }
+#layers .network-node-contribution.is-negative { color:#a12440; }
 .network-sort-caption { font-size:11px; line-height:1.5; color:#35634d; }
 @media(max-width:1199px) {
   body:not(.is-replay) #appLayout { grid-template-columns:var(--canvas-width,220px) 10px minmax(0,1fr); }

@@ -1470,8 +1470,14 @@ body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .net
 #sortNetworkContributionButton { white-space:nowrap; font-size:12px; }
 #sortNetworkContributionButton[aria-pressed=true] { background:#255b46; color:#fff; }
 #sortNetworkContributionButton:disabled { opacity:.55; cursor:not-allowed; }
-#layers .neuron.is-contribution-sorted { display:flex; flex-direction:column; justify-content:center; gap:2px; }
-#layers .neuron.is-contribution-sorted small { font:8px/1.1 Consolas,monospace; white-space:nowrap; }
+#layers .neuron-grid.is-contribution-sorted-grid { grid-template-columns:repeat(var(--cols),var(--sorted-node-width)); gap:8px; }
+#layers .neuron.is-contribution-sorted { width:var(--sorted-node-width); height:64px; padding:4px 6px; display:flex; flex-direction:column; justify-content:center; gap:3px; transform:none; font:11px/14px Consolas,"Microsoft YaHei",monospace; }
+#layers .neuron.is-contribution-sorted small { font:10px/12px Consolas,monospace; white-space:nowrap; }
+#layers .network-node-response,#layers .network-node-contribution { display:flex; align-items:baseline; justify-content:center; white-space:nowrap; }
+#layers .network-node-response b,#layers .network-node-contribution b { font:inherit; }
+#layers .network-node-contribution { width:100%; padding:3px 4px; border-radius:4px; background:#f8faf9; color:#424b46; }
+#layers .network-node-contribution.is-positive { color:#146346; }
+#layers .network-node-contribution.is-negative { color:#a12440; }
 .network-sort-caption { font-size:11px; line-height:1.5; color:#35634d; }
 @media(max-width:1199px) {
   body:not(.is-replay) #appLayout { grid-template-columns:var(--canvas-width,220px) 10px minmax(0,1fr); }
@@ -5517,6 +5523,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       cancelAnimationFrame(panelResizeFrame);
       panelResizeFrame = requestAnimationFrame(() => {
         syncContributionLayout();
+        syncSortedNetworkColumns();
         if (backpropReplay?.active) replayLayout?.viewport.update();
         else if (shouldUseLineMode()) drawConnectionLines();
         updateInspectorHeight();
@@ -5625,6 +5632,31 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       return data;
     }
 
+    function contributionNodeWidth(rows) {
+      const context = document.createElement("canvas").getContext("2d");
+      context.font = '11px Consolas, "Microsoft YaHei", monospace';
+      const widths = rows.flatMap(row => [
+        `响应 a：${OutputContributionRanking.format(row.activation)}`,
+        `贡献 c：${row.contribution > 0 ? "+" : ""}${OutputContributionRanking.format(row.contribution)}`
+      ]).map(text => context.measureText(text).width);
+      return Math.max(120, Math.ceil(Math.max(...widths)) + 28);
+    }
+
+    // Resize the grid in place so panel dragging keeps the selected parameter and keyboard focus.
+    function syncSortedNetworkColumns() {
+      const grid = els.layers.querySelector(".is-contribution-sorted-grid");
+      if (!grid || els.networkScroll.hidden) return;
+      const expanded = backpropReplay?.active ? backpropReplay.layout === "expanded" : state.expandedMode;
+      const width = parseFloat(grid.style.getPropertyValue("--sorted-node-width"));
+      const canvasStyle = getComputedStyle(els.networkCanvas), gridStyle = getComputedStyle(grid);
+      const pixels = value => parseFloat(value) || 0;
+      const padding = pixels(canvasStyle.paddingLeft) + pixels(canvasStyle.paddingRight) + pixels(gridStyle.paddingLeft) + pixels(gridStyle.paddingRight) + pixels(gridStyle.borderLeftWidth) + pixels(gridStyle.borderRightWidth);
+      const gap = pixels(gridStyle.columnGap);
+      const available = els.networkScroll.clientWidth - padding;
+      const cols = expanded ? 1 : Math.max(1, Math.min(6, grid.children.length, Math.floor((available + gap) / (width + gap))));
+      if (grid.style.getPropertyValue("--cols") !== String(cols)) grid.style.setProperty("--cols", String(cols));
+    }
+
     function renderNetwork() {
       backpropReplay?.sync(state);
       syncReplayLayout();
@@ -5686,6 +5718,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         // Reorder view indices only. The model and forward arrays always stay in their original order.
         const sorted = state.networkContributionSort && networkRanking?.sourceLayer === layerIndex && layer.kind === "hidden";
         const order = sorted ? networkRanking.rows.map(row => row.index) : Array.from({length:count},(_,i)=>i);
+        const sortedWidth = sorted ? contributionNodeWidth(networkRanking.rows) : 0;
         const cols = backpropReplay?.active ? (backpropReplay.layout==='expanded'?1:count<=10?Math.min(5,count):count<=25?5:count<=120?12:20) : state.expandedMode ? 1 : count <= 10 ? Math.min(5, count) : count <= 25 ? 5 : count <= 64 ? 8 : 10;
         const nodeSize = Math.max(sorted ? 38 : 0, backpropReplay?.active ? 29 : state.expandedMode ? 56 : count <= 10 ? 46 : count <= 25 ? 38 : count <= 64 ? 31 : 25);
         const nodeFont = backpropReplay?.active ? 9 : state.expandedMode ? 10 : count <= 25 ? 11 : 9;
@@ -5699,10 +5732,15 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
           const isSelected = state.selectedNeuron
             && state.selectedNeuron.layerIndex === layerIndex
             && state.selectedNeuron.neuronIndex === neuronIndex;
-          const selectable = isSelectableLayer ? ` data-selectable="${layer.kind}" tabindex="0" role="button" aria-label="${layer.title} 神经元 ${neuronIndex + 1} 权重详情"` : "";
+          const row = sorted ? networkRanking.rows[rank] : null;
+          const activationText = row ? OutputContributionRanking.format(row.activation) : "";
+          const contributionText = row ? `${row.contribution > 0 ? "+" : ""}${OutputContributionRanking.format(row.contribution)}` : "";
+          const accessibleValues = row ? `；响应 a ${activationText}；贡献 c ${contributionText}` : "";
+          const selectable = isSelectableLayer ? ` data-selectable="${layer.kind}" tabindex="0" role="button" aria-label="${layer.title} 神经元 ${neuronIndex + 1} 权重详情${accessibleValues}"` : "";
           const teachingTitle = isTeaching() ? `${teachingDefinition().neuronName(layerIndex, neuronIndex)} · 响应 ` : "";
-          const rankTitle = sorted ? ` · 贡献排名 ${rank + 1} · a×w=${OutputContributionRanking.format(networkRanking.rows[rank].contribution)} · |a×w|=${OutputContributionRanking.format(networkRanking.rows[rank].magnitude)}` : "";
-          return `<div class="neuron${isSelected ? " is-selected" : ""}${sorted ? " is-contribution-sorted" : ""}" data-layer="${layerIndex}" data-neuron="${neuronIndex}"${selectable} title="${teachingTitle}${fmt(value)}${rankTitle}" style="background:${color}; color:${textColor};">${backpropReplay?.active || sorted ? `<small>${layer.kind==='input'?'X':layer.kind==='hidden'?'H'+layerIndex+'-':'Y'}${neuronIndex+1}</small>${value.toFixed(2)}` : fmt(value)}</div>`;
+          const rankTitle = row ? ` · 贡献排名 ${rank + 1} · 完整精度：a=${OutputContributionRanking.format(row.activation,true)}，w=${OutputContributionRanking.format(row.weight,true)}，c=a×w=${OutputContributionRanking.format(row.contribution,true)}，|c|=${OutputContributionRanking.format(row.magnitude,true)}` : "";
+          const nodeContent = row ? `<small>H${layerIndex}-${neuronIndex+1}</small><span class="network-node-response">响应 a：<b data-node-activation="${row.activation}">${activationText}</b></span><span class="network-node-contribution is-${row.contribution>0?'positive':row.contribution<0?'negative':'zero'}">贡献 c：<b data-node-contribution="${row.contribution}">${contributionText}</b></span>` : backpropReplay?.active ? `<small>${layer.kind==='input'?'X':layer.kind==='hidden'?'H'+layerIndex+'-':'Y'}${neuronIndex+1}</small>${value.toFixed(2)}` : fmt(value);
+          return `<div class="neuron${isSelected ? " is-selected" : ""}${sorted ? " is-contribution-sorted" : ""}" data-layer="${layerIndex}" data-neuron="${neuronIndex}"${selectable} title="${teachingTitle}${fmt(value)}${rankTitle}" style="background:${color}; color:${textColor};">${nodeContent}</div>`;
         }).join("");
         return `
           <div class="layer">
@@ -5711,13 +5749,14 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
               <span>${layer.subtitle}</span>
               ${sorted ? `<span class="network-sort-caption">按 |a × w| 降序 · 输出 Y${networkRanking.outputIndex + 1} · 原编号</span>` : ""}
             </div>
-            <div class="neuron-grid" style="--cols:${cols}; --node-size:${nodeSize}px; --node-font:${nodeFont}px;">
+            <div class="neuron-grid${sorted ? ' is-contribution-sorted-grid' : ''}" style="--cols:${cols}; --node-size:${nodeSize}px; --node-font:${nodeFont}px;${sorted ? ` --sorted-node-width:${sortedWidth}px;` : ''}">
               ${neurons}
             </div>
           </div>
         `;
       }).join("");
 
+      syncSortedNetworkColumns();
       renderOutputs(latestForward.outputs);
       renderConnectionVisualization();
       renderWeightInspector();
@@ -6987,6 +7026,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     panelResize = SquarePanelResize.create({ storageKey: "nn-teaching-panel-layout-v1", onResize: schedulePanelRedraw, onCommit: () => syncPanelLayout() });
     const panelLayoutObserver = new ResizeObserver(schedulePanelRedraw);
     panelLayoutObserver.observe(document.getElementById("networkPrimary"));
+    panelLayoutObserver.observe(els.networkScroll);
     document.addEventListener("fullscreenchange", () => requestAnimationFrame(syncPanelLayout));
     renderAll();
   </script>
