@@ -203,8 +203,10 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
           const rgb=empty?[23,29,26]:base.map((channel,k)=>Math.round(channel*alpha+[247,250,247][k]*(1-alpha)));
           const linear=rgb.map(channel=>{const c=channel/255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);});
           const luminance=.2126*linear[0]+.7152*linear[1]+.0722*linear[2];
-          const foreground=luminance>.179?'#000000':'#ffffff';
-          return `<button class="geometry-metric-cell ${selected.layer===layer&&selected.neuron===neuron&&selected.input===i?'is-selected':''}" data-geometry-input="${i}" data-geometry-layer="${layer}" data-geometry-neuron="${neuron}" style="background:rgb(${rgb.join(',')});color:${foreground}"><small>${esc(t.label||`${layer===1?'X':'H'+(layer-1)+'-'}${i+1}`)}</small><b>${num(value)}</b></button>`;
+          const gray=helpers.featureColor?.(value);
+          const foreground=gray?.foreground ?? (luminance>.179?'#000000':'#ffffff');
+          const background=gray?.background ?? `rgb(${rgb.join(',')})`;
+          return `<button class="geometry-metric-cell ${selected.layer===layer&&selected.neuron===neuron&&selected.input===i?'is-selected':''}" data-geometry-input="${i}" data-geometry-layer="${layer}" data-geometry-neuron="${neuron}" style="background:${background};color:${foreground}"><small>${esc(t.label||`${layer===1?'X':'H'+(layer-1)+'-'}${i+1}`)}</small><b>${num(value)}</b></button>`;
         }).join('');
         return `<p class="hint">第 ${step} 次更新 · ${step===0?'初始化参数 · 观察画布':networkSource==='sample'?`训练样本 ${sampleIndex+1} · 更新前`:`观察画布 · ${phase==='before'?'更新前':phase==='after'?'更新后':'正式模型'}`}</p>${helpers.renderComparison?.(details)||''}${helpers.renderEvidence?.(details)||''}<section class="geometry-metric"><h4>${metric==='gradient'?'偏导':metric==='delta'?'实际改变量 Δw':'权重 w'} · ${terms.length} 条输入连接</h4><p>${esc(sourceName())}</p><div class="geometry-metric-grid ${layer===1?'is-pixel':''}" style="--metric-digits:${metricDigits}">${cells}</div><p>偏置 ${num(bias?.weight)} · 偏导 ${num(bias?.gradient)} · Δb ${num(bias?.delta)}</p></section><section class="trace-audit"><b>${esc(selected.label||'固定零连接')}</b><p>更新前 ${num(p.before)} → 更新后 ${num(p.after)}；Δw = ${num(p.delta)}</p><p>所选来源偏导 ${num(p.gradient)}；实际总梯度 ${num(p.totalGradient)}</p>${fixed?'<p>结构约束：此连接固定为零，不属于优化器参数。</p>':'<button data-geometry-open-loss>查看损失与链式求导</button>'}</section>`;
       }

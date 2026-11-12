@@ -1367,6 +1367,12 @@ body.is-replay { font-family:"Microsoft YaHei",system-ui,sans-serif; }
 @container(max-width:520px){.input-comparison-columns{grid-template-columns:minmax(0,1fr)}#weightInspector .input-comparison .contribution-grid{font-size:clamp(10px,3.5cqw,12px)}.input-comparison .contribution-cell{min-height:48px}}
 @media(max-width:780px){.input-comparison-columns{grid-template-columns:minmax(0,1fr)}.geometry-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.geometry-feature-card{padding:9px}.geometry-card-maps{gap:8px}.geometry-target-map{width:58px}#weightInspector .input-comparison .contribution-grid{font-size:clamp(10px,3.5cqw,12px)}#weightInspector .input-comparison .contribution-cell{min-height:52px}.input-comparison small{font-size:10px}}
 .input-comparison-row b{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
+.feature-palette-note{font-size:11px;line-height:1.6;color:#595959;margin:0 0 10px;}
+#detailSidebar .inspector-toolbar{flex-wrap:wrap;}
+#featurePaletteButton{padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:none;transition:none;}
+#featurePaletteButton[aria-pressed=true]{background:#333;color:#fff;border-color:#333;}
+#weightInspector.is-grayscale .contribution-cell,#weightInspector.is-grayscale .input-comparison-row,#weightInspector.is-grayscale .geometry-metric-cell{border-color:#aaa;}
+#weightInspector.is-grayscale .contribution-cell[aria-pressed=true],#weightInspector.is-grayscale .input-comparison-row[aria-pressed=true],#weightInspector.is-grayscale .geometry-metric-cell.is-selected,#weightInspector.is-grayscale .contribution-cell:focus-visible,#weightInspector.is-grayscale .input-comparison-row:focus-visible,#weightInspector.is-grayscale .geometry-metric-cell:focus-visible{outline:2px solid #000;outline-offset:-2px;box-shadow:inset 0 0 0 4px #fff;}
 
 .geometry-metric {margin-top:16px;padding:12px;border:1px solid #d9e4dc;border-radius:10px;background:#f7faf7}
 .geometry-metric-grid {display:grid;font:11px Consolas,monospace;--metric-min-width:calc(var(--metric-digits,12)*.61em + 8px);grid-template-columns:repeat(auto-fill,minmax(var(--metric-min-width),1fr));gap:4px;max-height:420px;overflow:auto}
@@ -1460,7 +1466,13 @@ body.is-replay #networkPrimary .summary-panel { overflow:auto; max-height:45px; 
 body.is-replay #replayCanvasFold .side { max-width:none; }
 body.is-replay #replayCanvasFold #outputPanel { display:block; }
 body.is-replay .network-actions { flex-wrap:wrap; }
-body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .network-actions > #resetLayoutButton { display:inline-flex!important; }
+body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .network-actions > #resetLayoutButton,body.is-replay .network-actions > #sortNetworkContributionButton { display:inline-flex!important; }
+#sortNetworkContributionButton { white-space:nowrap; font-size:12px; }
+#sortNetworkContributionButton[aria-pressed=true] { background:#255b46; color:#fff; }
+#sortNetworkContributionButton:disabled { opacity:.55; cursor:not-allowed; }
+#layers .neuron.is-contribution-sorted { display:flex; flex-direction:column; justify-content:center; gap:2px; }
+#layers .neuron.is-contribution-sorted small { font:8px/1.1 Consolas,monospace; white-space:nowrap; }
+.network-sort-caption { font-size:11px; line-height:1.5; color:#35634d; }
 @media(max-width:1199px) {
   body:not(.is-replay) #appLayout { grid-template-columns:var(--canvas-width,220px) 10px minmax(0,1fr); }
   body:not(.is-replay) #detailWidthHandle { display:none; }
@@ -1864,6 +1876,7 @@ body.inspector-modal-open { overflow: hidden; }
             <button id="openSettingsButton" class="secondary" type="button" data-open-inspector="settings" aria-controls="detailSidebar" aria-expanded="false">设置</button>
           </div>
           <button id="toggleContributionsButton" class="secondary" type="button" aria-controls="networkContributionPane" aria-expanded="true">隐藏贡献</button>
+          <button id="sortNetworkContributionButton" class="secondary" type="button" aria-controls="layers" aria-pressed="false">按贡献排序</button>
           <button id="resetLayoutButton" class="secondary" type="button" title="恢复窗口尺寸；也可双击分隔边界恢复单个区域">恢复默认布局</button>
           <label id="trainedVariantControl" class="trained-variant-control" hidden>
             学习方式
@@ -1950,6 +1963,7 @@ body.inspector-modal-open { overflow: hidden; }
           <button id="featuresTab" type="button" role="tab" data-inspector-tab="features" aria-selected="true" aria-controls="weightInspector">特征</button>
           <button id="settingsTab" type="button" role="tab" data-inspector-tab="settings" aria-selected="false" aria-controls="settingsPanel" tabindex="-1">设置</button>
         </div>
+        <button id="featurePaletteButton" class="secondary" type="button" aria-pressed="false" aria-controls="weightInspector" title="固定灰度：−1 为黑色，0 为中灰，1 为白色">黑白灰度</button>
         <button id="closeInspectorButton" class="secondary" type="button" aria-label="关闭详情面板">关闭</button>
       </div>
       <div id="weightInspector" class="weight-inspector" role="tabpanel" aria-labelledby="featuresTab" tabindex="0"></div>
@@ -4198,8 +4212,10 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
           const rgb=empty?[23,29,26]:base.map((channel,k)=>Math.round(channel*alpha+[247,250,247][k]*(1-alpha)));
           const linear=rgb.map(channel=>{const c=channel/255;return c<=.04045?c/12.92:Math.pow((c+.055)/1.055,2.4);});
           const luminance=.2126*linear[0]+.7152*linear[1]+.0722*linear[2];
-          const foreground=luminance>.179?'#000000':'#ffffff';
-          return `<button class="geometry-metric-cell ${selected.layer===layer&&selected.neuron===neuron&&selected.input===i?'is-selected':''}" data-geometry-input="${i}" data-geometry-layer="${layer}" data-geometry-neuron="${neuron}" style="background:rgb(${rgb.join(',')});color:${foreground}"><small>${esc(t.label||`${layer===1?'X':'H'+(layer-1)+'-'}${i+1}`)}</small><b>${num(value)}</b></button>`;
+          const gray=helpers.featureColor?.(value);
+          const foreground=gray?.foreground ?? (luminance>.179?'#000000':'#ffffff');
+          const background=gray?.background ?? `rgb(${rgb.join(',')})`;
+          return `<button class="geometry-metric-cell ${selected.layer===layer&&selected.neuron===neuron&&selected.input===i?'is-selected':''}" data-geometry-input="${i}" data-geometry-layer="${layer}" data-geometry-neuron="${neuron}" style="background:${background};color:${foreground}"><small>${esc(t.label||`${layer===1?'X':'H'+(layer-1)+'-'}${i+1}`)}</small><b>${num(value)}</b></button>`;
         }).join('');
         return `<p class="hint">第 ${step} 次更新 · ${step===0?'初始化参数 · 观察画布':networkSource==='sample'?`训练样本 ${sampleIndex+1} · 更新前`:`观察画布 · ${phase==='before'?'更新前':phase==='after'?'更新后':'正式模型'}`}</p>${helpers.renderComparison?.(details)||''}${helpers.renderEvidence?.(details)||''}<section class="geometry-metric"><h4>${metric==='gradient'?'偏导':metric==='delta'?'实际改变量 Δw':'权重 w'} · ${terms.length} 条输入连接</h4><p>${esc(sourceName())}</p><div class="geometry-metric-grid ${layer===1?'is-pixel':''}" style="--metric-digits:${metricDigits}">${cells}</div><p>偏置 ${num(bias?.weight)} · 偏导 ${num(bias?.gradient)} · Δb ${num(bias?.delta)}</p></section><section class="trace-audit"><b>${esc(selected.label||'固定零连接')}</b><p>更新前 ${num(p.before)} → 更新后 ${num(p.after)}；Δw = ${num(p.delta)}</p><p>所选来源偏导 ${num(p.gradient)}；实际总梯度 ${num(p.totalGradient)}</p>${fixed?'<p>结构约束：此连接固定为零，不属于优化器参数。</p>':'<button data-geometry-open-loss>查看损失与链式求导</button>'}</section>`;
       }
@@ -4633,10 +4649,12 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         collapsedPanels: { config: true, outputs: true, training: false },
         selectedNeuron: null,
         contributionColorMode: "all",
+        featurePalette: "color",
         inspectorTab: "features",
         rankingOutput: 0,
         rankingPrecision: false,
         showContributions: true,
+        networkContributionSort: false,
         inspectorMap: "contribution",
         inspectorPixel: null,
         weightLabelMode: "selected",
@@ -4697,10 +4715,10 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       if (isTeaching()) {
         const { pixels, brushValue, teachingCandidate, teachingExample, compositionExample, featurePair, teachingLocalFeaturesOpen, teachingSkeletonFeaturesOpen, teachingDefectFeaturesOpen, teachingOutputOpen, teachingTrainingOpen, teachingFirstFeaturesOpen, teachingFullNetwork, teachingNonzeroOnly, teachingBlanksOpen, teachingCalculationOpen, teachingWeightsOpen,
           geometryOpenGroups, selectedNeuron, collapsedPanels, expandedMode, viewportScale, weightLabelMode, contributionColorMode,
-          inspectorTab, inspectorMap, inspectorPixel, rankingOutput, rankingPrecision, showContributions } = state;
+          inspectorTab, inspectorMap, inspectorPixel, rankingOutput, rankingPrecision, showContributions, featurePalette, networkContributionSort } = state;
         localStorage.setItem(teachingStorageKey(state.teachingPreset), JSON.stringify({ pixels, brushValue, teachingCandidate, teachingExample, compositionExample, featurePair, teachingLocalFeaturesOpen, teachingSkeletonFeaturesOpen, teachingDefectFeaturesOpen, teachingOutputOpen, teachingTrainingOpen, teachingFirstFeaturesOpen,
           teachingFullNetwork, teachingNonzeroOnly, teachingBlanksOpen, teachingCalculationOpen, teachingWeightsOpen, geometryOpenGroups, selectedNeuron, collapsedPanels, expandedMode,
-          viewportScale, weightLabelMode, contributionColorMode, inspectorTab, inspectorMap, inspectorPixel, rankingOutput, rankingPrecision, showContributions }));
+          viewportScale, weightLabelMode, contributionColorMode, inspectorTab, inspectorMap, inspectorPixel, rankingOutput, rankingPrecision, showContributions, featurePalette, networkContributionSort }));
       } else {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       }
@@ -4829,8 +4847,11 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     function switchMode(id) {
       const definition = teachingDefinition(id);
       if ((definition?.ID || null) === (isTeaching() ? state.teachingPreset : null)) return;
+      const { featurePalette, networkContributionSort } = state;
       saveState();
       state = definition ? loadTeachingState(definition.ID) : loadState(true);
+      state.featurePalette = featurePalette;
+      state.networkContributionSort = networkContributionSort;
       presetStatus = { type: "info", text: definition ? "教学参数已固定，各模式的画布和查看路径分别保存。" : "已恢复普通模式的画布、参数和样本。" };
       saveAndRender();
     }
@@ -4844,19 +4865,19 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       }
       if (depth === state.hiddenLayers.length) return;
       if (isGuidedTeaching()) {
-        const pixels = state.pixels.slice(), brushValue = state.brushValue;
+        const pixels = state.pixels.slice(), brushValue = state.brushValue, featurePalette = state.featurePalette, networkContributionSort = state.networkContributionSort;
         saveState();
-        state = { ...loadTeachingState(depth === 2 ? SquareGuidedDoubleTeaching.ID : SquareGuidedTeaching.ID), pixels, brushValue };
+        state = { ...loadTeachingState(depth === 2 ? SquareGuidedDoubleTeaching.ID : SquareGuidedTeaching.ID), pixels, brushValue, featurePalette, networkContributionSort };
         presetStatus = { type: "info", text: "已切换隐藏层数，保留当前画布；第一层权重和响应完全相同，各层数的查看状态分别保存。" };
         saveAndRender();
         return;
       }
       const { pixels, brushValue, teachingCandidate, teachingFullNetwork, collapsedPanels,
-        expandedMode, viewportScale, weightLabelMode, contributionColorMode } = state;
+        expandedMode, viewportScale, weightLabelMode, contributionColorMode, featurePalette, networkContributionSort } = state;
       saveState();
       state = { ...loadTeachingState(depth === 1 ? SquareSingleTeaching.ID : SquareTeaching.ID),
         pixels: pixels.slice(), brushValue, teachingCandidate, teachingFullNetwork, collapsedPanels,
-        expandedMode, viewportScale, weightLabelMode, contributionColorMode };
+        expandedMode, viewportScale, weightLabelMode, contributionColorMode, featurePalette, networkContributionSort };
       state.selectedNeuron = { layerIndex: teachingDefinition().candidateLayer, neuronIndex: teachingCandidate };
       presetStatus = { type: "info", text: `已加载${depth === 1 ? "一" : "两"}层隐藏层的固定教学权重，保留当前画布和候选，识别规则相同。` };
       saveAndRender();
@@ -5562,7 +5583,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     }
 
     function renderReplayInspector(details) {
-      if (isGeometryTeaching()) return backpropReplay.renderInspector(details, { renderComparison: renderContributionSection, renderEvidence: renderTeachingEvidence, escapeHtml });
+      if (isGeometryTeaching()) return backpropReplay.renderInspector(details, { renderComparison: renderContributionSection, renderEvidence: renderTeachingEvidence, featureColor: featureGrayscaleColor, escapeHtml });
       const replay = backpropReplay, ctx = replay.context, selected = replay.parameterInfo(replay.parameter);
       const hidden = details.layerIndex === 1;
       const indices = hidden ? Array.from({length:25},(_,i)=>details.neuronIndex*25+i) : Array.from({length:50},(_,i)=>1300+i);
@@ -5571,9 +5592,10 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       const valueLabel = {weight:"权重 w",gradient:"偏导",delta:"实际 Δw"}[replay.metric];
       const cells = indices.map((i,k)=>{
         const p=replay.parameterInfo(i),v=replay.metricValue(i),strength=Math.abs(v||0)/max;
-        const color=v===null?'#edf0ed':v===0?'#252925':colorFor(Math.max(.16,strength),v>0?'positive':'negative');
+        const gray=featureGrayscaleColor(v);
+        const color=gray?.background ?? (v===null?'#edf0ed':v===0?'#252925':colorFor(Math.max(.16,strength),v>0?'positive':'negative'));
         const title=`${p.label}；更新前 ${p.before}，更新后 ${p.after}；${ctx.sourceName} ${p.gradient}；总梯度 ${p.totalGradient}；实际改变量 ${p.delta}`;
-        return `<button class="contribution-cell" type="button" data-replay-parameter="${i}" aria-pressed="${replay.parameter===i}" title="${escapeHtml(title)}" style="background:${color};color:${v===null||strength>.62?'#13251a':'white'}"><small>${hidden?'X':'H1-'}${k+1}</small><span class="contribution-value">${replay.format(v)}</span></button>`;
+        return `<button class="contribution-cell" type="button" data-replay-parameter="${i}" aria-pressed="${replay.parameter===i}" title="${escapeHtml(title)}" style="background:${color};color:${gray?.foreground ?? (v===null||strength>.62?'#13251a':'white')}"><small>${hidden?'X':'H1-'}${k+1}</small><span class="contribution-value">${replay.format(v)}</span></button>`;
       }).join("");
       const bias=replay.parameterInfo(biasIndex);
       const numberRow=(name,value)=>`<div class="calculation-line"><span>${name}</span><b>${replay.format(value)}</b></div>`;
@@ -5586,17 +5608,38 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         ${hidden?`<details><summary>指定检测目标 · 名称表示训练目标</summary>${teachingDefinition().renderFeatureTarget(details.neuronIndex,details.currentValue)}</details>`:''}`;
     }
 
+    function networkContributionRanking() {
+      if (!latestForward || (backpropReplay?.active && (backpropReplay.loading || !backpropReplay.model))) return null;
+      const model = currentDisplayModel();
+      const output = clampInt(state.rankingOutput, 0, model.layers.at(-1).weights.length - 1, 0);
+      return OutputContributionRanking.compute(model, latestForward, output);
+    }
+
+    function renderNetworkSortControl() {
+      const data = networkContributionRanking();
+      const button = document.getElementById("sortNetworkContributionButton");
+      button.disabled = !data || data.sourceLayer === 0;
+      button.setAttribute("aria-pressed", String(state.networkContributionSort));
+      button.textContent = state.networkContributionSort ? "恢复编号顺序" : "按贡献排序";
+      button.title = !data ? "等待当前计算结果，暂不能排序" : data.sourceLayer === 0 ? "当前没有隐藏层，输入像素保持原位置" : `按对 Y${data.outputIndex + 1} 的 |响应 × 输出权重| 排列 H${data.sourceLayer}，原编号与参数保持不变`;
+      return data;
+    }
+
     function renderNetwork() {
       backpropReplay?.sync(state);
       syncReplayLayout();
-      if (backpropReplay?.active && !backpropReplay.model) {
+      if (backpropReplay?.active && (backpropReplay.loading || !backpropReplay.model)) {
         latestForward = null;
+        els.layers.replaceChildren();
+        els.connectionSvg.replaceChildren();
+        renderNetworkSortControl();
         els.teachingView.hidden = els.networkScroll.hidden = els.summaryPanel.hidden = true;
         els.outputStatuses.textContent = "正在读取训练记录；当前没有可用的历史输出。";
         renderWeightInspector();
         return;
       }
       latestForward = forward(backpropReplay?.active ? backpropReplay.networkPixels : state.pixels);
+      const networkRanking = renderNetworkSortControl();
       const focusedTeaching = isTeaching() && !state.teachingFullNetwork && !backpropReplay?.active;
       els.teachingView.hidden = !focusedTeaching;
       if (!isTeaching()) els.teachingView.replaceChildren();
@@ -5640,10 +5683,14 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
 
       els.layers.innerHTML = layerValues.map((layer, layerIndex) => {
         const count = layer.values.length;
+        // Reorder view indices only. The model and forward arrays always stay in their original order.
+        const sorted = state.networkContributionSort && networkRanking?.sourceLayer === layerIndex && layer.kind === "hidden";
+        const order = sorted ? networkRanking.rows.map(row => row.index) : Array.from({length:count},(_,i)=>i);
         const cols = backpropReplay?.active ? (backpropReplay.layout==='expanded'?1:count<=10?Math.min(5,count):count<=25?5:count<=120?12:20) : state.expandedMode ? 1 : count <= 10 ? Math.min(5, count) : count <= 25 ? 5 : count <= 64 ? 8 : 10;
-        const nodeSize = backpropReplay?.active ? 29 : state.expandedMode ? 56 : count <= 10 ? 46 : count <= 25 ? 38 : count <= 64 ? 31 : 25;
+        const nodeSize = Math.max(sorted ? 38 : 0, backpropReplay?.active ? 29 : state.expandedMode ? 56 : count <= 10 ? 46 : count <= 25 ? 38 : count <= 64 ? 31 : 25);
         const nodeFont = backpropReplay?.active ? 9 : state.expandedMode ? 10 : count <= 25 ? 11 : 9;
-        const neurons = layer.values.map((value, neuronIndex) => {
+        const neurons = order.map((neuronIndex, rank) => {
+          const value = layer.values[neuronIndex];
           const brightness = isTeaching() ? value : valueToBrightness(layer.values, value, layer.kind);
           const tone = layer.kind === "output" && value < 0 ? "negative" : "neutral";
           const color = colorFor(brightness, tone);
@@ -5654,13 +5701,15 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
             && state.selectedNeuron.neuronIndex === neuronIndex;
           const selectable = isSelectableLayer ? ` data-selectable="${layer.kind}" tabindex="0" role="button" aria-label="${layer.title} 神经元 ${neuronIndex + 1} 权重详情"` : "";
           const teachingTitle = isTeaching() ? `${teachingDefinition().neuronName(layerIndex, neuronIndex)} · 响应 ` : "";
-          return `<div class="neuron${isSelected ? " is-selected" : ""}" data-layer="${layerIndex}" data-neuron="${neuronIndex}"${selectable} title="${teachingTitle}${fmt(value)}" style="background:${color}; color:${textColor};">${backpropReplay?.active ? `<small>${layer.kind==='input'?'X':layer.kind==='hidden'?'H'+layerIndex+'-':'Y'}${neuronIndex+1}</small>${value.toFixed(2)}` : fmt(value)}</div>`;
+          const rankTitle = sorted ? ` · 贡献排名 ${rank + 1} · a×w=${OutputContributionRanking.format(networkRanking.rows[rank].contribution)} · |a×w|=${OutputContributionRanking.format(networkRanking.rows[rank].magnitude)}` : "";
+          return `<div class="neuron${isSelected ? " is-selected" : ""}${sorted ? " is-contribution-sorted" : ""}" data-layer="${layerIndex}" data-neuron="${neuronIndex}"${selectable} title="${teachingTitle}${fmt(value)}${rankTitle}" style="background:${color}; color:${textColor};">${backpropReplay?.active || sorted ? `<small>${layer.kind==='input'?'X':layer.kind==='hidden'?'H'+layerIndex+'-':'Y'}${neuronIndex+1}</small>${value.toFixed(2)}` : fmt(value)}</div>`;
         }).join("");
         return `
           <div class="layer">
             <div class="layer-title">
               <b>${layer.title}</b>
               <span>${layer.subtitle}</span>
+              ${sorted ? `<span class="network-sort-caption">按 |a × w| 降序 · 输出 Y${networkRanking.outputIndex + 1} · 原编号</span>` : ""}
             </div>
             <div class="neuron-grid" style="--cols:${cols}; --node-size:${nodeSize}px; --node-font:${nodeFont}px;">
               ${neurons}
@@ -5711,9 +5760,13 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       if (isTeaching() && !state.teachingFullNetwork && !backpropReplay?.active) return;
       const svg = els.connectionSvg;
       const canvasRect = els.networkCanvas.getBoundingClientRect();
-      const width = Math.max(els.networkCanvas.scrollWidth, els.networkCanvas.clientWidth);
-      const height = Math.max(els.networkCanvas.scrollHeight, els.networkCanvas.clientHeight);
+      const svgRect = svg.getBoundingClientRect();
+      const scale = backpropReplay?.active ? backpropReplay.zoom : state.viewportScale || 1;
+      // Integer client sizes can shift endpoints several pixels in very tall expanded networks.
+      const width = Math.max(1, svgRect.width / scale);
+      const height = Math.max(1, svgRect.height / scale);
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      svg.setAttribute("preserveAspectRatio", "none");
       svg.innerHTML = "";
       const pendingLabels = [];
       const anchors = new Map();
@@ -6066,20 +6119,38 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       return !Number.isFinite(value) ? "—" : value !== 0 && Math.abs(value) < .0000005 ? value.toExponential(6) : value.toFixed(6);
     }
 
+    // This is a fixed display scale, independent of each map's extrema. Never alter the numeric value.
+    function featureGrayscaleColor(value) {
+      if (state.featurePalette !== "grayscale") return null;
+      if (!Number.isFinite(value)) return {
+        background: "repeating-linear-gradient(135deg,#f4f4f4 0px,#f4f4f4 6px,#dedede 6px,#dedede 8px)",
+        foreground: "#111111"
+      };
+      const channel = Math.round(255 * (Math.max(-1, Math.min(1, value)) + 1) / 2);
+      return { background: `rgb(${channel},${channel},${channel})`, foreground: channel >= 118 ? "#000000" : "#ffffff" };
+    }
+
+    function featurePaletteLegend() {
+      return state.featurePalette === "grayscale"
+        ? '<div class="map-legend"><span><i style="background:#000"></i>−1 黑</span><span><i style="background:#808080"></i>0 灰</span><span><i style="background:#fff;border:1px solid #999"></i>1 白</span><span>固定色标 · 两侧一致</span></div><p class="feature-palette-note">小于 −1／大于 1 的颜色分别保持纯黑／纯白，数值不变。斜纹与“—”表示尚无计算值。</p>'
+        : '<div class="map-legend"><span><i style="background:#009b78"></i>正值</span><span><i style="background:#cc2856"></i>负值</span><span><i style="background:#171717"></i>零值</span><span>两侧共用色标</span></div>';
+    }
+
     function renderContributionSection(details) {
       const pixelMap = details.layerIndex === 1;
       const comparisonDigits = Math.max(8, ...details.inputWeights.flatMap(item => [comparisonNumber(item.value).length, comparisonNumber(item.contribution).length]));
       const maxAbs = Math.max(...details.inputWeights.flatMap(item => [Math.abs(item.value), Math.abs(item.contribution)]), .000001);
       const grid = weights => details.inputWeights.map(item => {
         const value = weights ? item.value : item.contribution, strength = Math.abs(value) / maxAbs;
-        const background = value === 0 ? "#171717" : colorFor(Math.max(.16, strength), value > 0 ? "positive" : "negative");
-        const foreground = value === 0 || strength <= .62 ? "#fff" : "#111";
+        const gray = featureGrayscaleColor(value);
+        const background = gray?.background ?? (value === 0 ? "#171717" : colorFor(Math.max(.16, strength), value > 0 ? "positive" : "negative"));
+        const foreground = gray?.foreground ?? (value === 0 || strength <= .62 ? "#fff" : "#111");
         const label = pixelMap ? `X${item.index + 1}` : item.label;
         const title = `${item.label}：${item.inputValue} × ${item.value} = ${item.contribution}`;
         return `<button type="button" class="${pixelMap ? "contribution-cell" : "input-comparison-row"}" data-inspector-pixel="${item.index}" aria-pressed="${state.inspectorPixel === item.index}" title="${escapeHtml(title)}" style="background:${background};color:${foreground}">${pixelMap ? `<small>${label}</small><span class="contribution-value">${comparisonNumber(value)}</span>` : `<span>${escapeHtml(label)}</span><b>${comparisonNumber(value)}</b>`}</button>`;
       }).join("");
       const context = backpropReplay?.active && backpropReplay.context.step === 0 ? '初始化参数 · 观察画布' : backpropReplay?.active ? `历史更新 ${backpropReplay.context.step} · ${backpropReplay.context.networkSource === 'sample' ? '本次训练样本 · 更新前参数' : '观察画布 · 所选历史参数'}` : '当前画布 · 当前正式模型';
-      return `<section class="input-comparison" style="--comparison-digits:${comparisonDigits}"><p class="comparison-context">${context} · 全部 ${details.inputWeights.length} 条输入连接</p><div class="map-legend"><span><i style="background:#009b78"></i>正值</span><span><i style="background:#cc2856"></i>负值</span><span><i style="background:#171717"></i>零值</span><span>两侧共用色标</span></div><div class="input-comparison-columns"><div><h4>完整输入权重 w</h4><div class="${pixelMap ? 'contribution-grid' : 'input-comparison-list'}" aria-label="完整输入权重">${grid(true)}</div></div><div><h4>当前输入 × 权重</h4><div class="${pixelMap ? 'contribution-grid' : 'input-comparison-list'}" aria-label="当前输入贡献">${grid(false)}</div></div></div><div id="inspectorPixelDetail" class="inspector-pixel-detail">${inspectorPixelText(details,state.inspectorPixel)}</div></section>`;
+      return `<section class="input-comparison" style="--comparison-digits:${comparisonDigits}"><p class="comparison-context">${context} · 全部 ${details.inputWeights.length} 条输入连接</p>${featurePaletteLegend()}<div class="input-comparison-columns"><div><h4>完整输入权重 w</h4><div class="${pixelMap ? 'contribution-grid' : 'input-comparison-list'}" aria-label="完整输入权重">${grid(true)}</div></div><div><h4>当前输入 × 权重</h4><div class="${pixelMap ? 'contribution-grid' : 'input-comparison-list'}" aria-label="当前输入贡献">${grid(false)}</div></div></div><div id="inspectorPixelDetail" class="inspector-pixel-detail">${inspectorPixelText(details,state.inspectorPixel)}</div></section>`;
     }
 
     function inspectorPixelText(details, index) {
@@ -6205,6 +6276,8 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     function sanitizeInspectorState(saved) {
       return {
         inspectorTab: saved.inspectorTab === "settings" ? "settings" : "features",
+        featurePalette: saved.featurePalette === "grayscale" ? "grayscale" : "color",
+        networkContributionSort: saved.networkContributionSort === true,
         showContributions: saved.inspectorTab === "ranking" || saved.showContributions !== false,
         rankingOutput: clampInt(saved.rankingOutput, 0, 9, 0),
         rankingPrecision: saved.rankingPrecision === true,
@@ -6240,6 +6313,13 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     function renderInspectorSidebar() {
       const replay = Boolean(backpropReplay?.active);
       const tab = replay && state.inspectorTab === "settings" ? "features" : state.inspectorTab;
+      const grayscale = state.featurePalette === "grayscale";
+      const paletteButton = document.getElementById("featurePaletteButton");
+      paletteButton.hidden = tab !== "features";
+      paletteButton.textContent = grayscale ? "恢复彩色" : "黑白灰度";
+      paletteButton.setAttribute("aria-pressed", String(grayscale));
+      paletteButton.title = grayscale ? "当前使用固定灰度：−1 黑、0 灰、1 白；点击恢复彩色" : "切换黑白灰度：−1 黑、0 灰、1 白";
+      els.weightInspector.classList.toggle("is-grayscale", grayscale);
       const modal = !replay && inspectorMedia.matches && inspectorDrawerOpen;
       els.detailSidebar.classList.toggle("is-open", modal);
       els.detailSidebar.inert = !replay && inspectorMedia.matches && !modal;
@@ -6359,9 +6439,11 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       const definition = teachingDefinition(preset.teachingPreset);
       const teaching = Boolean(definition?.matchesPreset(preset)
         && definition.matchesPreset({ ...preset, hiddenLayers, outputs, outputActivation, biasFrozen, model }));
-      const pixels = state.pixels.slice();
+      const pixels = state.pixels.slice(), featurePalette = state.featurePalette, networkContributionSort = state.networkContributionSort;
       saveState();
       state = teaching ? loadTeachingState(definition.ID) : isTeaching() ? loadState(true) : state;
+      state.featurePalette = featurePalette;
+      state.networkContributionSort = networkContributionSort;
       if (teaching) state.teachingPreset = definition.ID;
       else delete state.teachingPreset;
       state.pixels = teaching ? pixels.map(value => value >= 0.5 ? 1 : 0) : pixels;
@@ -6780,7 +6862,21 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       else if (event.target.id === "rankingPrecision") state.rankingPrecision = event.target.checked;
       else return;
       saveState();
+      if (event.target.id === "rankingOutputSelect") renderNetwork();
       renderContributionRanking();
+    });
+    document.getElementById("sortNetworkContributionButton").addEventListener("click", () => {
+      const data = networkContributionRanking();
+      if (!data || data.sourceLayer === 0) return;
+      state.networkContributionSort = !state.networkContributionSort;
+      if (state.networkContributionSort && isTeaching()) state.teachingFullNetwork = true;
+      saveAndRender();
+    });
+    document.getElementById("featurePaletteButton").addEventListener("click", () => {
+      state.featurePalette = state.featurePalette === "grayscale" ? "color" : "grayscale";
+      saveState();
+      renderWeightInspector();
+      renderInspectorSidebar();
     });
     document.getElementById("toggleContributionsButton").addEventListener("click", () => {
       state.showContributions = state.showContributions === false;

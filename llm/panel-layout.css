@@ -44,7 +44,13 @@ body.is-replay #networkPrimary .summary-panel { overflow:auto; max-height:45px; 
 body.is-replay #replayCanvasFold .side { max-width:none; }
 body.is-replay #replayCanvasFold #outputPanel { display:block; }
 body.is-replay .network-actions { flex-wrap:wrap; }
-body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .network-actions > #resetLayoutButton { display:inline-flex!important; }
+body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .network-actions > #resetLayoutButton,body.is-replay .network-actions > #sortNetworkContributionButton { display:inline-flex!important; }
+#sortNetworkContributionButton { white-space:nowrap; font-size:12px; }
+#sortNetworkContributionButton[aria-pressed=true] { background:#255b46; color:#fff; }
+#sortNetworkContributionButton:disabled { opacity:.55; cursor:not-allowed; }
+#layers .neuron.is-contribution-sorted { display:flex; flex-direction:column; justify-content:center; gap:2px; }
+#layers .neuron.is-contribution-sorted small { font:8px/1.1 Consolas,monospace; white-space:nowrap; }
+.network-sort-caption { font-size:11px; line-height:1.5; color:#35634d; }
 @media(max-width:1199px) {
   body:not(.is-replay) #appLayout { grid-template-columns:var(--canvas-width,220px) 10px minmax(0,1fr); }
   body:not(.is-replay) #detailWidthHandle { display:none; }

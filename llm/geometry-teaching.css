@@ -32,3 +32,9 @@
 @container(max-width:520px){.input-comparison-columns{grid-template-columns:minmax(0,1fr)}#weightInspector .input-comparison .contribution-grid{font-size:clamp(10px,3.5cqw,12px)}.input-comparison .contribution-cell{min-height:48px}}
 @media(max-width:780px){.input-comparison-columns{grid-template-columns:minmax(0,1fr)}.geometry-feature-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.geometry-feature-card{padding:9px}.geometry-card-maps{gap:8px}.geometry-target-map{width:58px}#weightInspector .input-comparison .contribution-grid{font-size:clamp(10px,3.5cqw,12px)}#weightInspector .input-comparison .contribution-cell{min-height:52px}.input-comparison small{font-size:10px}}
 .input-comparison-row b{white-space:nowrap;overflow-wrap:normal;word-break:normal;}
+.feature-palette-note{font-size:11px;line-height:1.6;color:#595959;margin:0 0 10px;}
+#detailSidebar .inspector-toolbar{flex-wrap:wrap;}
+#featurePaletteButton{padding:8px 10px;font-size:12px;white-space:nowrap;box-shadow:none;transition:none;}
+#featurePaletteButton[aria-pressed=true]{background:#333;color:#fff;border-color:#333;}
+#weightInspector.is-grayscale .contribution-cell,#weightInspector.is-grayscale .input-comparison-row,#weightInspector.is-grayscale .geometry-metric-cell{border-color:#aaa;}
+#weightInspector.is-grayscale .contribution-cell[aria-pressed=true],#weightInspector.is-grayscale .input-comparison-row[aria-pressed=true],#weightInspector.is-grayscale .geometry-metric-cell.is-selected,#weightInspector.is-grayscale .contribution-cell:focus-visible,#weightInspector.is-grayscale .input-comparison-row:focus-visible,#weightInspector.is-grayscale .geometry-metric-cell:focus-visible{outline:2px solid #000;outline-offset:-2px;box-shadow:inset 0 0 0 4px #fff;}
