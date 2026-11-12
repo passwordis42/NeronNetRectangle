@@ -1502,6 +1502,30 @@ body.is-replay .network-actions > #toggleContributionsButton,body.is-replay .net
   #networkPrimary .teaching-view { padding:12px; }
 }
 
+#secondLayerSpatial{display:grid;gap:16px;padding:12px;border:1px solid #ccdcd2;border-radius:8px;background:#fafcf9;container-type:inline-size;}
+#secondLayerSpatial h4{margin:0;font-size:14px;line-height:1.6;}
+#secondLayerSpatial p{font-size:12px;line-height:1.7;margin:6px 0;overflow-wrap:anywhere;}
+.spatial-source-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+#secondLayerSpatial .spatial-source-card{min-width:0;text-align:left;padding:9px;display:flex;flex-direction:column;gap:7px;background:#fff;color:#243a2f;border:1px solid #d7e2db;box-shadow:none;transform:none;font-size:11px;}
+.spatial-source-card>b{font-size:12px;line-height:1.6;overflow-wrap:anywhere;}
+.spatial-source-maps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;}
+.spatial-source-maps>span{min-width:0;font-size:10px;line-height:1.6;}
+.spatial-mini-map{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;border:1px solid #bbc7bf;aspect-ratio:1;}
+.spatial-mini-map i{min-width:0;min-height:0;border:0;}
+.spatial-source-numbers{font:10px/1.8 Consolas,monospace;overflow-wrap:anywhere;}
+.spatial-source-card .spatial-support{color:#146346;}.spatial-source-card .spatial-oppose{color:#a12440;}
+.spatial-equation{padding:8px;border-radius:5px;background:#edf3eb;font:11px/1.8 Consolas,"Microsoft YaHei",monospace;overflow-wrap:anywhere;}
+#secondLayerSpatial .spatial-expand{padding:7px 10px;font-size:12px;box-shadow:none;}
+#spatialInfluenceGrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;}
+#spatialInfluenceGrid button{padding:4px 1px;min-width:0;min-height:48px;aspect-ratio:1;display:flex;flex-direction:column;justify-content:center;gap:4px;border:1px solid #aaa;border-radius:4px;box-shadow:none;transform:none;transition:none;font:clamp(8px,2.5cqw,11px)/1.2 Consolas,monospace;}
+#spatialInfluenceGrid small{font-size:9px;}#spatialInfluenceGrid b{font:inherit;white-space:nowrap;}
+#spatialInfluenceGrid button[aria-pressed=true],#spatialInfluenceGrid button:focus-visible{outline:2px solid #000;outline-offset:-2px;box-shadow:inset 0 0 0 4px #fff;}
+.spatial-scale{display:flex;flex-wrap:wrap;gap:8px;font-size:11px;line-height:1.6;color:#53645a;}
+.spatial-scale i{display:inline-block;width:10px;height:10px;border:1px solid #999;margin-right:3px;}
+#spatialPixelDetail{padding:10px;background:#fff;border:1px solid #dbe3dc;border-radius:5px;font-size:12px;line-height:1.8;overflow-wrap:anywhere;}
+.spatial-return{font-size:12px;padding:8px 10px;}
+@container(max-width:330px){.spatial-source-cards{grid-template-columns:minmax(0,1fr)}.spatial-mini-map{max-width:110px}.spatial-source-maps{max-width:250px}#spatialInfluenceGrid button{font-size:8px;}}
+
 /* END BACKPROP CSS */
   </style>
   <style>
@@ -4223,7 +4247,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
           const background=gray?.background ?? `rgb(${rgb.join(',')})`;
           return `<button class="geometry-metric-cell ${selected.layer===layer&&selected.neuron===neuron&&selected.input===i?'is-selected':''}" data-geometry-input="${i}" data-geometry-layer="${layer}" data-geometry-neuron="${neuron}" style="background:${background};color:${foreground}"><small>${esc(t.label||`${layer===1?'X':'H'+(layer-1)+'-'}${i+1}`)}</small><b>${num(value)}</b></button>`;
         }).join('');
-        return `<p class="hint">第 ${step} 次更新 · ${step===0?'初始化参数 · 观察画布':networkSource==='sample'?`训练样本 ${sampleIndex+1} · 更新前`:`观察画布 · ${phase==='before'?'更新前':phase==='after'?'更新后':'正式模型'}`}</p>${helpers.renderComparison?.(details)||''}${helpers.renderEvidence?.(details)||''}<section class="geometry-metric"><h4>${metric==='gradient'?'偏导':metric==='delta'?'实际改变量 Δw':'权重 w'} · ${terms.length} 条输入连接</h4><p>${esc(sourceName())}</p><div class="geometry-metric-grid ${layer===1?'is-pixel':''}" style="--metric-digits:${metricDigits}">${cells}</div><p>偏置 ${num(bias?.weight)} · 偏导 ${num(bias?.gradient)} · Δb ${num(bias?.delta)}</p></section><section class="trace-audit"><b>${esc(selected.label||'固定零连接')}</b><p>更新前 ${num(p.before)} → 更新后 ${num(p.after)}；Δw = ${num(p.delta)}</p><p>所选来源偏导 ${num(p.gradient)}；实际总梯度 ${num(p.totalGradient)}</p>${fixed?'<p>结构约束：此连接固定为零，不属于优化器参数。</p>':'<button data-geometry-open-loss>查看损失与链式求导</button>'}</section>`;
+        return `<p class="hint">第 ${step} 次更新 · ${step===0?'初始化参数 · 观察画布':networkSource==='sample'?`训练样本 ${sampleIndex+1} · 更新前`:`观察画布 · ${phase==='before'?'更新前':phase==='after'?'更新后':'正式模型'}`}</p>${helpers.renderSpatial?.(details)||''}${helpers.renderComparison?.(details)||''}${helpers.renderEvidence?.(details)||''}<section class="geometry-metric"><h4>${metric==='gradient'?'偏导':metric==='delta'?'实际改变量 Δw':'权重 w'} · ${terms.length} 条输入连接</h4><p>${esc(sourceName())}</p><div class="geometry-metric-grid ${layer===1?'is-pixel':''}" style="--metric-digits:${metricDigits}">${cells}</div><p>偏置 ${num(bias?.weight)} · 偏导 ${num(bias?.gradient)} · Δb ${num(bias?.delta)}</p></section><section class="trace-audit"><b>${esc(selected.label||'固定零连接')}</b><p>更新前 ${num(p.before)} → 更新后 ${num(p.after)}；Δw = ${num(p.delta)}</p><p>所选来源偏导 ${num(p.gradient)}；实际总梯度 ${num(p.totalGradient)}</p>${fixed?'<p>结构约束：此连接固定为零，不属于优化器参数。</p>':'<button data-geometry-open-loss>查看损失与链式求导</button>'}</section>`;
       }
     };
   }
@@ -4535,6 +4559,62 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
   return { create };
 });
 
+/* Actual first-layer sources and contextual pixel interventions; never equivalent pixel weights. */
+(function(root,factory){
+  const api=factory();
+  if(typeof module!=='undefined'&&module.exports)module.exports=api;
+  else root.SecondLayerSpatial=api;
+})(typeof globalThis!=='undefined'?globalThis:this,function(){
+  'use strict';
+  const vector=(a,n)=>(Array.isArray(a)||ArrayBuffer.isView(a))&&a.length===n&&Array.from(a).every(Number.isFinite);
+  function compute(model,result,forwardFn,neuronIndex){
+    if(typeof forwardFn!=='function'||!model||!Array.isArray(model.layers)||model.layers.length!==3)return null;
+    const sizes=[25];
+    for(const layer of model.layers){
+      if(!layer||!Array.isArray(layer.weights)||!layer.weights.length||!vector(layer.biases,layer.weights.length)||
+        !layer.weights.every(row=>vector(row,sizes.at(-1))))return null;
+      sizes.push(layer.weights.length);
+    }
+    if(model.topology&&(!vector(model.topology,4)||sizes.some((size,i)=>model.topology[i]!==size)))return null;
+    if(!Number.isInteger(neuronIndex)||neuronIndex<0||neuronIndex>=sizes[2])return null;
+    const validForward=f=>f&&Array.isArray(f.activations)&&f.activations.length===4&&
+      f.activations.every((row,i)=>vector(row,sizes[i]))&&Array.isArray(f.preActivations)&&f.preActivations.length===3&&
+      f.preActivations.every((row,i)=>vector(row,sizes[i+1]))&&vector(f.outputs,sizes[3]);
+    if(!validForward(result))return null;
+    const input=Array.from(result.activations[0]);
+    if(input.some(v=>v<0||v>1))return null;
+    const first=model.layers[0],second=model.layers[1];
+    const sources=first.weights.map((weights,index)=>({
+      index,weights:Array.from(weights),pixelContributions:Array.from(weights,(w,p)=>w*input[p]),
+      activation:result.activations[1][index],weight:second.weights[neuronIndex][index],
+      contribution:result.activations[1][index]*second.weights[neuronIndex][index],
+      bias:first.biases[index],preActivation:result.preActivations[0][index]
+    }));
+    const weightedSum=sources.reduce((sum,s)=>sum+s.contribution,0),bias=second.biases[neuronIndex];
+    const preActivation=result.preActivations[1][neuronIndex],activation=result.activations[2][neuronIndex];
+    const tolerance=1e-10*Math.max(1,Math.abs(bias),...sources.map(s=>Math.abs(s.contribution)))*sources.length;
+    if(!Number.isFinite(weightedSum)||Math.abs(weightedSum+bias-preActivation)>tolerance)return null;
+    const pixels=[];
+    for(let p=0;p<25;p++){
+      const evaluate=value=>{
+        if(input[p]===value)return result;
+        const changed=input.slice();changed[p]=value;
+        const f=forwardFn(changed,model);
+        return validForward(f)&&changed.every((v,i)=>f.activations[0][i]===v)?f:null;
+      };
+      const off=evaluate(0),on=evaluate(1);
+      if(!off||!on)return null;
+      const z0=off.preActivations[1][neuronIndex],z1=on.preActivations[1][neuronIndex];
+      const a0=off.activations[2][neuronIndex],a1=on.activations[2][neuronIndex];
+      const deltaZ=z1-z0,deltaActivation=a1-a0;
+      if(!Number.isFinite(deltaZ)||!Number.isFinite(deltaActivation))return null;
+      pixels.push({index:p,inputValue:input[p],z0,z1,deltaZ,a0,a1,deltaActivation});
+    }
+    return {sources,weightedSum,bias,preActivation,activation,pixels,input,neuronIndex};
+  }
+  return {compute};
+});
+
 </script>
 <!-- END COMPOSITION BUNDLE -->
   <script>
@@ -4636,6 +4716,8 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     let panelResize = null;
     let panelResizeKeys = new Set();
     let panelResizeFrame = 0;
+    let spatialCache = null;
+    const spatialView = { key: "", expanded: false, pixel: 12, returnTo: null };
     const inspectorMedia = window.matchMedia("(max-width: 1199px)");
     let presetStatus = { type: "info", text: "预设文件会包含网络结构、激活函数、权重和偏置，不包含样本与当前画布。" };
 
@@ -5590,7 +5672,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     }
 
     function renderReplayInspector(details) {
-      if (isGeometryTeaching()) return backpropReplay.renderInspector(details, { renderComparison: renderContributionSection, renderEvidence: renderTeachingEvidence, featureColor: featureGrayscaleColor, escapeHtml });
+      if (isGeometryTeaching()) return backpropReplay.renderInspector(details, { renderSpatial: renderSecondLayerSpatial, renderComparison: renderContributionSection, renderEvidence: renderTeachingEvidence, featureColor: featureGrayscaleColor, escapeHtml });
       const replay = backpropReplay, ctx = replay.context, selected = replay.parameterInfo(replay.parameter);
       const hidden = details.layerIndex === 1;
       const indices = hidden ? Array.from({length:25},(_,i)=>details.neuronIndex*25+i) : Array.from({length:50},(_,i)=>1300+i);
@@ -5974,6 +6056,9 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
 
     function selectNeuron(layerIndex, neuronIndex, trigger = document.activeElement) {
       const origin = rememberInspectorFocus(trigger);
+      if (spatialSupported() && layerIndex === 1 && state.selectedNeuron?.layerIndex === 2) {
+        spatialView.returnTo = { preset: state.teachingPreset, neuron: state.selectedNeuron.neuronIndex };
+      }
       state.selectedNeuron = sanitizeSelectedNeuron({ layerIndex, neuronIndex });
       backpropReplay?.selectNeuron(layerIndex, neuronIndex);
       if (isAllFeaturesTeaching() && layerIndex === 1 && state.selectedNeuron) {
@@ -6081,7 +6166,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         </div>
         ${isTrainedTeaching() && details.layerIndex === 1 ? teachingDefinition().renderFeatureTarget(details.neuronIndex, details.currentValue) : ""}
         ${isGeometryTeaching() && details.layerIndex === 2 && details.layerKind !== "output" ? teachingDefinition().renderGeometryTarget(details.neuronIndex, details.currentValue) : isDoubleGuidedTeaching() && details.layerIndex === 2 ? teachingDefinition().renderCandidateTarget(details.neuronIndex, details.currentValue) : ""}
-        ${isDoubleGuidedTeaching() && details.layerIndex === 1 ? `<button type="button" class="secondary candidate-return" data-return-candidate="${state.teachingCandidate}">← 返回候选 H2-${state.teachingCandidate + 1}</button>` : ""}
+        ${renderSecondLayerSpatial(details)}
         ${renderContributionSection(details)}
         ${renderCandidateSources(details)}
         ${renderTeachingEvidence(details)}
@@ -6110,6 +6195,66 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         ${outgoing === null ? "" : `${line(directOutput ? "输出连接权重" : `到 H2-${state.teachingCandidate + 1} 的连接权重`, outgoing)}${line(directOutput ? "对最终得分的贡献" : `对 H2-${state.teachingCandidate + 1} 的贡献`, details.currentValue * outgoing, true)}`}
         <p>${result}</p><p>显示数值已取舍小数，计算使用完整精度。</p>
       </section><details class="inspector-terms" data-teaching-detail="teachingCalculationOpen" ${state.teachingCalculationOpen ? "open" : ""}><summary>全部 ${details.inputWeights.length} 项输入贡献</summary>${rows}</details>`;
+    }
+
+    function spatialSupported() {
+      return state.teachingPreset === SquareGeometryDoubleTeaching?.ID || isDoubleGuidedTeaching();
+    }
+
+    function spatialData(details) {
+      if (!spatialSupported() || details?.layerIndex !== 2 || details.layerKind !== "hidden" || !latestForward ||
+        (backpropReplay?.active && (backpropReplay.loading || !backpropReplay.model))) return null;
+      const model = currentDisplayModel();
+      if (spatialCache?.model === model && spatialCache.forward === latestForward && spatialCache.neuron === details.neuronIndex) return spatialCache.data;
+      const types = activationTypesOf(state);
+      const data = SecondLayerSpatial.compute(model, latestForward, (input, net) => SquareBackpropCore.forward(input, net, types), details.neuronIndex);
+      spatialCache = { model, forward: latestForward, neuron: details.neuronIndex, data };
+      return data;
+    }
+
+    function spatialPixelDetails(data, index) {
+      const p = data.pixels[index], n = comparisonNumber;
+      return `<b>X${index + 1} · 第 ${Math.floor(index / 5) + 1} 行第 ${index % 5 + 1} 列</b><br>其他 24 格保持当前输入，当前此格为 ${n(p.inputValue)}。<br>置 0：H2 输入和 z₀ = <span title="${p.z0}">${n(p.z0)}</span>，响应 a₀ = <span title="${p.a0}">${n(p.a0)}</span><br>置 1：H2 输入和 z₁ = <span title="${p.z1}">${n(p.z1)}</span>，响应 a₁ = <span title="${p.a1}">${n(p.a1)}</span><br>Δz = ${n(p.z1)} − (${n(p.z0)}) = <b title="${p.deltaZ}">${n(p.deltaZ)}</b><br>Δa = ${n(p.a1)} − (${n(p.a0)}) = <b title="${p.deltaActivation}">${n(p.deltaActivation)}</b><p>这是两次真实前向的差值，不是损失偏导。25 格影响不相加作为 H2 得分。</p>`;
+    }
+
+    function renderSecondLayerSpatial(details) {
+      if (!spatialSupported()) return "";
+      if (details.layerIndex === 1) {
+        const back = spatialView.returnTo?.preset === state.teachingPreset ? spatialView.returnTo.neuron : isDoubleGuidedTeaching() ? state.teachingCandidate : null;
+        return back === null ? "" : `<button type="button" class="secondary spatial-return" data-spatial-return="${back}"${isDoubleGuidedTeaching() ? ` data-return-candidate="${back}"` : ''}>← 返回组合 H2-${back + 1}</button>`;
+      }
+      if (details.layerIndex !== 2 || details.layerKind !== "hidden") return "";
+      let data;
+      try { data = spatialData(details); } catch (_) { data = null; }
+      if (!data) return '<section role="status"><p>当前特征图尚无有效计算结果。</p><button type="button" class="secondary" data-spatial-retry>重新计算</button></section>';
+      const key = `${state.teachingPreset}:${details.neuronIndex}`;
+      if (spatialView.key !== key) { spatialView.key = key; spatialView.expanded = false; spatialView.pixel = 12; }
+      const n = comparisonNumber, signed = v => `${v > 0 ? '+' : ''}${n(v)}`;
+      const sources = data.sources.filter(s => s.weight !== 0).sort((a,b) => Math.abs(b.contribution)-Math.abs(a.contribution)||a.index-b.index);
+      const shown = spatialView.expanded ? sources : sources.slice(0,6);
+      const maps = source => {
+        const max = Math.max(1e-12,...source.weights.map(Math.abs),...source.pixelContributions.map(Math.abs));
+        const map = contribution => `<span class="spatial-mini-map" role="img" aria-label="H1-${source.index+1} ${contribution?'当前像素乘输入权重':'完整输入权重'}">${source.weights.map((w,p)=>{
+          const value = contribution ? source.pixelContributions[p] : w;
+          const color = featureGrayscaleColor(value)?.background ?? (value === 0 ? '#171717' : colorFor(Math.max(.16,Math.abs(value)/max),value>0?'positive':'negative'));
+          return `<i data-spatial-source-${contribution?'input':'weight'}="${p}" data-value="${value}" style="background:${color}" title="X${p+1}：${contribution ? `${data.input[p]} × ${w} = ` : ''}${value}"></i>`;
+        }).join('')}</span>`;
+        return `<span class="spatial-source-maps"><span>完整权重 W1${map(false)}</span><span>当前像素 × W1${map(true)}</span></span>`;
+      };
+      const cards = shown.map(s=>`<button type="button" class="spatial-source-card" data-spatial-source="${s.index}" data-source-activation="${s.activation}" data-source-weight="${s.weight}" data-source-contribution="${s.contribution}" title="第一层偏置 ${s.bias}，激活前输入和 ${s.preActivation}；${s.activation} × ${s.weight} = ${s.contribution}；点击查看第一层真实计算"><b>${escapeHtml(teachingDefinition().neuronName(1,s.index))}</b>${maps(s)}<span class="spatial-source-numbers">第一层响应 a₁ = ${n(s.activation)}<br>到此 H2 的权重 w₂ = ${n(s.weight)}<br><strong class="${s.contribution>=0?'spatial-support':'spatial-oppose'}">贡献 a₁ × w₂ = ${signed(s.contribution)}</strong></span></button>`).join('');
+      const max = Math.max(...data.pixels.map(p=>Math.abs(p.deltaZ)));
+      const grayscale = state.featurePalette === 'grayscale';
+      const cells = data.pixels.map(p=>{
+        const ratio = max ? p.deltaZ/max : 0;
+        const gray = featureGrayscaleColor(ratio);
+        const background = gray?.background ?? (ratio===0?'#808080':colorFor(Math.max(.16,Math.abs(ratio)),ratio>0?'positive':'negative'));
+        const foreground = gray?.foreground ?? (ratio===0||Math.abs(ratio)>.62?'#111':'#fff');
+        const compact = p.deltaZ===0?'0':`${p.deltaZ>0?'+':''}${p.deltaZ.toPrecision(3)}`;
+        return `<button type="button" data-spatial-pixel="${p.index}" data-delta-z="${p.deltaZ}" data-delta-activation="${p.deltaActivation}" data-z0="${p.z0}" data-z1="${p.z1}" data-a0="${p.a0}" data-a1="${p.a1}" aria-pressed="${spatialView.pixel===p.index}" aria-label="X${p.index+1}，从0置1对H2输入和的影响 ${p.deltaZ}" title="Δz=${p.z1}−(${p.z0})=${p.deltaZ}；Δa=${p.a1}−(${p.a0})=${p.deltaActivation}" style="background:${background};color:${foreground}"><small>X${p.index+1}</small><b>${compact}</b></button>`;
+      }).join('');
+      return `<section id="secondLayerSpatial" aria-label="第二层特征画布"><header><h4>H2-${details.neuronIndex+1} · 回到 5×5 画布观察</h4><p>${escapeHtml(rankingContextLabel())}</p><p>第二层实际接收 ${data.sources.length} 个第一层响应。这里展示特征来源与像素变化的真实影响，不把第二层权重伪装成 25 个像素权重。</p></header>
+        <section><h4>当前像素影响 · 对这个 H2 的加权输入</h4><p>每格分别置 0、置 1，其余格保持不变。Δz &gt; 0 表示置亮会提高此神经元的输入和，Δz &lt; 0 表示降低。图会随画布变化。</p><div class="spatial-scale"><span><i style="background:${grayscale?'#000':'#b32352'}"></i>−${n(max)}</span><span><i style="background:#808080"></i>0</span><span><i style="background:${grayscale?'#fff':'#108263'}"></i>+${n(max)}</span><span>本图对称色标${grayscale?' · 黑／灰／白':''}</span></div><div id="spatialInfluenceGrid">${cells}</div><p>格内为三位有效数字；点击查看六位小数，悬停数值可查完整精度。此图色阶按最大 |Δz| 缩放，与输入权重图的 ±1 灰度色标不同。</p><div id="spatialPixelDetail" aria-live="polite">${spatialPixelDetails(data,spatialView.pixel)}</div></section>
+        <section><h4>参与组合的第一层真实特征</h4><p>按 |a₁ × w₂| 排序，当前显示 ${shown.length} / ${sources.length} 项非零连接。每项两张图使用同一色标；点击可追溯到第一层。${isDoubleGuidedTeaching()?'旧模型中部分第一层特征为自由学习，权重图可能较复杂。':''}</p>${featurePaletteLegend()}<div id="spatialSourceCards" class="spatial-source-cards">${cards}</div>${sources.length>6?`<button type="button" class="secondary spatial-expand" data-spatial-expand aria-expanded="${spatialView.expanded}">${spatialView.expanded?'收起，显示前 6 项':`展开全部 ${sources.length} 项非零来源`}</button>`:''}<p>未连接的 ${data.sources.length-sources.length} 项权重为 0，仍可在原输入权重列表中查看。</p><div class="spatial-equation">全部 ${data.sources.length} 项 a₁ × w₂ 之和 ${n(data.weightedSum)}<br>＋ 偏置 ${n(data.bias)} ＝ H2 输入和 z₂ ${n(data.preActivation)}<br>${escapeHtml(state.hiddenLayers[1].activation)}(z₂) ＝ 当前响应 ${n(data.activation)}</div></section></section>`;
     }
 
     function renderCandidateSources(details) {
@@ -6328,7 +6473,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     // Rendering replaces neuron buttons, so keep a selector as well as the live node.
     function rememberInspectorFocus(element) {
       if (!element) return null;
-      const attributes = ["data-teaching-layer", "data-teaching-neuron", "data-teaching-candidate", "data-layer", "data-neuron", "data-neuron-step", "data-inspector-map", "data-inspector-pixel", "data-contribution-mode", "data-inspector-source", "data-return-candidate", "data-ranking-neuron", "data-ranking-connection"];
+      const attributes = ["data-teaching-layer", "data-teaching-neuron", "data-teaching-candidate", "data-layer", "data-neuron", "data-neuron-step", "data-inspector-map", "data-inspector-pixel", "data-contribution-mode", "data-inspector-source", "data-return-candidate", "data-ranking-neuron", "data-ranking-connection", "data-spatial-source", "data-spatial-pixel", "data-spatial-expand", "data-spatial-return", "data-spatial-retry"];
       let selector = element.id ? `#${CSS.escape(element.id)}` : attributes.filter(key => element.hasAttribute(key)).map(key => `[${key}="${CSS.escape(element.getAttribute(key))}"]`).join("");
       if (element.tagName === "SUMMARY" && element.parentElement.dataset.teachingDetail) selector = `[data-teaching-detail="${element.parentElement.dataset.teachingDetail}"] > summary`;
       return { element, selector };
@@ -6357,7 +6502,7 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       paletteButton.hidden = tab !== "features";
       paletteButton.textContent = grayscale ? "恢复彩色" : "黑白灰度";
       paletteButton.setAttribute("aria-pressed", String(grayscale));
-      paletteButton.title = grayscale ? "当前使用固定灰度：−1 黑、0 灰、1 白；点击恢复彩色" : "切换黑白灰度：−1 黑、0 灰、1 白";
+      paletteButton.title = grayscale ? "输入权重图：−1 黑、0 灰、1 白；像素影响图见其单独色标。点击恢复彩色" : "切换黑白灰度：输入权重图使用 −1 黑、0 灰、1 白；像素影响图见其单独色标";
       els.weightInspector.classList.toggle("is-grayscale", grayscale);
       const modal = !replay && inspectorMedia.matches && inspectorDrawerOpen;
       els.detailSidebar.classList.toggle("is-open", modal);
@@ -6874,7 +7019,18 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
     els.weightInspector.addEventListener("click", (event) => {
       const button = event.target.closest("button");
       if (!button) return;
-      if (button.hasAttribute("data-inspector-paired") && isAllFeaturesTeaching()) selectNeuron(1, Number(button.dataset.inspectorPaired), button);
+      if (button.hasAttribute("data-spatial-source")) {
+        selectNeuron(1,Number(button.dataset.spatialSource),button);
+      } else if (button.hasAttribute("data-spatial-return")) selectNeuron(2,Number(button.dataset.spatialReturn),button);
+      else if (button.hasAttribute("data-spatial-expand")) { spatialView.expanded = !spatialView.expanded; renderWeightInspector(); }
+      else if (button.hasAttribute("data-spatial-retry")) { spatialCache = null; renderWeightInspector(); }
+      else if (button.hasAttribute("data-spatial-pixel")) {
+        const data = spatialData(getSelectedWeightDetails());
+        if (!data) return;
+        spatialView.pixel = Number(button.dataset.spatialPixel);
+        document.getElementById("spatialPixelDetail").innerHTML = spatialPixelDetails(data,spatialView.pixel);
+        document.querySelectorAll('[data-spatial-pixel]').forEach(cell=>cell.setAttribute('aria-pressed',String(Number(cell.dataset.spatialPixel)===spatialView.pixel)));
+      } else if (button.hasAttribute("data-inspector-paired") && isAllFeaturesTeaching()) selectNeuron(1, Number(button.dataset.inspectorPaired), button);
       else if (button.hasAttribute("data-inspector-source")) selectNeuron(Number(button.dataset.inspectorSourceLayer || 1), Number(button.dataset.inspectorSource), button);
       else if (button.hasAttribute("data-return-candidate") && isDoubleGuidedTeaching()) selectNeuron(2, Number(button.dataset.returnCandidate), button);
       else if (button.hasAttribute("data-contribution-mode")) updateContributionColorMode(button.dataset.contributionMode);

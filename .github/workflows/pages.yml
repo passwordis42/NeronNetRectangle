@@ -34,6 +34,7 @@ jobs:
           node llm/tests/geometry-teaching.test.cjs
           node llm/tests/output-contribution-ranking.test.cjs
           node llm/tests/panel-resize.test.cjs
+          node llm/tests/second-layer-spatial.test.cjs
           node llm/tests/geometry-backprop.test.cjs llm/training-trace/geometry-single-v1/manifest.json llm/geometry-single-model.json
           node llm/tests/geometry-backprop.test.cjs llm/training-trace/geometry-double-v1/manifest.json llm/geometry-double-model.json
       - name: Build standalone website

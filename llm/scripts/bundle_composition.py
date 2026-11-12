@@ -53,7 +53,7 @@ geometry_source = '\n'.join(
         ('SquareGeometrySingleTraceManifest', {k:v for k,v in geometry_traces['single'].items() if k != 'timeline'}),
         ('SquareGeometryDoubleTraceManifest', {k:v for k,v in geometry_traces['double'].items() if k != 'timeline'})))
 geometry_source += '\n' + '\n'.join((ROOT / file).read_text(encoding='utf-8') for file in (
-    'geometry-backprop-core.js', 'geometry-teaching.js', 'geometry-backprop-teaching.js', 'output-contribution-ranking.js', 'panel-resize.js'))
+    'geometry-backprop-core.js', 'geometry-teaching.js', 'geometry-backprop-teaching.js', 'output-contribution-ranking.js', 'panel-resize.js', 'second-layer-spatial.js'))
 replay_source = ('\nconst SquareTrainingTraceManifest = ' + json.dumps(trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + '\nconst SquareRandomTrainingTraceManifest = ' + json.dumps(random_trace_view, ensure_ascii=False, separators=(",", ":")) + ';\n'
                  + (ROOT / "backprop-core.js").read_text(encoding="utf-8") + '\n'
@@ -70,7 +70,7 @@ block = ('<!-- BEGIN COMPOSITION BUNDLE -->\n<script>\nconst SquareCompositionMo
          + ';\n' + source + replay_source + '\n' + geometry_source + '\n</script>\n<!-- END COMPOSITION BUNDLE -->')
 html = path.read_text(encoding="utf-8-sig")
 css = ('/* BEGIN BACKPROP CSS */\n' + '\n'.join((ROOT / file).read_text(encoding='utf-8') for file in
-       ('backprop-teaching.css', 'geometry-teaching.css', 'geometry-backprop.css', 'output-contribution-ranking.css', 'panel-layout.css')) + '\n/* END BACKPROP CSS */')
+       ('backprop-teaching.css', 'geometry-teaching.css', 'geometry-backprop.css', 'output-contribution-ranking.css', 'panel-layout.css', 'second-layer-spatial.css')) + '\n/* END BACKPROP CSS */')
 if '/* BEGIN BACKPROP CSS */' in html:
     html = re.sub(r'/\* BEGIN BACKPROP CSS \*/.*?/\* END BACKPROP CSS \*/', lambda _: css, html, flags=re.S)
 else:
