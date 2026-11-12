@@ -153,6 +153,18 @@ async function exportStep(page, type) {
     assert.equal(await page.locator('#trainedVariantSelect').inputValue(), ID);
     assert.equal(await page.evaluate(() => JSON.stringify(state.model.layers)), published);
 
+    const malformedImports = await page.evaluate(() => {
+      const before = JSON.stringify(buildPresetPayload().preset);
+      return [0, 1, 4].map(count => {
+        const payload = buildPresetPayload();
+        payload.preset.model.layers = count === 4 ? [...payload.preset.model.layers, payload.preset.model.layers[0]] : payload.preset.model.layers.slice(0, count);
+        let rejected = false;
+        try { importPresetObject(payload); } catch (_) { rejected = true; }
+        return { rejected, unchanged: JSON.stringify(buildPresetPayload().preset) === before };
+      });
+    });
+    assert.ok(malformedImports.every(result => result.rejected && result.unchanged), 'Incomplete or extra layers are rejected without changing the current model');
+
     // A real legacy save, using the original MODE/TRAINED keys, must not migrate to the new default.
     await page.locator('#trainedVariantSelect').selectOption('square-trained-geometry-double-v1');
     await page.locator('#pixelGrid [data-index="0"]').click();

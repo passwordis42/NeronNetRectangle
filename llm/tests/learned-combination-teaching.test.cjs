@@ -51,6 +51,11 @@ function check(a) {
   const changed = structuredClone(preset);
   changed.model.layers[1].weights[0][0] += .000001;
   assert.equal(definition.matchesPreset(changed), false, 'An imported model cannot reuse the identity with different H2 parameters');
+  for (const layers of [[], preset.model.layers.slice(0, 1), [...preset.model.layers, preset.model.layers[0]], null,
+    preset.model.layers.map((layer, index) => index === 1 ? null : layer)]) {
+    const incomplete = structuredClone(preset); incomplete.model.layers = layers;
+    assert.equal(definition.matchesPreset(incomplete), false, 'Missing, extra or invalid layers cannot claim a verified teaching model');
+  }
   const foreign = structuredClone(preset); foreign.teachingPreset = legacy.presetId;
   assert.equal(definition.matchesPreset(foreign), false);
 

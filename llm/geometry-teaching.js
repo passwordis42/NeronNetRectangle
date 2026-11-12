@@ -43,7 +43,7 @@ function createSquareGeometryTeaching(artifact, ID, name) {
   }
   function matchesPreset(preset){
     const expected=createPreset();
-    return preset?.teachingPreset===ID && JSON.stringify(preset.hiddenLayers)===JSON.stringify(expected.hiddenLayers) && preset.outputActivation==='linear' && preset.biasFrozen===false && preset.outputs?.length===1 && preset.outputs[0].threshold===1 && preset.outputs[0].comparison==='gt' && JSON.stringify(preset.model?.topology)===JSON.stringify(artifact.model.topology) && preset.model?.layers.every((l,i)=>JSON.stringify(l.weights)===JSON.stringify(artifact.model.layers[i].weights)&&JSON.stringify(l.biases)===JSON.stringify(artifact.model.layers[i].biases));
+    return preset?.teachingPreset===ID && JSON.stringify(preset.hiddenLayers)===JSON.stringify(expected.hiddenLayers) && preset.outputActivation==='linear' && preset.biasFrozen===false && preset.outputs?.length===1 && preset.outputs[0].threshold===1 && preset.outputs[0].comparison==='gt' && JSON.stringify(preset.model?.topology)===JSON.stringify(artifact.model.topology) && Array.isArray(preset.model?.layers) && preset.model.layers.length===artifact.model.layers.length && preset.model.layers.every((l,i)=>l && JSON.stringify(l.weights)===JSON.stringify(artifact.model.layers[i].weights)&&JSON.stringify(l.biases)===JSON.stringify(artifact.model.layers[i].biases));
   }
   function card(state,forward,i){
     const f=featureAt(i),h=forward.activations[1][i],selected=state.selectedNeuron?.layerIndex===1&&state.selectedNeuron.neuronIndex===i;
