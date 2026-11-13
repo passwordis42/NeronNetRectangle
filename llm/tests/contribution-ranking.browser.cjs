@@ -166,7 +166,7 @@ async function checkNoPageOverflow(page) {
     await openRanking(page); await page.locator('#rankingOutputSelect').selectOption('1');
     const direct = await checkRanking(page, 25);
     assert.equal(direct.hiddenLayer, 0); assert.equal(direct.outputLayer, 1);
-    assert.match(await page.locator('#contributionRanking .ranking-head h3').innerText(), /输入贡献排行/);
+    assert.match(await page.locator('#contributionPaneTitle').innerText(), /输入贡献排行/);
     assert.match(await page.locator('#contributionRanking .ranking-summary').innerText(), /输出加权和 z/);
     assert.match(await page.locator('#contributionRanking [data-ranking-output]').innerText(), /sigmoid\(/);
     near(direct.outputValue, 1 / (1 + Math.exp(-direct.z)), 'Sigmoid(z) is the distinct actual output y');
@@ -279,7 +279,7 @@ async function checkNoPageOverflow(page) {
     await checkRanking(phone, 352); await checkNoPageOverflow(phone);
     await phone.locator('#rankingPrecision').check(); await checkRanking(phone, 352); await checkNoPageOverflow(phone);
     await phone.screenshot({ path: path.join(screenshots, 'contribution-ranking-mobile.png') });
-    await phone.locator('#toggleContributionsButton').tap();
+    await phone.locator('#hideContributionsButton').tap();
     assert.equal(await phone.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'false');
     assert.equal(await phone.locator('#networkContributionPane').isVisible(), false);
     await phone.locator('#trainedVariantSelect').selectOption('square-trained-geometry-double-v1');

@@ -1449,6 +1449,9 @@ body:not(.is-replay) #detailSidebar { grid-column:5; height:var(--detail-height,
 body:not(.is-replay) #networkPrimary > .network-scroll { flex:1; min-height:0; height:auto; overflow:auto; }
 #networkPrimary > .summary-panel { flex-shrink:0; }
 #networkContributionPane { display:flex; flex-direction:column; min-width:0; min-height:0; overflow:hidden; border-left:1px solid #dde5df; background:#fafcf9; }
+.contribution-pane-toolbar { display:flex; align-items:center; justify-content:space-between; flex:none; gap:8px; padding:10px; border-bottom:1px solid #dde5df; background:#fafcf9; }
+.contribution-pane-toolbar h3 { margin:0; min-width:0; font-size:16px; }
+#hideContributionsButton { flex:none; padding:7px 10px; white-space:nowrap; font-size:12px; }
 #networkContributionPane #contributionRanking { min-height:0; max-height:none; padding:10px; }
 #networkWorkspace.is-stacked { grid-template-columns:minmax(0,1fr); grid-template-rows:var(--stack-network-height,340px) 10px minmax(0,1fr); }
 #networkWorkspace.is-stacked.is-contribution-hidden { grid-template-rows:minmax(0,1fr); }
@@ -1980,6 +1983,10 @@ body.inspector-modal-open { overflow: hidden; }
       </div>
       <div id="contributionSizeHandle" class="pane-resize-handle" aria-label="调整网络与贡献区域大小"></div>
       <aside id="networkContributionPane" class="network-contribution-pane" aria-label="当前网络输出贡献">
+        <div class="contribution-pane-toolbar">
+          <h3 id="contributionPaneTitle">输出贡献排行</h3>
+          <button id="hideContributionsButton" class="secondary" type="button" aria-label="隐藏贡献窗口" aria-controls="networkContributionPane" title="隐藏后可用顶部的“显示贡献”重新打开">隐藏贡献</button>
+        </div>
         <section id="contributionRanking" role="region" aria-label="输出贡献排行" tabindex="0"></section>
       </aside>
       </div>
@@ -5536,19 +5543,21 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
 
     function renderContributionRanking() {
       const panel = els.contributionRanking;
+      const title = document.getElementById("contributionPaneTitle");
+      title.textContent = "输出贡献排行";
       const focus = panel.contains(document.activeElement) ? rememberInspectorFocus(document.activeElement) : null;
       const scroll = panel.querySelector(".ranking-list")?.scrollTop || 0;
       // currentDisplayModel falls back to the formal model when history is unavailable.
       // Never use that fallback to fill a historical ranking.
       if (!latestForward || (backpropReplay?.active && (backpropReplay.loading || !backpropReplay.model))) {
-        panel.innerHTML = '<div class="ranking-head" data-ranking-loading><h3>输出贡献排行</h3><p>当前没有可用的计算结果。训练记录加载完成后显示；若加载失败，请在回放区重试。</p></div>';
+        panel.innerHTML = '<div class="ranking-head" data-ranking-loading><p>当前没有可用的计算结果。训练记录加载完成后显示；若加载失败，请在回放区重试。</p></div>';
         return;
       }
       const model = currentDisplayModel();
       const outputIndex = clampInt(state.rankingOutput, 0, model.layers.at(-1).weights.length - 1, 0);
       const data = OutputContributionRanking.compute(model, latestForward, outputIndex);
       if (!data) {
-        panel.innerHTML = '<div class="ranking-head"><h3>输出贡献排行</h3><p>计算数据不完整，暂时无法列出贡献。</p></div>';
+        panel.innerHTML = '<div class="ranking-head"><p>计算数据不完整，暂时无法列出贡献。</p></div>';
         return;
       }
       const number = value => OutputContributionRanking.format(value, state.rankingPrecision);
@@ -5563,7 +5572,8 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
           <div class="ranking-numbers"><div><small>${data.sourceLayer ? '神经元响应 a' : '输入值 x'}</small><b class="ranking-value">${number(row.activation)}</b></div><div><small>输出权重 w</small><b class="ranking-value">${number(row.weight)}</b></div><div><small>贡献 a × w · ${row.contribution > 0 ? '加分' : row.contribution < 0 ? '减分' : '零'}</small><b class="ranking-value ranking-${sign}" data-ranking-value>${signed(row.contribution)}</b></div><div><small>绝对值 |a × w|</small><b class="ranking-value">${number(row.magnitude)}</b></div></div>
           <div class="ranking-bar ranking-${sign}" aria-hidden="true"><i style="width:${data.maxMagnitude ? 100 * row.magnitude / data.maxMagnitude : 0}%"></i></div></article>`;
       }).join("");
-      panel.innerHTML = `<div class="ranking-head"><h3>${data.sourceLayer ? '输出贡献排行' : '输入贡献排行'}</h3><p class="ranking-context">${escapeHtml(rankingContextLabel())}</p><p>按 |响应 × 输出权重| 降序 · ${data.sourceLayer ? `最后隐藏层 H${data.sourceLayer}` : '输入层'} · 全部 ${data.rows.length} 项。正值加分，负值减分。</p></div>
+      title.textContent = data.sourceLayer ? "输出贡献排行" : "输入贡献排行";
+      panel.innerHTML = `<div class="ranking-head"><p class="ranking-context">${escapeHtml(rankingContextLabel())}</p><p>按 |响应 × 输出权重| 降序 · ${data.sourceLayer ? `最后隐藏层 H${data.sourceLayer}` : '输入层'} · 全部 ${data.rows.length} 项。正值加分，负值减分。</p></div>
         <div class="ranking-controls">${state.outputs.length > 1 ? `<label>查看输出 <select id="rankingOutputSelect">${state.outputs.map((output, i) => `<option value="${i}" ${i === outputIndex ? 'selected' : ''}>Y${i + 1} · ${escapeHtml(output.name)}</option>`).join("")}</select></label>` : `<span>Y${outputIndex + 1} · ${escapeHtml(state.outputs[outputIndex]?.name || '输出')}</span>`}<label><input id="rankingPrecision" type="checkbox" ${state.rankingPrecision ? 'checked' : ''}>完整精度</label></div>
         <div class="ranking-list" tabindex="0" aria-label="全部输出贡献，按绝对值降序">${rows}</div>
         <div class="ranking-summary"><p>正贡献之和 ＋ 负贡献之和 ＋ 偏置 ＝ ${nonlinear ? '输出加权和 z' : '输出得分'}</p>
@@ -5641,6 +5651,14 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
         else if (shouldUseLineMode()) drawConnectionLines();
         updateInspectorHeight();
       });
+    }
+
+    function setContributionsVisible(visible) {
+      const returnFocus = !visible && document.getElementById("networkContributionPane").contains(document.activeElement);
+      state.showContributions = visible;
+      saveState();
+      syncPanelLayout();
+      if (returnFocus) document.getElementById("toggleContributionsButton").focus({ preventScroll: true });
     }
 
     function syncContributionLayout() {
@@ -7105,10 +7123,9 @@ postMessage({id:d.id,result:r});}catch(e){postMessage({id:d.id,error:e.message})
       renderInspectorSidebar();
     });
     document.getElementById("toggleContributionsButton").addEventListener("click", () => {
-      state.showContributions = state.showContributions === false;
-      saveState();
-      syncPanelLayout();
+      setContributionsVisible(state.showContributions === false);
     });
+    document.getElementById("hideContributionsButton").addEventListener("click", () => setContributionsVisible(false));
     document.getElementById("resetLayoutButton").addEventListener("click", () => {
       panelResize.reset();
       state.showContributions = true;

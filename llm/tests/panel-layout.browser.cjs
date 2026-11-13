@@ -22,6 +22,28 @@ const waitLayout = page => page.evaluate(() => new Promise(resolve => requestAni
 const value = async (page, key) => Number(await handle(page, key).getAttribute('aria-valuenow'));
 const numericState = page => page.evaluate(() => JSON.stringify({ pixels: state.pixels, model: currentDisplayModel(), forward: latestForward }));
 
+async function closeContributionPane(page, replay = false) {
+  const before = await workspace(page, replay), numbers = await numericState(page);
+  const button = page.locator('#hideContributionsButton');
+  const top = await button.evaluate(node => node.getBoundingClientRect().top);
+  await page.locator('#contributionRanking').evaluate(node => { node.scrollTop = node.scrollHeight; });
+  close(await button.evaluate(node => node.getBoundingClientRect().top), top, 'Hide button stays outside scrolling numbers');
+  await button.focus(); await page.keyboard.press('Enter'); await waitLayout(page);
+  assert.equal(await page.locator('#networkContributionPane').isVisible(), false);
+  assert.equal(await page.locator('#contributionSizeHandle').isVisible(), false);
+  assert.equal(await page.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'false');
+  assert.equal(await page.locator('#toggleContributionsButton').innerText(), '显示贡献');
+  assert.equal(await page.evaluate(() => document.activeElement.id), 'toggleContributionsButton');
+  const after = await workspace(page, replay);
+  if (before.stacked) assert.ok(after.primary.height > before.primary.height + 20, 'Hiding contributions releases vertical space');
+  else assert.ok(after.primary.width > before.primary.width + 20, 'Hiding contributions releases horizontal space');
+  assert.equal(await numericState(page), numbers, 'Visibility cannot change parameters or forward results');
+  await page.keyboard.press('Space'); await waitLayout(page);
+  assert.equal(await button.isVisible(), true);
+  assert.equal(await page.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'true');
+  await workspace(page, replay);
+}
+
 async function noOverflow(page) {
   assert.equal(await page.evaluate(() => Math.max(0, document.documentElement.scrollWidth - innerWidth)), 0, 'Resizing must not create page-wide horizontal overflow');
 }
@@ -160,12 +182,9 @@ async function cancelledTouchResize(page) {
     await workspace(page); await noOverflow(page);
     for (const key of ['contribution-width', 'canvas-width', 'detail-width', 'canvas-height', 'output-height', 'network-height', 'detail-height']) await exerciseHandle(page, key);
 
-    const shown = await workspace(page), beforeToggle = await numericState(page);
-    await page.locator('#toggleContributionsButton').click(); await waitLayout(page);
-    assert.equal(await page.locator('#networkContributionPane').isVisible(), false);
-    const hidden = await workspace(page);
-    if (!shown.stacked) assert.ok(hidden.primary.width > shown.primary.width + 20, 'Hiding contributions returns horizontal space to the network');
-    assert.equal(await numericState(page), beforeToggle);
+    await closeContributionPane(page);
+    await page.locator('#hideContributionsButton').click(); await page.reload(); await waitLayout(page);
+    assert.equal(await page.locator('#networkContributionPane').isVisible(), false, 'Header hide preference survives refresh');
     await page.locator('#toggleContributionsButton').click(); await waitLayout(page); await workspace(page);
 
     // Persist a non-default size across refresh; global reset clears it and shows contributions.
@@ -212,6 +231,7 @@ async function cancelledTouchResize(page) {
     await handle(page, 'replay-left-width').dblclick(); await waitLayout(page);
     await page.locator('[data-geometry-action="fullscreen"]').click(); await page.waitForFunction(() => !!document.fullscreenElement);
     await workspace(page, true); await noOverflow(page);
+    await closeContributionPane(page, true);
     const panes = await page.locator('.replay-left,.replay-right').evaluateAll(nodes => nodes.map(node => { const r = node.getBoundingClientRect(); return { x: r.x, y: r.y, right: r.right, bottom: r.bottom }; }));
     assert.equal(panes.length, 2); assert.ok(panes[1].x > panes[0].x);
     assert.ok(panes.every(pane => pane.x >= 0 && pane.y >= 0 && pane.right <= 1921 && pane.bottom <= 1081));
@@ -230,6 +250,7 @@ async function cancelledTouchResize(page) {
     // Phone: stacked network/contributions, vertical boundaries, and a bounded detail drawer.
     await page.setViewportSize({ width: 390, height: 844 }); await waitLayout(page);
     assert.equal((await workspace(page)).stacked, true);
+    await closeContributionPane(page);
     for (const key of ['stack-network-height', 'canvas-height', 'output-height', 'network-height']) await exerciseHandle(page, key);
     await cancelledTouchResize(page);
     await page.locator('#openFeaturesButton').click(); await exerciseHandle(page, 'drawer-width');
@@ -239,6 +260,7 @@ async function cancelledTouchResize(page) {
     await page.waitForFunction(() => backpropReplay.active && !backpropReplay.loading && !!backpropReplay.model, null, { timeout: 45000 });
     await workspace(page, true);
     for (const key of ['replay-top-height', 'stack-network-height', 'replay-network-height-mobile']) await exerciseHandle(page, key);
+    await closeContributionPane(page, true);
     await page.screenshot({ path: path.join(screenshots, 'panel-layout-mobile.png') });
     await page.locator('#resetLayoutButton').click(); await waitLayout(page); await noOverflow(page);
     assert.equal(await page.locator('#toggleContributionsButton').getAttribute('aria-expanded'), 'true');
